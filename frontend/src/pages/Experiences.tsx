@@ -1,0 +1,254 @@
+import { useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { MapPin, Clock, Star, Users } from 'lucide-react';
+import type { RootState, AppDispatch } from '@/store/store';
+import { fetchProducts } from '../store/slices/productsSlice';
+import { SEOHead } from '../components/seo/SEOHead';
+
+export const Experiences = () => {
+  const dispatch = useDispatch<AppDispatch>();
+  const { products, isLoading } = useSelector((state: RootState) => state.products);
+
+  useEffect(() => {
+    dispatch(fetchProducts({ type: 'EXPERIENCE' }));
+  }, [dispatch]);
+
+  const experienceCategories = [
+    {
+      name: 'Culinary',
+      slug: 'culinary',
+      image: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg',
+      description: 'Savor authentic flavors and culinary traditions through immersive food experiences',
+      count: products.filter(p => p.category.toLowerCase().includes('culinary')).length
+    },
+    {
+      name: 'Heritage',
+      slug: 'heritage',
+      image: 'https://images.pexels.com/photos/2376995/pexels-photo-2376995.jpeg',
+      description: 'Discover India\'s rich cultural heritage through artisans, traditions, and crafts',
+      count: products.filter(p => p.category.toLowerCase().includes('heritage')).length
+    },
+    {
+      name: 'Adventure & Nature',
+      slug: 'adventure-nature',
+      image: 'https://images.pexels.com/photos/586687/pexels-photo-586687.jpeg',
+      description: 'Thrilling adventures and natural wonders for the adventurous spirit',
+      count: products.filter(p => p.category.toLowerCase().includes('adventure') || p.category.toLowerCase().includes('nature')).length
+    }
+  ];
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <SEOHead
+        title="Luxe Experiences - Unique Cultural & Adventure Experiences"
+        description="Discover extraordinary experiences in India. From culinary adventures to heritage crafts and nature expeditions. Book unique luxury experiences with Luxé TimeTravel."
+        keywords="luxury experiences india, cultural experiences, culinary tours, heritage crafts, adventure experiences"
+      />
+
+      {/* Hero Section */}
+      <section className="relative h-96 bg-gradient-to-r from-[#104c57] to-[#ff914d] text-white">
+        <div className="absolute inset-0 bg-black bg-opacity-40"></div>
+        <div className="relative z-10 flex items-center justify-center h-full">
+          <div className="text-center max-w-4xl mx-auto px-4">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">
+              Luxe Experiences
+            </h1>
+            <p className="text-xl text-gray-200">
+              Immerse yourself in extraordinary cultural adventures and unique experiences
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Experience Categories */}
+      <section className="py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#104c57] mb-4">
+              Experience Categories
+            </h2>
+            <p className="text-lg text-gray-600">
+              Choose from our curated collection of unique experiences
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+            {experienceCategories.map((category) => (
+              <Link
+                key={category.slug}
+                to={`/experiences/${category.slug}`}
+                className="group"
+              >
+                <div className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+                  <div className="relative h-64">
+                    <img
+                      src={category.image}
+                      alt={category.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 bg-black bg-opacity-30 group-hover:bg-opacity-20 transition-opacity"></div>
+                    <div className="absolute bottom-4 left-4 text-white">
+                      <h3 className="text-2xl font-bold">{category.name}</h3>
+                      <p className="text-sm opacity-90">{category.count} Experiences Available</p>
+                    </div>
+                  </div>
+                  <div className="p-6">
+                    <p className="text-gray-600">{category.description}</p>
+                    <div className="mt-4 flex items-center text-[#ff914d]">
+                      <span className="font-medium">Explore Experiences</span>
+                      <svg className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+
+          {/* All Experiences */}
+          <div>
+            <h2 className="text-3xl font-bold text-[#104c57] mb-8 text-center">
+              All Luxe Experiences
+            </h2>
+            
+            {isLoading ? (
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#ff914d] mx-auto"></div>
+              </div>
+            ) : products.length === 0 ? (
+              <div className="text-center py-12">
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  Coming Soon
+                </h3>
+                <p className="text-gray-600 mb-6">
+                  We're curating amazing experiences for you. Check back soon!
+                </p>
+                <Link
+                  to="/destinations"
+                  className="bg-[#ff914d] text-white px-6 py-3 rounded-lg hover:bg-[#e8823d] transition-colors"
+                >
+                  Explore Tours Instead
+                </Link>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {products.map((product) => (
+                  <div key={product.id} className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+                    <div className="relative h-48">
+                      <img
+                        src={product.images[0] || 'https://images.pexels.com/photos/2132227/pexels-photo-2132227.jpeg'}
+                        alt={product.title}
+                        className="w-full h-full object-cover"
+                      />
+                      {product.discountPrice && (
+                        <div className="absolute top-4 left-4 bg-[#ff914d] text-white px-3 py-1 rounded-full text-sm font-semibold">
+                          Special Offer
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-6">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="bg-[#104c57] text-white px-3 py-1 rounded-full text-sm font-medium">
+                          {product.category}
+                        </span>
+                        <div className="flex items-center">
+                          <Star className="h-4 w-4 text-yellow-400 fill-current" />
+                          <span className="text-sm text-gray-600 ml-1">4.9</span>
+                        </div>
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">{product.title}</h3>
+                      <div className="flex items-center text-gray-600 mb-3">
+                        <MapPin className="h-4 w-4 mr-1" />
+                        <span className="text-sm">{product.location}</span>
+                        <Clock className="h-4 w-4 mr-1 ml-4" />
+                        <span className="text-sm">{product.duration}</span>
+                      </div>
+                      <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                        {product.description}
+                      </p>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          {product.discountPrice ? (
+                            <>
+                              <span className="text-2xl font-bold text-[#ff914d]">
+                                ₹{product.discountPrice.toLocaleString()}
+                              </span>
+                              <span className="text-lg text-gray-500 line-through ml-2">
+                                ₹{product.price.toLocaleString()}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="text-2xl font-bold text-[#104c57]">
+                              ₹{product.price.toLocaleString()}
+                            </span>
+                          )}
+                        </div>
+                        <Link
+                          to={`/product/${product.id}`}
+                          className="bg-[#104c57] text-white px-4 py-2 rounded-lg hover:bg-[#0d3d47] transition-colors"
+                        >
+                          View Details
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* Why Choose Our Experiences */}
+      <section className="py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#104c57] mb-4">
+              Why Choose Our Experiences
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="text-center">
+              <div className="bg-[#ff914d] w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Users className="h-8 w-8 text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-[#104c57] mb-2">Local Experts</h3>
+              <p className="text-gray-600">
+                Learn from master craftsmen and local experts who share their passion and knowledge
+              </p>
+            </div>
+            <div className="text-center">
+              <div className="bg-[#ff914d] w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Star className="h-8 w-8 text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-[#104c57] mb-2">Authentic Experiences</h3>
+              <p className="text-gray-600">
+                Genuine cultural immersion that goes beyond typical tourist activities
+              </p>
+            </div>
+            <div className="text-center">
+              <div className="bg-[#ff914d] w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <MapPin className="h-8 w-8 text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-[#104c57] mb-2">Unique Locations</h3>
+              <p className="text-gray-600">
+                Access to exclusive venues and hidden gems not found in guidebooks
+              </p>
+            </div>
+            <div className="text-center">
+              <div className="bg-[#ff914d] w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Clock className="h-8 w-8 text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-[#104c57] mb-2">Small Groups</h3>
+              <p className="text-gray-600">
+                Intimate group sizes ensure personalized attention and meaningful interactions
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+};

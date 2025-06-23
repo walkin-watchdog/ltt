@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Your Booking</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #104c57 0%, #ff914d 100%); color: white; padding: 30px; text-align: center; }
+        .content { padding: 30px; background: #f9f9f9; }
+        .product-card { background: white; padding: 20px; margin: 20px 0; border-radius: 8px; display: flex; align-items: center; }
+        .product-image { width: 120px; height: 80px; object-fit: cover; border-radius: 5px; margin-right: 20px; }
+        .button { display: inline-block; background: #ff914d; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin: 10px 0; }
+        .footer { text-align: center; padding: 20px; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Luxé TimeTravel</h1>
+            <h2>Don't Miss Out!</h2>
+        </div>
+        
+        <div class="content">
+            <p>Hi {{customerName}},</p>
+            <p>You were just one step away from booking an amazing experience with us!</p>
+            
+            <div class="product-card">
+                {{#if productImage}}
+                <img src="{{productImage}}" alt="{{productTitle}}" class="product-image">
+                {{/if}}
+                <div>
+                    <h3>{{productTitle}}</h3>
+                    <p>Complete your booking and embark on this extraordinary journey.</p>
+                </div>
+            </div>
+            
+            <div style="text-align: center;">
+                <a href="{{bookingUrl}}" class="button">Complete Booking Now</a>
+            </div>
+            
+            <p>If you have any questions, our team is here to help!</p>
+        </div>
+        
+        <div class="footer">
+            <p>{{companyName}} - Discover the Extraordinary</p>
+        </div>
+    </div>
+</body>
+</html>

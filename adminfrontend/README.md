@@ -1,4 +1,46 @@
-# React + TypeScript + Vite
+# Luxé TimeTravel - Admin Frontend
+
+This is the admin frontend for the Luxé TimeTravel platform built with React + TypeScript + Vite.
+
+## Features
+
+- Product management with comprehensive forms
+- Real-time product preview matching frontend design
+- Booking and availability management
+- Trip request handling
+- User authentication and role-based access
+
+## Preview Functionality
+
+The admin panel includes a preview feature that allows administrators to see exactly how products will appear to customers on the frontend. This includes:
+
+- Product image galleries
+- Detailed descriptions and highlights
+- Package options and pricing
+- Booking interface simulation
+
+Access the preview by editing any product and clicking the "Preview" button.
+
+## Development
+
+```bash
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+
+# Build for production
+npm run build
+```
+
+## Tech Stack
+
+- React 19 with TypeScript
+- Vite for build tooling
+- Tailwind CSS for styling
+- React Router for navigation
+- Redux Toolkit for state management
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 

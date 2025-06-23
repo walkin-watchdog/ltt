@@ -1,0 +1,261 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      UserRole @default(VIEWER)
+  resetToken String?
+  resetTokenExpiry DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Product {
+  id          String      @id @default(cuid())
+  title       String
+  productCode String      @unique
+  slug        String      @unique
+  description String
+  type        ProductType
+  category    String
+  location    String
+  duration    String
+  capacity    Int
+  price       Float
+  discountPrice Float?
+  highlights  String[]
+  inclusions  String[]
+  exclusions  String[]
+  itinerary   Json?
+  images      String[]
+  tags        String[]
+  difficulty  String?
+  healthRestrictions String?
+  accessibility String?
+  guides      String[]
+  languages   String[]
+  meetingPoint String?
+  pickupLocations String[]
+  cancellationPolicy String
+  isActive    Boolean @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  packages      Package[]
+  availabilities Availability[]
+  bookings      Booking[]
+  reviews       Review[]
+  abandonedCarts AbandonedCart[]
+
+  @@map("products")
+}
+
+model Package {
+  id          String @id @default(cuid())
+  productId   String
+  name        String
+  description String
+  price       Float
+  currency    String @default("INR")
+  inclusions  String[]
+  maxPeople   Int
+  isActive    Boolean @default(true)
+
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  bookings  Booking[]
+
+  @@map("packages")
+}
+
+model Availability {
+  id        String            @id @default(cuid())
+  productId String
+  date      DateTime
+  status    AvailabilityStatus
+  available Int               @default(0)
+  booked    Int               @default(0)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, date])
+  @@map("availabilities")
+}
+
+model Booking {
+  id            String        @id @default(cuid())
+  bookingCode   String        @unique
+  productId     String
+  packageId     String?
+  customerName  String
+  customerEmail String
+  customerPhone String
+  adults        Int
+  children      Int           @default(0)
+  totalAmount   Float
+  status        BookingStatus @default(PENDING)
+  paymentStatus PaymentStatus @default(PENDING)
+  bookingDate   DateTime
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  product Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  package Package? @relation(fields: [packageId], references: [id], onDelete: SetNull)
+  payments Payment[]
+
+  @@map("bookings")
+}
+
+model Payment {
+  id              String        @id @default(cuid())
+  bookingId       String
+  razorpayOrderId String?
+  razorpayPaymentId String?
+  amount          Float
+  currency        String        @default("INR")
+  status          PaymentStatus @default(PENDING)
+  paymentMethod   String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+
+  @@map("payments")
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  productId String
+  name      String
+  email     String
+  rating    Int
+  comment   String
+  isApproved Boolean @default(false)
+  createdAt DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("reviews")
+}
+
+
+model Coupon {
+  id          String     @id @default(cuid())
+  code        String     @unique
+  description String
+  type        CouponType
+  value       Float
+  minAmount   Float?
+  maxDiscount Float?
+  usageLimit  Int?
+  usedCount   Int        @default(0)
+  isActive    Boolean    @default(true)
+  validFrom   DateTime
+  validUntil  DateTime
+  createdAt   DateTime   @default(now())
+
+  @@map("coupons")
+}
+
+model TripRequest {
+  id            String   @id @default(cuid())
+  name          String
+  email         String
+  phone         String
+  destination   String
+  startDate     DateTime
+  endDate       DateTime
+  adults        Int
+  children      Int      @default(0)
+  budget        String
+  interests     String[]
+  accommodation String
+  transport     String
+  specialRequests String?
+  status        RequestStatus @default(PENDING)
+  createdAt     DateTime @default(now())
+
+  @@map("trip_requests")
+}
+
+model Newsletter {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@map("newsletters")
+}
+
+model AbandonedCart {
+  id            String   @id @default(cuid())
+  email         String
+  productId     String
+  packageId     String?
+  customerData  Json
+  remindersSent Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("abandoned_carts")
+}
+
+enum UserRole {
+  ADMIN
+  EDITOR
+  VIEWER
+}
+
+enum ProductType {
+  TOUR
+  EXPERIENCE
+}
+
+enum AvailabilityStatus {
+  AVAILABLE
+  SOLD_OUT
+  NOT_OPERATING
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum CouponType {
+  PERCENTAGE
+  FIXED
+}
+
+enum RequestStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  CANCELLED
+}

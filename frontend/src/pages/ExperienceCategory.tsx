@@ -1,0 +1,233 @@
+import { useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { MapPin, Clock, Star } from 'lucide-react';
+import type { RootState, AppDispatch } from '@/store/store';
+import { fetchProducts } from '../store/slices/productsSlice';
+import { SEOHead } from '../components/seo/SEOHead';
+
+export const ExperienceCategory = () => {
+  const { category } = useParams<{ category: string }>();
+  const dispatch = useDispatch<AppDispatch>();
+  const { products, isLoading } = useSelector((state: RootState) => state.products);
+
+  useEffect(() => {
+    if (category) {
+      const categoryMap: { [key: string]: string } = {
+        'culinary': 'culinary',
+        'heritage': 'heritage',
+        'adventure-nature': 'adventure'
+      };
+      
+      dispatch(fetchProducts({ 
+        type: 'EXPERIENCE',
+        category: categoryMap[category] || category
+      }));
+    }
+  }, [dispatch, category]);
+
+  const categoryInfo = {
+    'culinary': {
+      name: 'Culinary Experiences',
+      description: 'Embark on a gastronomic journey through India\'s diverse culinary landscapes',
+      image: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg',
+      highlights: [
+        'Cooking classes with local chefs',
+        'Street food walking tours',
+        'Spice market explorations',
+        'Traditional cooking techniques',
+        'Regional specialty tastings'
+      ]
+    },
+    'heritage': {
+      name: 'Heritage Experiences',
+      description: 'Immerse yourself in India\'s rich cultural heritage and traditional crafts',
+      image: 'https://images.pexels.com/photos/2376995/pexels-photo-2376995.jpeg',
+      highlights: [
+        'Traditional craft workshops',
+        'Artisan demonstrations',
+        'Cultural performances',
+        'Heritage home visits',
+        'Ancient art forms'
+      ]
+    },
+    'adventure-nature': {
+      name: 'Adventure & Nature',
+      description: 'Discover India\'s natural wonders through thrilling adventures and eco-experiences',
+      image: 'https://images.pexels.com/photos/586687/pexels-photo-586687.jpeg',
+      highlights: [
+        'Wildlife photography safaris',
+        'Trekking expeditions',
+        'Bird watching tours',
+        'River rafting adventures',
+        'Eco-conservation experiences'
+      ]
+    }
+  };
+
+  const currentCategory = category ? categoryInfo[category as keyof typeof categoryInfo] : null;
+
+  if (!currentCategory) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Category Not Found</h1>
+          <Link to="/experiences" className="text-[#ff914d] hover:underline">
+            Back to Experiences
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <SEOHead
+        title={`${currentCategory.name} - Luxé TimeTravel`}
+        description={`${currentCategory.description}. Book authentic ${category} experiences in India with expert guides and small groups.`}
+        keywords={`${category} experiences india, ${category} tours, luxury ${category}, cultural ${category}`}
+        image={currentCategory.image}
+      />
+
+      {/* Hero Section */}
+      <section className="relative h-96">
+        <img
+          src={currentCategory.image}
+          alt={currentCategory.name}
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-black bg-opacity-50"></div>
+        <div className="relative z-10 flex items-center justify-center h-full">
+          <div className="text-center text-white max-w-4xl mx-auto px-4">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">
+              {currentCategory.name}
+            </h1>
+            <p className="text-xl text-gray-200">
+              {currentCategory.description}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Category Highlights */}
+      <section className="py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-[#104c57] mb-4">
+              What You'll Experience
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {currentCategory.highlights.map((highlight, index) => (
+              <div key={index} className="flex items-center p-4 bg-gray-50 rounded-lg">
+                <div className="bg-[#ff914d] w-8 h-8 rounded-full flex items-center justify-center mr-4">
+                  <span className="text-white font-bold text-sm">{index + 1}</span>
+                </div>
+                <span className="text-gray-800 font-medium">{highlight}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Experiences */}
+      <section className="py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-[#104c57] mb-4">
+              Available Experiences
+            </h2>
+            <p className="text-lg text-gray-600">
+              Discover our carefully curated {category} experiences
+            </p>
+          </div>
+
+          {isLoading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#ff914d] mx-auto"></div>
+            </div>
+          ) : products.length === 0 ? (
+            <div className="text-center py-12">
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                Coming Soon
+              </h3>
+              <p className="text-gray-600 mb-6">
+                We're curating amazing {category} experiences for you. Check back soon!
+              </p>
+              <Link
+                to="/experiences"
+                className="bg-[#ff914d] text-white px-6 py-3 rounded-lg hover:bg-[#e8823d] transition-colors"
+              >
+                Explore Other Experiences
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {products.map((product) => (
+                <div key={product.id} className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+                  <div className="relative h-48">
+                    <img
+                      src={product.images[0] || 'https://images.pexels.com/photos/2132227/pexels-photo-2132227.jpeg'}
+                      alt={product.title}
+                      className="w-full h-full object-cover"
+                    />
+                    {product.discountPrice && (
+                      <div className="absolute top-4 left-4 bg-[#ff914d] text-white px-3 py-1 rounded-full text-sm font-semibold">
+                        Special Offer
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-6">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[#104c57] text-sm font-medium uppercase">
+                        {product.category}
+                      </span>
+                      <div className="flex items-center">
+                        <Star className="h-4 w-4 text-yellow-400 fill-current" />
+                        <span className="text-sm text-gray-600 ml-1">4.9</span>
+                      </div>
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">{product.title}</h3>
+                    <div className="flex items-center text-gray-600 mb-3">
+                      <MapPin className="h-4 w-4 mr-1" />
+                      <span className="text-sm">{product.location}</span>
+                      <Clock className="h-4 w-4 mr-1 ml-4" />
+                      <span className="text-sm">{product.duration}</span>
+                    </div>
+                    <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                      {product.description}
+                    </p>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        {product.discountPrice ? (
+                          <>
+                            <span className="text-2xl font-bold text-[#ff914d]">
+                              ₹{product.discountPrice.toLocaleString()}
+                            </span>
+                            <span className="text-lg text-gray-500 line-through ml-2">
+                              ₹{product.price.toLocaleString()}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-2xl font-bold text-[#104c57]">
+                            ₹{product.price.toLocaleString()}
+                          </span>
+                        )}
+                      </div>
+                      <Link
+                        to={`/product/${product.id}`}
+                        className="bg-[#104c57] text-white px-4 py-2 rounded-lg hover:bg-[#0d3d47] transition-colors"
+                      >
+                        View Details
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+    </div>
+  );
+};
