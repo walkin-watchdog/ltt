@@ -481,7 +481,7 @@ export const BookingFlow = () => {
                     {bookingLoading ? 'Processing...' : 
                      currentStep === 1 ? 'Continue' :
                      currentStep === 2 ? 'Create Booking' :
-                     'Proceed to Payment'}
+                     'Review Payment Options'}
                   </button>
                 </div>
               )}

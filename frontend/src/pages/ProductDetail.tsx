@@ -17,6 +17,7 @@ import {
 import type { RootState, AppDispatch } from '@/store/store';
 import { fetchProduct } from '../store/slices/productsSlice';
 import { SEOHead } from '../components/seo/SEOHead';
+import { ReviewsWidget } from '../components/reviews/ReviewsWidget';
 
 export const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -307,6 +308,12 @@ export const ProductDetail = () => {
                 </div>
               </div>
             )}
+
+            {/* External Reviews Widget */}
+            <ReviewsWidget 
+              businessId={currentProduct.id}
+              className="mb-8"
+            />
           </div>
 
           {/* Booking Sidebar */}

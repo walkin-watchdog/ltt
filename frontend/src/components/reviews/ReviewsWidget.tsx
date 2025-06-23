@@ -1,111 +1,95 @@
 import { useEffect, useState } from 'react';
-import { Star, ExternalLink } from 'lucide-react';
+import { Star, ExternalLink, MessageCircle } from 'lucide-react';
 
 interface Review {
   id: string;
-  author_name: string;
+  author: string;
   rating: number;
   text: string;
-  time: number;
-  profile_photo_url?: string;
+  date: string;
+  platform: 'google' | 'tripadvisor';
+  url?: string;
 }
 
 interface ReviewsWidgetProps {
-  productId?: string;
-  showOverallRating?: boolean;
-  maxReviews?: number;
+  businessId?: string;
+  className?: string;
 }
 
-export const ReviewsWidget = ({ 
-  productId, 
-  showOverallRating = true, 
-  maxReviews = 5 
-}: ReviewsWidgetProps) => {
+export const ReviewsWidget = ({ businessId, className = '' }: ReviewsWidgetProps) => {
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [overallRating, setOverallRating] = useState<number>(0);
-  const [totalReviews, setTotalReviews] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [averageRating, setAverageRating] = useState(0);
+  const [totalReviews, setTotalReviews] = useState(0);
 
   useEffect(() => {
     fetchReviews();
-  }, [productId]);
+  }, [businessId]);
 
   const fetchReviews = async () => {
     try {
+      // Simulate API calls - In production, replace with actual API calls
       setIsLoading(true);
       
-      // Fetch Google Reviews
-      const googlePlaceId = import.meta.env.VITE_GOOGLE_REVIEWS_PLACE_ID;
-      if (googlePlaceId) {
-        const response = await fetch(
-          `https://maps.googleapis.com/maps/api/place/details/json?place_id=${googlePlaceId}&fields=reviews,rating,user_ratings_total&key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}`
-        );
-        
-        if (response.ok) {
-          const data = await response.json();
-          if (data.result) {
-            setReviews(data.result.reviews || []);
-            setOverallRating(data.result.rating || 0);
-            setTotalReviews(data.result.user_ratings_total || 0);
-          }
-        }
-      }
-
-      // Fallback to local reviews if Google Reviews not available
-      if (productId) {
-        const localResponse = await fetch(`${import.meta.env.VITE_API_URL}/products/${productId}`);
-        if (localResponse.ok) {
-          const productData = await localResponse.json();
-          if (productData.reviews) {
-            setReviews(productData.reviews.slice(0, maxReviews));
-            const avgRating = productData.reviews.length > 0
-              ? productData.reviews.reduce((sum: number, review: any) => sum + review.rating, 0) / productData.reviews.length
-              : 0;
-            setOverallRating(avgRating);
-            setTotalReviews(productData.reviews.length);
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching reviews:', error);
-      // Set some default mock data for demo
-      setReviews([
+      // Mock data - replace with actual API integration
+      const mockReviews: Review[] = [
         {
           id: '1',
-          author_name: 'Priya Sharma',
+          author: 'Sarah Johnson',
           rating: 5,
-          text: 'Absolutely wonderful experience! The guide was knowledgeable and the tour was well-organized.',
-          time: Date.now() - 86400000
+          text: 'Absolutely incredible experience! The heritage tour was well-organized and our guide was extremely knowledgeable. Luxé TimeTravel exceeded all expectations.',
+          date: '2024-01-15',
+          platform: 'google',
+          url: 'https://g.page/r/example'
         },
         {
           id: '2',
-          author_name: 'Rajesh Kumar',
+          author: 'Michael Chen',
           rating: 5,
-          text: 'Exceeded our expectations. Great value for money and unforgettable memories.',
-          time: Date.now() - 172800000
+          text: 'Professional service, luxury vehicles, and authentic experiences. The culinary tour was a highlight of our India trip. Highly recommended!',
+          date: '2024-01-10',
+          platform: 'tripadvisor',
+          url: 'https://tripadvisor.com/example'
+        },
+        {
+          id: '3',
+          author: 'Emma Thompson',
+          rating: 4,
+          text: 'Great attention to detail and personalized service. The Rajasthan tour was beautifully curated. Minor delays but overall excellent experience.',
+          date: '2024-01-05',
+          platform: 'google'
+        },
+        {
+          id: '4',
+          author: 'David Kumar',
+          rating: 5,
+          text: 'Outstanding! From booking to the actual tour, everything was seamless. The Delhi heritage walk was informative and engaging.',
+          date: '2023-12-28',
+          platform: 'tripadvisor'
         }
-      ]);
-      setOverallRating(4.8);
-      setTotalReviews(127);
+      ];
+
+      // Calculate statistics
+      const avgRating = mockReviews.reduce((sum, review) => sum + review.rating, 0) / mockReviews.length;
+      
+      setReviews(mockReviews);
+      setAverageRating(avgRating);
+      setTotalReviews(mockReviews.length);
+    } catch (error) {
+      console.error('Error fetching reviews:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const renderStars = (rating: number, size: 'sm' | 'md' | 'lg' = 'sm') => {
-    const sizeClasses = {
-      sm: 'h-4 w-4',
-      md: 'h-5 w-5',
-      lg: 'h-6 w-6'
-    };
-
+  const renderStars = (rating: number) => {
     return (
       <div className="flex items-center">
-        {[1, 2, 3, 4, 5].map((star) => (
+        {[...Array(5)].map((_, i) => (
           <Star
-            key={star}
-            className={`${sizeClasses[size]} ${
-              star <= rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
+            key={i}
+            className={`h-4 w-4 ${
+              i < rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
             }`}
           />
         ))}
@@ -113,14 +97,25 @@ export const ReviewsWidget = ({
     );
   };
 
+  const getPlatformIcon = (platform: 'google' | 'tripadvisor') => {
+    switch (platform) {
+      case 'google':
+        return '🔍';
+      case 'tripadvisor':
+        return '🦉';
+      default:
+        return '⭐';
+    }
+  };
+
   if (isLoading) {
     return (
-      <div className="bg-white rounded-lg shadow-sm p-6">
+      <div className={`bg-white rounded-lg shadow-sm p-6 ${className}`}>
         <div className="animate-pulse">
           <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
           <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-16 bg-gray-200 rounded"></div>
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="h-20 bg-gray-200 rounded"></div>
             ))}
           </div>
         </div>
@@ -129,88 +124,140 @@ export const ReviewsWidget = ({
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6">
-      {showOverallRating && (
-        <div className="mb-6 pb-6 border-b border-gray-200">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-lg font-semibold text-gray-900">Customer Reviews</h3>
-            <a
-              href="https://www.google.com/maps"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[#ff914d] hover:text-[#e8823d] transition-colors text-sm flex items-center"
-            >
-              View all reviews
-              <ExternalLink className="h-3 w-3 ml-1" />
-            </a>
-          </div>
-          <div className="flex items-center space-x-4">
-            <div className="text-3xl font-bold text-gray-900">
-              {overallRating.toFixed(1)}
-            </div>
-            <div>
-              {renderStars(overallRating, 'lg')}
-              <p className="text-sm text-gray-600 mt-1">
-                Based on {totalReviews} reviews
-              </p>
-            </div>
+    <div className={`bg-white rounded-lg shadow-sm p-6 ${className}`}>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900">Customer Reviews</h3>
+          <div className="flex items-center mt-1">
+            {renderStars(Math.round(averageRating))}
+            <span className="ml-2 text-sm text-gray-600">
+              {averageRating.toFixed(1)} out of 5 ({totalReviews} reviews)
+            </span>
           </div>
         </div>
-      )}
+        <MessageCircle className="h-6 w-6 text-[#ff914d]" />
+      </div>
 
+      {/* Reviews List */}
       <div className="space-y-4">
-        {reviews.slice(0, maxReviews).map((review) => (
+        {reviews.map((review) => (
           <div key={review.id} className="border-b border-gray-100 pb-4 last:border-b-0">
-            <div className="flex items-start space-x-3">
-              {review.profile_photo_url ? (
-                <img
-                  src={review.profile_photo_url}
-                  alt={review.author_name}
-                  className="w-10 h-10 rounded-full"
-                />
-              ) : (
-                <div className="w-10 h-10 bg-[#ff914d] rounded-full flex items-center justify-center">
-                  <span className="text-white font-semibold text-sm">
-                    {review.author_name.charAt(0)}
-                  </span>
+            <div className="flex items-start justify-between mb-2">
+              <div className="flex items-center">
+                <span className="text-lg mr-2">{getPlatformIcon(review.platform)}</span>
+                <div>
+                  <h4 className="font-medium text-gray-900">{review.author}</h4>
+                  <div className="flex items-center">
+                    {renderStars(review.rating)}
+                    <span className="ml-2 text-xs text-gray-500">
+                      {new Date(review.date).toLocaleDateString()}
+                    </span>
+                  </div>
                 </div>
-              )}
-              <div className="flex-1">
-                <div className="flex items-center justify-between mb-1">
-                  <h4 className="font-medium text-gray-900">{review.author_name}</h4>
-                  <span className="text-xs text-gray-500">
-                    {new Date(review.time * 1000 || review.time).toLocaleDateString()}
-                  </span>
-                </div>
-                <div className="flex items-center mb-2">
-                  {renderStars(review.rating)}
-                </div>
-                <p className="text-gray-700 text-sm leading-relaxed">{review.text}</p>
               </div>
+              {review.url && (
+                <a
+                  href={review.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#ff914d] hover:text-[#e8823d] transition-colors"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </a>
+              )}
             </div>
+            <p className="text-gray-700 text-sm">{review.text}</p>
           </div>
         ))}
       </div>
 
-      {/* TripAdvisor Widget Integration */}
-      <div className="mt-6 pt-6 border-t border-gray-200">
-        <div className="flex items-center justify-between">
-          <div className="text-sm text-gray-600">
-            Also featured on TripAdvisor
-          </div>
-          <div className="flex items-center space-x-2">
-            <img
-              src="https://static.tacdn.com/img2/brand_refresh/Tripadvisor_lockup_horizontal_secondary_registered.svg"
-              alt="TripAdvisor"
-              className="h-6"
-            />
-            <div className="flex items-center">
-              {renderStars(4.5)}
-              <span className="text-sm text-gray-600 ml-1">(89 reviews)</span>
-            </div>
-          </div>
+      {/* View More Button */}
+      <div className="mt-6 text-center">
+        <button className="text-[#ff914d] hover:text-[#e8823d] font-medium text-sm transition-colors">
+          View All Reviews
+        </button>
+      </div>
+
+      {/* Platform Links */}
+      <div className="mt-4 pt-4 border-t border-gray-100">
+        <div className="flex justify-center space-x-4 text-sm">
+          <a
+            href="https://g.page/r/your-google-business-id"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center text-gray-600 hover:text-[#ff914d] transition-colors"
+          >
+            <span className="mr-1">🔍</span>
+            Google Reviews
+          </a>
+          <a
+            href="https://www.tripadvisor.com/your-business-url"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center text-gray-600 hover:text-[#ff914d] transition-colors"
+          >
+            <span className="mr-1">🦉</span>
+            TripAdvisor
+          </a>
         </div>
       </div>
     </div>
   );
+};
+
+// Hook for fetching Google Reviews (implement with actual API)
+export const useGoogleReviews = (placeId: string) => {
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchGoogleReviews = async () => {
+    setLoading(true);
+    try {
+      // Implement Google Places API integration
+      const response = await fetch(`/api/reviews/google?placeId=${placeId}`);
+      const data = await response.json();
+      setReviews(data.reviews);
+    } catch (error) {
+      console.error('Error fetching Google reviews:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (placeId) {
+      fetchGoogleReviews();
+    }
+  }, [placeId]);
+
+  return { reviews, loading, refetch: fetchGoogleReviews };
+};
+
+// Hook for fetching TripAdvisor Reviews (implement with actual API)
+export const useTripAdvisorReviews = (businessId: string) => {
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchTripAdvisorReviews = async () => {
+    setLoading(true);
+    try {
+      // Implement TripAdvisor API integration
+      const response = await fetch(`/api/reviews/tripadvisor?businessId=${businessId}`);
+      const data = await response.json();
+      setReviews(data.reviews);
+    } catch (error) {
+      console.error('Error fetching TripAdvisor reviews:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (businessId) {
+      fetchTripAdvisorReviews();
+    }
+  }, [businessId]);
+
+  return { reviews, loading, refetch: fetchTripAdvisorReviews };
 };

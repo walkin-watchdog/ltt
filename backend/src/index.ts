@@ -23,6 +23,8 @@ import uploadRoutes from './routes/uploads';
 import searchRoutes from './routes/search';
 import abandonedCartRoutes from './routes/abandonedCart';
 import { createAdmin } from './create-admin';
+import reviewsRoutes from './routes/reviews';
+import paypalPaymentRoutes from './routes/paypalPayments';
 
 dotenv.config();
 
@@ -62,6 +64,8 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/uploads', uploadRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/abandoned-carts', abandonedCartRoutes);
+app.use('/api/reviews', reviewsRoutes);
+app.use('/api/payments/paypal', paypalPaymentRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
