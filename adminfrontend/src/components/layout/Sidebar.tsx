@@ -5,6 +5,7 @@ import {
   Calendar, 
   BookOpen, 
   MessageSquare,
+  ShoppingCart,
   Settings,
   LogOut
 } from 'lucide-react';
@@ -16,6 +17,7 @@ const navigation = [
   { name: 'Availability', href: '/availability', icon: Calendar },
   { name: 'Bookings', href: '/bookings', icon: BookOpen },
   { name: 'Requests', href: '/requests', icon: MessageSquare },
+  { name: 'Abandoned Carts', href: '/abandoned-carts', icon: ShoppingCart },
 ];
 
 export const Sidebar = () => {

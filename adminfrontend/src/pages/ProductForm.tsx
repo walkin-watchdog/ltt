@@ -5,7 +5,9 @@ import { ProductContentTab } from '../components/products/ProductContentTab';
 import { SchedulePriceTab } from '../components/products/SchedulePriceTab';
 import { BookingDetailsTab } from '../components/products/BookingDetailsTab';
 import { SpecialOffersTab } from '../components/products/SpecialOffersTab';
+
 import { Save, ArrowLeft, Eye } from 'lucide-react';
+import { AvailabilityTab } from '@/components/availability/AvailabilityTab';
 
 interface ProductFormData {
   // Basic Details
@@ -44,6 +46,7 @@ interface ProductFormData {
   
   // Packages will be handled separately
   packages?: any[];
+  availabilities?: any[];
 }
 
 const tabs = [
@@ -51,6 +54,7 @@ const tabs = [
   { id: 'schedule', name: 'Schedule & Price', component: SchedulePriceTab },
   { id: 'booking', name: 'Booking Details', component: BookingDetailsTab },
   { id: 'offers', name: 'Special Offers', component: SpecialOffersTab },
+  { id: 'availability', name: 'Availability', component: AvailabilityTab },
 ];
 
 export const ProductForm = () => {
@@ -81,6 +85,7 @@ export const ProductForm = () => {
     guides: [],
     languages: [],
     cancellationPolicy: '',
+    availabilities: [],
   });
 
   useEffect(() => {
@@ -117,6 +122,9 @@ export const ProductForm = () => {
       const url = isEdit 
         ? `${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/products/${id}`
         : `${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/products`;
+
+      // Prepare the data for submission - remove availabilities as they will be handled separately
+      const { availabilities, ...productData } = formData;
       
       const method = isEdit ? 'PUT' : 'POST';
 
@@ -126,15 +134,48 @@ export const ProductForm = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(productData),
       });
 
-      if (response.ok) {
-        navigate('/products');
-      } else {
+      if (!response.ok) {
         const error = await response.json();
         alert(error.error || 'Failed to save product');
+        return;
       }
+      
+      const savedProduct = await response.json();
+      
+      // If we have availabilities to save
+      if (formData.availabilities && formData.availabilities.length > 0) {
+        try {
+          // Update the product ID for new products
+          const productId = savedProduct.id;
+          const availabilityUpdates = formData.availabilities.map((a: any) => ({
+            ...a,
+            productId
+          }));
+          
+          // Use bulk update for availabilities
+          const availResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/availability/bulk`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({ updates: availabilityUpdates }),
+          });
+          
+          if (!availResponse.ok) {
+            console.error('Failed to save availability data');
+          }
+        } catch (availError) {
+          console.error('Error saving availability:', availError);
+        }
+      }
+      
+      // Navigate after all operations are complete
+      navigate('/products');
+      
     } catch (error) {
       console.error('Error saving product:', error);
       alert('Failed to save product');

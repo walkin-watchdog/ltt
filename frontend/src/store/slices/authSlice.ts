@@ -10,6 +10,7 @@ interface User {
 interface AuthState {
   user: User | null;
   token: string | null;
+  email: string | null;
   isLoading: boolean;
   error: string | null;
 }
@@ -17,6 +18,7 @@ interface AuthState {
 const initialState: AuthState = {
   user: null,
   token: localStorage.getItem('token'),
+  email: localStorage.getItem('user_email'),
   isLoading: false,
   error: null,
 };
@@ -39,6 +41,7 @@ export const login = createAsyncThunk(
 
     const data = await response.json();
     localStorage.setItem('token', data.token);
+    localStorage.setItem('user_email', email);
     return data;
   }
 );
@@ -49,8 +52,10 @@ const authSlice = createSlice({
   reducers: {
     logout: (state) => {
       localStorage.removeItem('token');
+      localStorage.removeItem('user_email');
       state.user = null;
       state.token = null;
+      state.email = null;
       state.error = null;
     },
     clearError: (state) => {
@@ -66,6 +71,7 @@ const authSlice = createSlice({
       .addCase(login.fulfilled, (state, action) => {
         state.isLoading = false;
         state.user = action.payload.user;
+        state.email = action.payload.user.email;
         state.token = action.payload.token;
         state.error = null;
       })

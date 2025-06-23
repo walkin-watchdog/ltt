@@ -9,6 +9,7 @@ import { Dashboard } from './pages/Dashboard';
 import { Products } from './pages/Products';
 import { ProductForm } from './pages/ProductForm';
 import { ProductPreview } from './pages/ProductPreview';
+import { AbandonedCarts } from './pages/AbandonedCarts';
 import { Availability } from './pages/Availability';
 import { Bookings } from './pages/Bookings';
 import { Requests } from './pages/Requests';
@@ -75,6 +76,13 @@ function App() {
                 <ProtectedRoute>
                   <Layout>
                     <Requests />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/abandoned-carts" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <AbandonedCarts />
                   </Layout>
                 </ProtectedRoute>
               } />

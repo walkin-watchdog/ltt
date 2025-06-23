@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { 
   MapPin, 
@@ -25,6 +25,10 @@ export const ProductDetail = () => {
   const { currentProduct, isLoading } = useSelector((state: RootState) => state.products);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedPackage, setSelectedPackage] = useState<any>(null);
+  const { email } = useSelector((state: RootState) => state.auth);
+  const [abandonedCart, setAbandonedCart] = useState<any>(null);
+  const [showRecoveryPrompt, setShowRecoveryPrompt] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (id) {
@@ -38,6 +42,42 @@ export const ProductDetail = () => {
     }
   }, [currentProduct]);
 
+  // Check for abandoned cart when component mounts
+  useEffect(() => {
+    if (id && email) {
+      checkForAbandonedCart();
+    }
+  }, [id, email]);
+  
+  const checkForAbandonedCart = async () => {
+    try {
+      // Simulate checking for abandoned cart - in a real implementation, we'd
+      // have an endpoint to check by email and productId
+      // For now, we'll use localStorage as a simple demonstration
+      const savedCart = localStorage.getItem(`abandoned_cart_${id}_${email}`);
+      
+      if (savedCart) {
+        const cartData = JSON.parse(savedCart);
+        setAbandonedCart(cartData);
+        setShowRecoveryPrompt(true);
+      }
+    } catch (error) {
+      console.error('Error checking for abandoned cart:', error);
+    }
+  };
+  
+  const handleRecoverCart = () => {
+    if (abandonedCart) {
+      // Navigate to booking page with recover flag
+      navigate(`/book/${id}?recover=true`);
+    }
+    setShowRecoveryPrompt(false);
+  };
+  
+  const dismissRecoveryPrompt = () => {
+    setShowRecoveryPrompt(false);
+  };
+  
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -71,7 +111,7 @@ export const ProductDetail = () => {
     );
   };
 
-  const averageRating = currentProduct.reviews?.length > 0
+  const averageRating = currentProduct.reviews && currentProduct.reviews.length > 0
     ? currentProduct.reviews.reduce((sum: number, review: any) => sum + review.rating, 0) / currentProduct.reviews.length
     : 4.8;
 
@@ -108,6 +148,34 @@ export const ProductDetail = () => {
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Abandoned Cart Recovery Prompt */}
+        {showRecoveryPrompt && (
+          <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 rounded-lg">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <Calendar className="h-5 w-5 text-blue-600" />
+              </div>
+              <div className="ml-3">
+                <p className="text-blue-700 font-medium">You have an unfinished booking for this product</p>
+                <div className="mt-2 flex items-center">
+                  <button 
+                    onClick={handleRecoverCart}
+                    className="mr-4 bg-blue-100 hover:bg-blue-200 text-blue-800 px-3 py-1 rounded text-sm"
+                  >
+                    Continue Booking
+                  </button>
+                  <button 
+                    onClick={dismissRecoveryPrompt}
+                    className="text-blue-700 hover:text-blue-900 text-sm"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2">

@@ -193,7 +193,7 @@ export const Dashboard = () => {
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Revenue by Category</h3>
           <div className="space-y-4">
             {stats?.revenueByCategory.map((category: any, index: number) => (
-              <div key={product.id} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg">
+              <div key={category.category || index} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg">
                 <div className="flex items-center">
                   <div className="bg-[#ff914d] text-white rounded-full h-8 w-8 flex items-center justify-center text-sm font-semibold mr-3">
                     {index + 1}

@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { Calendar, User, CreditCard, CheckCircle, Phone, Mail, MapPin } from 'lucide-react';
+import { Calendar, User, CreditCard, CheckCircle, Phone, Mail, MapPin, CalendarIcon } from 'lucide-react';
 import type { RootState, AppDispatch } from '@/store/store';
 import { fetchProduct } from '../store/slices/productsSlice';
 import { createBooking } from '../store/slices/bookingSlice';
+import { trackBookingStart } from '../components/analytics/GoogleAnalytics';
 
 interface BookingFormData {
   selectedDate: string;
@@ -38,6 +39,8 @@ export const BookingFlow = () => {
     notes: ''
   });
 
+  const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
     if (productId) {
       dispatch(fetchProduct(productId));
@@ -55,11 +58,73 @@ export const BookingFlow = () => {
     }
   }, [currentProduct, searchParams]);
 
+  // Save incomplete booking to abandoned cart after user has entered minimum info
+  useEffect(() => {
+    // Only track once we have minimum required data (email and product)
+    if (formData.customerEmail && currentProduct?.id && currentStep === 2) {
+      // Clear any existing timeout
+      if (saveTimeout) {
+        clearTimeout(saveTimeout);
+      }
+      
+      // Set a new timeout to avoid too many API calls
+      const timeout = setTimeout(() => {
+        saveToAbandonedCart();
+      }, 5000); // Wait 5 seconds after user stops typing
+      
+      setSaveTimeout(timeout);
+    }
+    
+    return () => {
+      if (saveTimeout) {
+        clearTimeout(saveTimeout);
+      }
+    };
+  }, [formData, currentStep]);
+
   const calculateTotal = () => {
     const basePrice = formData.selectedPackage?.price || currentProduct?.discountPrice || currentProduct?.price || 0;
     const adultPrice = basePrice * formData.adults;
     const childPrice = basePrice * 0.5 * formData.children; // 50% for children
     return adultPrice + childPrice;
+  };
+
+  const saveToAbandonedCart = async () => {
+    if (!formData.customerEmail || !currentProduct?.id) return;
+    
+    try {
+      // Format the data for the abandoned cart API
+      const cartData = {
+        email: formData.customerEmail,
+        productId: currentProduct.id,
+        packageId: formData.selectedPackage?.id,
+        customerData: {
+          customerName: formData.customerName,
+          customerEmail: formData.customerEmail,
+          customerPhone: formData.customerPhone,
+          adults: formData.adults,
+          children: formData.children,
+          selectedDate: formData.selectedDate,
+          totalAmount: calculateTotal()
+        }
+      };
+      
+      // Send to backend
+      await fetch(`${import.meta.env.VITE_API_URL}/abandoned-carts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(cartData)
+      });
+      
+      // Track the abandoned cart event for analytics
+      trackBookingStart(currentProduct.id, currentProduct.title);
+      
+    } catch (error) {
+      console.error('Error saving abandoned cart:', error);
+      // Fail silently - don't interrupt user experience
+    }
   };
 
   const handleStepSubmit = async () => {
@@ -71,6 +136,11 @@ export const BookingFlow = () => {
       }
       setCurrentStep(2);
     } else if (currentStep === 2) {
+      // Clear any abandoned cart timeout
+      if (saveTimeout) {
+        clearTimeout(saveTimeout);
+      }
+      
       // Validate step 2 and create booking
       if (!formData.customerName || !formData.customerEmail || !formData.customerPhone) {
         alert('Please fill in all required fields');
@@ -218,6 +288,24 @@ export const BookingFlow = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2">
+            {/* Recover abandoned cart message - would appear if we detect a returning user */}
+            {currentStep === 1 && searchParams.get('recover') && (
+              <div className="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-lg mb-6">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <CalendarIcon className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm font-medium">
+                      We've restored your previous booking details!
+                    </p>
+                    <p className="text-sm mt-1">
+                      You can continue where you left off or update your selection.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
             <div className="bg-white rounded-lg shadow-sm p-6">
               {/* Step 1: Date & Participants */}
               {currentStep === 1 && (
