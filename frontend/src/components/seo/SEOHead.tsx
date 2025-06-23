@@ -1,4 +1,5 @@
 import { Helmet } from 'react-helmet-async';
+import { getCanonicalUrl } from '../../seo-utils';
 
 interface SEOHeadProps {
   title?: string;
@@ -27,6 +28,7 @@ export const SEOHead = ({
 }: SEOHeadProps) => {
   const fullTitle = title.includes('Luxé TimeTravel') ? title : `${title} | Luxé TimeTravel`;
   const fullImageUrl = image.startsWith('http') ? image : `${window.location.origin}${image}`;
+  const canonicalUrl = url || getCanonicalUrl(window.location.pathname);
 
   return (
     <Helmet>
@@ -35,13 +37,17 @@ export const SEOHead = ({
       <meta name="description" content={description} />
       <meta name="keywords" content={keywords} />
       <meta name="author" content={author} />
-      <link rel="canonical" href={url} />
+      <link rel="canonical" href={canonicalUrl} />
+      
+      {/* Additional tags for SEO */}
+      <meta name="robots" content="index, follow" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
       {/* Open Graph Meta Tags */}
       <meta property="og:title" content={fullTitle} />
       <meta property="og:description" content={description} />
       <meta property="og:image" content={fullImageUrl} />
-      <meta property="og:url" content={url} />
+      <meta property="og:url" content={canonicalUrl} />
       <meta property="og:type" content={type} />
       <meta property="og:site_name" content="Luxé TimeTravel" />
 
@@ -52,8 +58,6 @@ export const SEOHead = ({
       <meta name="twitter:image" content={fullImageUrl} />
 
       {/* Additional Meta Tags */}
-      <meta name="robots" content="index, follow" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       <meta httpEquiv="Content-Language" content="en" />
       
       {/* Article specific meta tags */}
@@ -68,6 +72,10 @@ export const SEOHead = ({
         </script>
       )}
 
+      {/* Preload critical assets */}
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+      
       {/* Default Structured Data for Organization */}
       <script type="application/ld+json">
         {JSON.stringify({
@@ -75,7 +83,7 @@ export const SEOHead = ({
           "@type": "TravelAgency",
           "name": "Luxé TimeTravel",
           "description": "Discover the Extraordinary with our curated luxury travel experiences",
-          "url": "https://luxetimetravel.com",
+          "url": canonicalUrl.split('/').slice(0, 3).join('/'),
           "logo": `${window.location.origin}/images/logo.png`,
           "sameAs": [
             "https://facebook.com/luxetimetravel",

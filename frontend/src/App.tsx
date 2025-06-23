@@ -15,6 +15,10 @@ import { Home } from './pages/Home';
 import { Destinations } from './pages/Destinations';
 import { DestinationCity } from './pages/DestinationCity';
 import { Experiences } from './pages/Experiences';
+import { Blog } from './pages/Blog';
+import { BlogPost } from './pages/BlogPost';
+import { BlogCategory } from './pages/BlogCategory';
+import { BlogTag } from './pages/BlogTag';
 import { ExperienceCategory } from './pages/ExperienceCategory';
 import { ProductDetail } from './pages/ProductDetail';
 import { SpecialOffers } from './pages/SpecialOffers';
@@ -90,6 +94,10 @@ function App() {
                 <Route path="/destinations/:city" element={<DestinationCity />} />
                 <Route path="/experiences" element={<Experiences />} />
                 <Route path="/experiences/:category" element={<ExperienceCategory />} />
+                <Route path="/blog" element={<Blog />} />
+                <Route path="/blog/:slug" element={<BlogPost />} />
+                <Route path="/blog/category/:slug" element={<BlogCategory />} />
+                <Route path="/blog/tag/:slug" element={<BlogTag />} />
                 <Route path="/product/:id" element={<ProductDetail />} />
                 <Route path="/offers" element={<SpecialOffers />} />
                 <Route path="/plan-your-trip" element={<PlanYourTrip />} />
