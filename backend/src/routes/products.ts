@@ -31,7 +31,9 @@ const productSchema = z.object({
   meetingPoint: z.string().optional().nullable(),
   pickupLocations: z.array(z.string()),
   cancellationPolicy: z.string().min(1),
-  isActive: z.boolean().default(true)
+  isActive: z.boolean().default(true),
+  availabilityStartDate: z.string().transform(str => new Date(str)),
+  availabilityEndDate: z.string().transform(str => new Date(str)).optional()
 });
 
 // Get all products (public)
@@ -199,6 +201,31 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
       }
     });
 
+    // Auto-create availability records for the date range
+    if (data.availabilityStartDate) {
+      const startDate = new Date(data.availabilityStartDate);
+      const endDate = data.availabilityEndDate || new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000); // Default 30 days
+      
+      const availabilityRecords = [];
+      const currentDate = new Date(startDate);
+      
+      while (currentDate <= endDate) {
+        availabilityRecords.push({
+          productId: product.id,
+          date: new Date(currentDate),
+          status: 'AVAILABLE',
+          available: data.capacity
+        });
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+
+      if (availabilityRecords.length > 0) {
+        await prisma.availability.createMany({
+          data: availabilityRecords
+        });
+      }
+    }
+
     res.status(201).json(product);
   } catch (error) {
     next(error);
@@ -222,6 +249,59 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
         packages: true
       }
     });
+
+    // Update availability if date range changed
+    if (data.availabilityStartDate || data.availabilityEndDate) {
+      const existingProduct = await prisma.product.findUnique({
+        where: { id: req.params.id }
+      });
+
+      if (existingProduct) {
+        const startDate = data.availabilityStartDate || existingProduct.availabilityStartDate;
+        const endDate = data.availabilityEndDate || existingProduct.availabilityEndDate || 
+                       new Date(startDate!.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+        if (startDate) {
+          // Remove existing availability records beyond the new range
+          await prisma.availability.deleteMany({
+            where: {
+              productId: req.params.id,
+              OR: [
+                { date: { lt: startDate } },
+                { date: { gt: endDate } }
+              ]
+            }
+          });
+
+          // Add missing availability records within the range
+          const existingDates = await prisma.availability.findMany({
+            where: { productId: req.params.id },
+            select: { date: true }
+          });
+          
+          const existingDateStrings = existingDates.map(d => d.date.toISOString().split('T')[0]);
+          const newRecords = [];
+          const currentDate = new Date(startDate);
+
+          while (currentDate <= endDate) {
+            const dateString = currentDate.toISOString().split('T')[0];
+            if (!existingDateStrings.includes(dateString)) {
+              newRecords.push({
+                productId: req.params.id,
+                date: new Date(currentDate),
+                status: 'AVAILABLE',
+                available: product.capacity
+              });
+            }
+            currentDate.setDate(currentDate.getDate() + 1);
+          }
+
+          if (newRecords.length > 0) {
+            await prisma.availability.createMany({ data: newRecords });
+          }
+        }
+      }
+    }
 
     res.json(product);
   } catch (error) {

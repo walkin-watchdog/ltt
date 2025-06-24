@@ -118,104 +118,88 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
 });
 
 // Bulk update availability (Admin/Editor only)
-// router.post('/bulk-update', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, next) => {
-//   try {
-//     const { productId, startDate, endDate, status, available } = z.object({
-//       productId: z.string(),
-//       startDate: z.string().transform(str => new Date(str)),
-//       endDate: z.string().transform(str => new Date(str)),
-//       status: z.enum(['AVAILABLE', 'SOLD_OUT', 'NOT_OPERATING']),
-//       available: z.number().min(0).optional()
-//     }).parse(req.body);
-
-//     const dates = [];
-//     let currentDate = new Date(startDate);
-//     const endDateObj = new Date(endDate);
-
-//     while (currentDate <= endDateObj) {
-//       dates.push(new Date(currentDate));
-//       currentDate.setDate(currentDate.getDate() + 1);
-//     }
-
-//     const results = [];
-//     for (const date of dates) {
-//       const result = await prisma.availability.upsert({
-//         where: {
-//           productId_date: {
-//             productId,
-//             date
-//           }
-//         },
-//         update: {
-//           status,
-//           available: available || 0
-//         },
-//         create: {
-//           productId,
-//           date,
-//           status,
-//           available: available || 0
-//         }
-//       });
-//       results.push(result);
-//     }
-
-//     res.json({ 
-//       message: `Updated availability for ${results.length} dates`,
-//       results 
-//     });
-//   } catch (error) {
-//     next(error);
-//   }
-// });
-
-// // Get availability statistics (Admin/Editor/Viewer)
-// router.get('/stats', authenticate, authorize(['ADMIN', 'EDITOR', 'VIEWER']), async (req, res, next) => {
-//   try {
-//     const { productId, year, month } = req.query;
+router.post('/bulk', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, next) => {
+  try {
+    const { updates } = req.body;
     
-//     const where: any = {};
-//     if (productId) where.productId = productId;
+    if (!Array.isArray(updates)) {
+      return res.status(400).json({ error: 'Updates must be an array' });
+    }
+
+    const results = [];
     
-//     if (year) {
-//       const startOfYear = new Date(parseInt(year as string), 0, 1);
-//       const endOfYear = new Date(parseInt(year as string), 11, 31);
-//       where.date = { gte: startOfYear, lte: endOfYear };
+    for (const update of updates) {
+      const data = availabilitySchema.parse(update);
       
-//       if (month) {
-//         const startOfMonth = new Date(parseInt(year as string), parseInt(month as string) - 1, 1);
-//         const endOfMonth = new Date(parseInt(year as string), parseInt(month as string), 0);
-//         where.date = { gte: startOfMonth, lte: endOfMonth };
-//       }
-//     }
+      const availability = await prisma.availability.upsert({
+        where: {
+          productId_date: {
+            productId: data.productId,
+            date: data.date
+          }
+        },
+        update: {
+          status: data.status,
+          available: data.available || 0
+        },
+        create: {
+          productId: data.productId,
+          date: data.date,
+          status: data.status,
+          available: data.available || 0
+        }
+      });
+      
+      results.push(availability);
+    }
 
-//     const stats = await prisma.availability.groupBy({
-//       by: ['status'],
-//       where,
-//       _count: { status: true },
-//       _sum: { available: true }
-//     });
+    res.json({ message: 'Bulk update completed', count: results.length, results });
+  } catch (error) {
+    next(error);
+  }
+});
 
-//     const totalStats = await prisma.availability.aggregate({
-//       where,
-//       _count: { id: true },
-//       _sum: { available: true, booked: true }
-//     });
+// Block specific dates (Admin/Editor only)
+router.post('/block', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, next) => {
+  try {
+    const { productId, dates, status = 'NOT_OPERATING' } = req.body;
+    
+    if (!productId || !Array.isArray(dates)) {
+      return res.status(400).json({ error: 'Product ID and dates array are required' });
+    }
 
-//     res.json({
-//       byStatus: stats,
-//       totals: {
-//         totalDays: totalStats._count.id,
-//         totalCapacity: totalStats._sum.available || 0,
-//         totalBooked: totalStats._sum.booked || 0,
-//         utilizationRate: totalStats._sum.available ? 
-//           ((totalStats._sum.booked || 0) / totalStats._sum.available * 100).toFixed(2) : 0
-//       }
-//     });
-//   } catch (error) {
-//     next(error);
-//   }
-// });
+    const updates = dates.map(date => ({
+      productId,
+      date: new Date(date),
+      status,
+      available: 0
+    }));
+
+    const results = [];
+    
+    for (const update of updates) {
+      const availability = await prisma.availability.upsert({
+        where: {
+          productId_date: {
+            productId: update.productId,
+            date: update.date
+          }
+        },
+        update: {
+          status: update.status,
+          available: update.available
+        },
+        create: update
+      });
+      
+      results.push(availability);
+    }
+
+    res.json({ message: 'Dates blocked successfully', count: results.length });
+  } catch (error) {
+    next(error);
+  }
+});
 
 // Update availability (Admin/Editor only)
 router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, next) => {

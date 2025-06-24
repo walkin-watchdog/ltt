@@ -43,6 +43,10 @@ interface ProductFormData {
   // Policies
   cancellationPolicy: string;
   isActive: boolean;
+  
+  // Availability
+  availabilityStartDate: string;
+  availabilityEndDate?: string;
 }
 
 const tabs = [
@@ -81,6 +85,7 @@ export const ProductForm = () => {
     languages: [],
     cancellationPolicy: '',
     isActive: true,
+    availabilityStartDate: '',
   });
 
   useEffect(() => {
@@ -136,37 +141,6 @@ export const ProductForm = () => {
       }
       
       const savedProduct = await response.json();
-      
-      // Create initial availability for the next 30 days for new products
-      if (!isEdit) {
-        try {
-          const availabilityUpdates = [];
-          const today = new Date();
-          
-          for (let i = 0; i < 30; i++) {
-            const date = new Date(today);
-            date.setDate(date.getDate() + i);
-            
-            availabilityUpdates.push({
-              productId: savedProduct.id,
-              date: date.toISOString().split('T')[0],
-              status: 'AVAILABLE',
-              available: formData.capacity || 10
-            });
-          }
-          
-          await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/availability/bulk`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`,
-            },
-            body: JSON.stringify({ updates: availabilityUpdates }),
-          });
-        } catch (availError) {
-          console.error('Error creating initial availability:', availError);
-        }
-      }
       
       navigate('/products');
       
