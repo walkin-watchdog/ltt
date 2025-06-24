@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Upload, X, Plus, Trash2, Image as ImageIcon } from 'lucide-react';
+import { X, Plus, Image as ImageIcon } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface ProductContentTabProps {

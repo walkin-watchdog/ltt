@@ -6,7 +6,6 @@ import {
   BookOpen, 
   MessageSquare,
   ShoppingCart,
-  Settings,
   LogOut
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';

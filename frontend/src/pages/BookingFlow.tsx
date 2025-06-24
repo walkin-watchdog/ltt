@@ -25,7 +25,7 @@ export const BookingFlow = () => {
   const dispatch = useDispatch<AppDispatch>();
   
   const { currentProduct, isLoading: productLoading } = useSelector((state: RootState) => state.products);
-  const { currentBooking, isLoading: bookingLoading, step } = useSelector((state: RootState) => state.booking);
+  const { currentBooking, isLoading: bookingLoading } = useSelector((state: RootState) => state.booking);
 
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<BookingFormData>({

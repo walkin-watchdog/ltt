@@ -29,10 +29,6 @@ export const Navbar = () => {
               <span className="text-[#104c57] ml-1" style={{ fontSize: '24px' }}>TimeTravel</span>
             </div>
           </Link>
-          
-          <Link to="/blog" className="text-gray-700 hover:text-[#ff914d] transition-colors">
-            Blog
-          </Link>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
@@ -105,6 +101,9 @@ export const Navbar = () => {
             <Link to="/about" className="text-gray-700 hover:text-[#ff914d] transition-colors">
               About Us
             </Link>
+            <Link to="/blog" className="text-gray-700 hover:text-[#ff914d] transition-colors">
+              Blog
+            </Link>
             
             {/* Plan Your Trip CTA */}
             <Link
@@ -161,12 +160,12 @@ export const Navbar = () => {
           <div className="md:hidden bg-white border-t">
             <div className="px-2 pt-2 pb-3 space-y-1">
               <Link to="/" className="block px-3 py-2 text-gray-700">Home</Link>
-              <Link to="/blog" className="block px-3 py-2 text-gray-700">Blog</Link>
               <Link to="/destinations" className="block px-3 py-2 text-gray-700">Destinations</Link>
               <Link to="/experiences" className="block px-3 py-2 text-gray-700">Luxe Experiences</Link>
               <Link to="/offers" className="block px-3 py-2 text-gray-700">Special Offers</Link>
               <Link to="/contact" className="block px-3 py-2 text-gray-700">Contact Us</Link>
               <Link to="/about" className="block px-3 py-2 text-gray-700">About Us</Link>
+              <Link to="/blog" className="block px-3 py-2 text-gray-700">Blog</Link>
               <Link to="/plan-your-trip" className="block px-3 py-2 text-[#ff914d] font-medium">Plan Your Trip</Link>
               <Link to="/admin-login" className="block px-3 py-2 text-[#104c57] text-sm">Admin Login</Link>
               <a

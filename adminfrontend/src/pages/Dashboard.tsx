@@ -6,7 +6,6 @@ import {
   DollarSign,
   Calendar,
   MessageSquare,
-  Eye,
   ArrowUpRight,
   ArrowDownRight,
   ShoppingCart,

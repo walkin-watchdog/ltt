@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
 
@@ -5,13 +6,16 @@ const prisma = new PrismaClient();
 
 export async function createAdmin() {
   try {
+    const email = 'mittalvaibhav73@gmail.com';
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing) return;
     // Hash the password
     const hashedPassword = await bcrypt.hash('admin123', 10);
     
     // Create the admin user
     const admin = await prisma.user.create({
       data: {
-        email: 'mittalvaibhav73@gmail.com',
+        email,
         password: hashedPassword,
         name: 'Admin User',
         role: 'ADMIN', // Make sure this matches your enum

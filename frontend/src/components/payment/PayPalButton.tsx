@@ -61,7 +61,7 @@ export const PayPalButton = ({
             shape: style.shape || 'rect',
             label: style.label || 'paypal'
           },
-          createOrder: (data: any, actions: any) => {
+          createOrder: (_: any, actions: any) => {
             return actions.order.create({
               purchase_units: [{
                 amount: {
@@ -72,7 +72,7 @@ export const PayPalButton = ({
               }]
             });
           },
-          onApprove: async (data: any, actions: any) => {
+          onApprove: async (_: any, actions: any) => {
             try {
               const details = await actions.order.capture();
               onSuccess(details);

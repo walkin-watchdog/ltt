@@ -1,9 +1,9 @@
-import { useState, useEffect, useMemo } from 'react';
-import { Calendar, Search, Filter, Clock, CheckCircle, XCircle, AlertCircle, Plus, Grid, List, Trash2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Calendar, Search, Clock, CheckCircle, XCircle, AlertCircle, Plus, Grid, List, Trash2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { AvailabilityModal, type AvailabilityFormData } from '../components/availability/AvailabilityModal';
 import { DateRangeSelector } from '../components/availability/DateRangeSelector';
-import { format, isWithinInterval, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import { AvailabilityCalendar } from '@/components/availability/AvailabilityCalender';
 
 interface Product {
@@ -481,10 +481,12 @@ export const Availability = () => {
         initialData={initialModalData}
       />
       
-      <DateRangeSelector
-        onDateRangeSelect={handleDateRangeSelect}
-        onClose={() => setIsRangeSelectorOpen(false)}
-      />
+      {isRangeSelectorOpen && (
+        <DateRangeSelector
+          onDateRangeSelect={handleDateRangeSelect}
+          onClose={() => setIsRangeSelectorOpen(false)}
+        />
+      )}
       
       {/* Bulk Actions - visible when dates are selected */}
       {selectedDates.length > 0 && (

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, ChevronDown, X } from 'lucide-react';
-import { format, addDays, isWithinInterval, startOfDay } from 'date-fns';
+import { Calendar, X } from 'lucide-react';
 
 interface DateRangeSelectorProps {
   onDateRangeSelect: (startDate: Date, endDate: Date) => void;

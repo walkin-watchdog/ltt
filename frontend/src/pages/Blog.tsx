@@ -214,40 +214,45 @@ export const Blog = () => {
             ) : (
               <>
                 {/* Featured Post */}
-                {currentPage === 1 && !selectedCategory && posts.length > 0 && (
-                  <div className="bg-white rounded-lg shadow-lg overflow-hidden mb-8">
-                    {renderFeaturedImage(posts[0])}
-                    <div className="p-6">
-                      <div className="flex flex-wrap gap-2 mb-3">
-                        {getCategoryNames(posts[0]).map((category, index) => (
-                          <span key={index} className="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded-full">
-                            {category}
-                          </span>
-                        ))}
-                      </div>
-                      <h2 className="text-2xl font-bold text-gray-900 mb-3" 
-                          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(posts[0].title.rendered) }} />
+                {currentPage === 1 && !selectedCategory && posts.length > 0 && (() => {
+                   const featured = posts[0];
+                   return (
+                     <div className="bg-white rounded-lg shadow-lg overflow-hidden mb-8">
+                       {renderFeaturedImage(featured)}
+                       <div className="p-6">
+                        <div className="flex flex-wrap gap-2 mb-3">
+                          {getCategoryNames(posts[0]).map((category, index) => (
+                            <span key={index} className="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded-full">
+                              {category}
+                            </span>
+                          ))}
+                        </div>
+                        <h2 className="text-2xl font-bold text-gray-900 mb-3" 
+                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(posts[0].title.rendered) }} />
+                        
+                        <div className="flex items-center text-gray-600 mb-4 text-sm">
+                          <User className="h-4 w-4 mr-1" />
+                          <span className="mr-4">{getAuthorName(posts[0])}</span>
+                          <Calendar className="h-4 w-4 mr-1" />
+                          <span>{formatDate(posts[0].date)}</span>
+                        </div>
                       
-                      <div className="flex items-center text-gray-600 mb-4 text-sm">
-                        <User className="h-4 w-4 mr-1" />
-                        <span className="mr-4">{getAuthorName(posts[0])}</span>
-                        <Calendar className="h-4 w-4 mr-1" />
-                        <span>{formatDate(posts[0].date)}</span>
+                        <p
+                          className="text-gray-700 mb-4"
+                          dangerouslySetInnerHTML={{
+                            __html: DOMPurify.sanitize(getPostExcerpt(featured))
+                          }}
+                        />
+                        <Link
+                          to={`/blog/${featured.slug}`}
+                          className="inline-block bg-[#104c57] text-white px-4 py-2 rounded-md hover:bg-[#0d3d47] transition-colors"
+                        >
+                          Read More
+                        </Link>
                       </div>
-                      
-                      <p
-                        className="text-gray-700 mb-4"
-                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(getPostExcerpt(post)) }}
-                      />
-                      <Link
-                        to={`/blog/${posts[0].slug}`}
-                        className="inline-block bg-[#104c57] text-white px-4 py-2 rounded-md hover:bg-[#0d3d47] transition-colors"
-                      >
-                        Read More
-                      </Link>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {/* Posts Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

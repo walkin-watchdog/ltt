@@ -7,7 +7,7 @@ import { PrismaClient } from '@prisma/client';
 import { logger } from './utils/logger';
 import { errorHandler } from './middleware/errorHandler';
 import { AbandonedCartJob } from './jobs/abandonedCartJob';
-import cron from 'cron';
+import { CronJob } from 'cron';
 
 // Routes
 import authRoutes from './routes/auth';
@@ -73,7 +73,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // Setup cron jobs
-const abandonedCartJob = new cron.CronJob(
+const abandonedCartJob = new CronJob(
   '0 */2 * * *', // Every 2 hours
   AbandonedCartJob.processAbandonedCarts,
   null,
@@ -81,7 +81,7 @@ const abandonedCartJob = new cron.CronJob(
   'Asia/Kolkata'
 );
 
-const cleanupJob = new cron.CronJob(
+const cleanupJob = new CronJob(
   '0 0 * * 0', // Every Sunday at midnight
   AbandonedCartJob.cleanupOldCarts,
   null,

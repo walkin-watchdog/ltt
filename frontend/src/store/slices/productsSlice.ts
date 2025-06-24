@@ -46,7 +46,7 @@ const initialState: ProductsState = {
 
 export const fetchProducts = createAsyncThunk(
   'products/fetchProducts',
-  async (filters: { type?: string; category?: string; location?: string } = {}) => {
+  async (filters: { type?: string; category?: string; location?: string, limit?: string } = {}) => {
     const params = new URLSearchParams();
     Object.entries(filters).forEach(([key, value]) => {
       if (value) params.append(key, value);

@@ -68,7 +68,7 @@ export const SpecialOffers = () => {
               Discover exceptional savings on luxury travel experiences
             </p>
             <div className="bg-white bg-opacity-20 inline-block px-6 py-3 rounded-lg">
-              <p className="text-lg font-semibold">
+              <p className="text-lg font-semibold text-black">
                 🎉 Save up to 40% on selected tours & experiences
               </p>
             </div>

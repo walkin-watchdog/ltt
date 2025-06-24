@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Calendar, MapPin, Users, DollarSign, Send, CheckCircle } from 'lucide-react';
+import { MapPin, Users, DollarSign, Send, CheckCircle } from 'lucide-react';
 import { SEOHead } from '../components/seo/SEOHead';
 
 interface TripFormData {

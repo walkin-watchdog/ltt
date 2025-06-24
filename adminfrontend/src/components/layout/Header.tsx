@@ -1,4 +1,4 @@
-import { Bell, Search, User } from 'lucide-react';
+import { Bell, Search } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 export const Header = () => {

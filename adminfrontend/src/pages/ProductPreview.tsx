@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, MapPin, Clock, Users, Star, Calendar, Camera, CheckCircle, XCircle } from 'lucide-react';
+import { ArrowLeft, MapPin, Clock, Users, Star, Camera, CheckCircle, XCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface Product {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Filter, Calendar, User, MapPin, Phone, Mail, Eye, Download } from 'lucide-react';
+import { Search, Filter, Calendar, User, Phone, Mail, Eye, Download } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface Booking {

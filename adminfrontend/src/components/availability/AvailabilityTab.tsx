@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Check, X, Plus, ChevronLeft, ChevronRight, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, addMonths, subMonths, parseISO, isSameDay } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isToday, addMonths, subMonths, parseISO, isSameDay } from 'date-fns';
 
 interface AvailabilityTabProps {
   formData: any;
