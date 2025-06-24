@@ -3,3 +3,7 @@ node_modules
 dist
 logs
 package-lock.json
+prisma/migrations/
+
+# remove from ignore later
+src/create-admin.ts
