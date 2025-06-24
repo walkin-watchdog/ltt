@@ -7,7 +7,6 @@ import { BookingDetailsTab } from '../components/products/BookingDetailsTab';
 import { SpecialOffersTab } from '../components/products/SpecialOffersTab';
 
 import { Save, ArrowLeft, Eye } from 'lucide-react';
-import { AvailabilityTab } from '@/components/availability/AvailabilityTab';
 
 interface ProductFormData {
   // Basic Details
@@ -43,10 +42,7 @@ interface ProductFormData {
   
   // Policies
   cancellationPolicy: string;
-  
-  // Packages will be handled separately
-  packages?: any[];
-  availabilities?: any[];
+  isActive: boolean;
 }
 
 const tabs = [
@@ -54,7 +50,6 @@ const tabs = [
   { id: 'schedule', name: 'Schedule & Price', component: SchedulePriceTab },
   { id: 'booking', name: 'Booking Details', component: BookingDetailsTab },
   { id: 'offers', name: 'Special Offers', component: SpecialOffersTab },
-  { id: 'availability', name: 'Availability', component: AvailabilityTab },
 ];
 
 export const ProductForm = () => {
@@ -85,7 +80,7 @@ export const ProductForm = () => {
     guides: [],
     languages: [],
     cancellationPolicy: '',
-    availabilities: [],
+    isActive: true,
   });
 
   useEffect(() => {
@@ -123,9 +118,6 @@ export const ProductForm = () => {
         ? `${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/products/${id}`
         : `${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/products`;
 
-      // Prepare the data for submission - remove availabilities as they will be handled separately
-      const { availabilities, ...productData } = formData;
-      
       const method = isEdit ? 'PUT' : 'POST';
 
       const response = await fetch(url, {
@@ -134,7 +126,7 @@ export const ProductForm = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify(productData),
+        body: JSON.stringify(formData),
       });
 
       if (!response.ok) {
@@ -145,18 +137,25 @@ export const ProductForm = () => {
       
       const savedProduct = await response.json();
       
-      // If we have availabilities to save
-      if (formData.availabilities && formData.availabilities.length > 0) {
+      // Create initial availability for the next 30 days for new products
+      if (!isEdit) {
         try {
-          // Update the product ID for new products
-          const productId = savedProduct.id;
-          const availabilityUpdates = formData.availabilities.map((a: any) => ({
-            ...a,
-            productId
-          }));
+          const availabilityUpdates = [];
+          const today = new Date();
           
-          // Use bulk update for availabilities
-          const availResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/availability/bulk`, {
+          for (let i = 0; i < 30; i++) {
+            const date = new Date(today);
+            date.setDate(date.getDate() + i);
+            
+            availabilityUpdates.push({
+              productId: savedProduct.id,
+              date: date.toISOString().split('T')[0],
+              status: 'AVAILABLE',
+              available: formData.capacity || 10
+            });
+          }
+          
+          await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/availability/bulk`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -164,16 +163,11 @@ export const ProductForm = () => {
             },
             body: JSON.stringify({ updates: availabilityUpdates }),
           });
-          
-          if (!availResponse.ok) {
-            console.error('Failed to save availability data');
-          }
         } catch (availError) {
-          console.error('Error saving availability:', availError);
+          console.error('Error creating initial availability:', availError);
         }
       }
       
-      // Navigate after all operations are complete
       navigate('/products');
       
     } catch (error) {
@@ -219,6 +213,25 @@ export const ProductForm = () => {
           </div>
         </div>
         <div className="flex items-center space-x-3">
+          {/* Status Toggle */}
+          <div className="flex items-center space-x-2">
+            <span className="text-sm font-medium text-gray-700">Status:</span>
+            <button
+              onClick={() => updateFormData({ isActive: !formData.isActive })}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                formData.isActive ? 'bg-[#ff914d]' : 'bg-gray-200'
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  formData.isActive ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+            <span className={`text-sm font-medium ${formData.isActive ? 'text-green-600' : 'text-gray-500'}`}>
+              {formData.isActive ? 'Active' : 'Inactive'}
+            </span>
+          </div>
           {isEdit && (
             <button className="flex items-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
               <Eye className="h-4 w-4 mr-2" />

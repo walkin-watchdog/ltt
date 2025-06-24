@@ -29,7 +29,7 @@ router.get('/dashboard', authenticate, authorize(['ADMIN', 'EDITOR', 'VIEWER']),
       weeklyRevenue,
       totalAbandonedCarts,
     ] = await Promise.all([
-      prisma.product.count({ where: { isActive: true } }),
+      prisma.product.count(),
       prisma.booking.count(),
       prisma.booking.aggregate({
         _sum: { totalAmount: true },

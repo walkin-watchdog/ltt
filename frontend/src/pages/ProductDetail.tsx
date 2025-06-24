@@ -12,7 +12,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Heart,
-  Share2
+  Share2,
+  AlertCircle,
+  CheckCircle
 } from 'lucide-react';
 import type { RootState, AppDispatch } from '@/store/store';
 import { fetchProduct } from '../store/slices/productsSlice';
@@ -76,6 +78,57 @@ export const ProductDetail = () => {
   
   const dismissRecoveryPrompt = () => {
     setShowRecoveryPrompt(false);
+  };
+
+  const getAvailabilityStatus = () => {
+    const status = currentProduct.availabilityStatus;
+    const nextDate = currentProduct.nextAvailableDate;
+    
+    if (status === 'SOLD_OUT') {
+      return {
+        status: 'sold_out',
+        message: 'Currently Sold Out',
+        color: 'text-red-600',
+        bgColor: 'bg-red-50',
+        borderColor: 'border-red-200',
+        icon: AlertCircle
+      };
+    }
+    
+    if (status === 'NOT_OPERATING') {
+      return {
+        status: 'not_operating',
+        message: 'Not Currently Operating',
+        color: 'text-gray-600',
+        bgColor: 'bg-gray-50',
+        borderColor: 'border-gray-200',
+        icon: AlertCircle
+      };
+    }
+    
+    if (nextDate) {
+      const date = new Date(nextDate);
+      const isUpcoming = date > new Date();
+      if (isUpcoming) {
+        return {
+          status: 'upcoming',
+          message: `Next Available: ${date.toLocaleDateString()}`,
+          color: 'text-blue-600',
+          bgColor: 'bg-blue-50',
+          borderColor: 'border-blue-200',
+          icon: Calendar
+        };
+      }
+    }
+    
+    return {
+      status: 'available',
+      message: 'Available for Booking',
+      color: 'text-green-600',
+      bgColor: 'bg-green-50',
+      borderColor: 'border-green-200',
+      icon: CheckCircle
+    };
   };
   
   if (isLoading) {
@@ -252,6 +305,66 @@ export const ProductDetail = () => {
 
               <h1 className="text-3xl font-bold text-gray-900 mb-4">{currentProduct.title}</h1>
               
+              {/* Availability Status */}
+              {(() => {
+                const availability = getAvailabilityStatus();
+                const IconComponent = availability.icon;
+                
+                return (
+                  <div className={`${availability.bgColor} ${availability.borderColor} border rounded-lg p-4 mb-6`}>
+                    <div className="flex items-center">
+                      <IconComponent className={`h-5 w-5 ${availability.color} mr-3`} />
+                      <div>
+                        <p className={`font-medium ${availability.color}`}>
+                          {availability.message}
+                        </p>
+                        {availability.status === 'sold_out' && (
+                          <p className="text-sm text-gray-600 mt-1">
+                            Join our waitlist to be notified when spots become available
+                          </p>
+                        )}
+                        {availability.status === 'not_operating' && (
+                          <p className="text-sm text-gray-600 mt-1">
+                            This experience is temporarily suspended. Check back later for updates.
+                          </p>
+                        )}
+                        {availability.status === 'upcoming' && (
+                          <p className="text-sm text-gray-600 mt-1">
+                            Booking will open soon for the next available dates
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+              
+              {/* Available Dates Calendar (if available) */}
+              {currentProduct.availableDates && currentProduct.availableDates.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="font-semibold text-gray-900 mb-3">Available Dates</h3>
+                  <div className="grid grid-cols-3 md:grid-cols-5 gap-2">
+                    {currentProduct.availableDates.slice(0, 10).map((date, index) => (
+                      <div key={index} className="bg-green-50 border border-green-200 rounded px-3 py-2 text-center">
+                        <div className="text-sm font-medium text-green-800">
+                          {new Date(date).toLocaleDateString('en-US', { 
+                            month: 'short', 
+                            day: 'numeric' 
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                    {currentProduct.availableDates.length > 10 && (
+                      <div className="bg-gray-50 border border-gray-200 rounded px-3 py-2 text-center">
+                        <div className="text-sm font-medium text-gray-600">
+                          +{currentProduct.availableDates.length - 10} more
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <div className="flex items-center space-x-6 mb-6">
                 <div className="flex items-center">
                   <Star className="h-5 w-5 text-yellow-400 fill-current" />
@@ -444,18 +557,55 @@ export const ProductDetail = () => {
                   <h3 className="font-semibold text-gray-900">Select Date</h3>
                   <Calendar className="h-5 w-5 text-gray-400" />
                 </div>
-                <p className="text-sm text-gray-600 mb-3">
-                  Available dates will be shown during booking
-                </p>
+                
+                {(() => {
+                  const availability = getAvailabilityStatus();
+                  
+                  if (availability.status === 'available') {
+                    return (
+                      <p className="text-sm text-gray-600 mb-3">
+                        Available dates will be shown during booking
+                      </p>
+                    );
+                  } else if (availability.status === 'upcoming') {
+                    return (
+                      <p className="text-sm text-blue-600 mb-3">
+                        Booking opens for {currentProduct.nextAvailableDate ? 
+                          new Date(currentProduct.nextAvailableDate).toLocaleDateString() : 'upcoming dates'}
+                      </p>
+                    );
+                  } else {
+                    return (
+                      <p className="text-sm text-gray-500 mb-3">
+                        Currently unavailable for booking
+                      </p>
+                    );
+                  }
+                })()}
               </div>
 
               {/* Booking Button */}
-              <Link
-                to={`/book/${currentProduct.id}${selectedPackage ? `?package=${selectedPackage.id}` : ''}`}
-                className="w-full bg-[#ff914d] text-white py-3 px-4 rounded-lg font-semibold hover:bg-[#e8823d] transition-colors text-center block"
-              >
-                Book Now
-              </Link>
+              {(() => {
+                const availability = getAvailabilityStatus();
+                const isBookable = availability.status === 'available';
+                
+                return (
+                  <Link
+                    to={isBookable ? `/book/${currentProduct.id}${selectedPackage ? `?package=${selectedPackage.id}` : ''}` : '#'}
+                    className={`w-full py-3 px-4 rounded-lg font-semibold transition-colors text-center block ${
+                      isBookable 
+                        ? 'bg-[#ff914d] text-white hover:bg-[#e8823d]'
+                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    }`}
+                    onClick={!isBookable ? (e) => e.preventDefault() : undefined}
+                  >
+                    {availability.status === 'available' ? 'Book Now' :
+                     availability.status === 'upcoming' ? 'Coming Soon' :
+                     availability.status === 'sold_out' ? 'Join Waitlist' :
+                     'Currently Unavailable'}
+                  </Link>
+                );
+              })()}
 
               <div className="mt-4 text-center">
                 <p className="text-sm text-gray-600">

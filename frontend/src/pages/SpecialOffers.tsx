@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { MapPin, Clock, Star, Percent, Tag } from 'lucide-react';
+import { MapPin, Clock, Star, Percent, Tag, Calendar, AlertCircle } from 'lucide-react';
 import type { RootState, AppDispatch } from '@/store/store';
 import { fetchProducts } from '../store/slices/productsSlice';
 import { SEOHead } from '../components/seo/SEOHead';
@@ -19,6 +19,47 @@ export const SpecialOffers = () => {
 
   const calculateDiscount = (originalPrice: number, discountPrice: number) => {
     return Math.round(((originalPrice - discountPrice) / originalPrice) * 100);
+  };
+
+  const getAvailabilityBadge = (product: any) => {
+    const status = product.availabilityStatus;
+    const nextDate = product.nextAvailableDate;
+    
+    if (status === 'SOLD_OUT') {
+      return (
+        <div className="absolute top-4 left-4 bg-red-500 text-white px-2 py-1 rounded text-xs font-semibold flex items-center">
+          <AlertCircle className="h-3 w-3 mr-1" />
+          SOLD OUT
+        </div>
+      );
+    }
+    
+    if (status === 'NOT_OPERATING') {
+      return (
+        <div className="absolute top-4 left-4 bg-gray-500 text-white px-2 py-1 rounded text-xs font-semibold">
+          NOT OPERATING
+        </div>
+      );
+    }
+    
+    if (nextDate) {
+      const date = new Date(nextDate);
+      const isUpcoming = date > new Date();
+      if (isUpcoming) {
+        return (
+          <div className="absolute top-4 left-4 bg-blue-500 text-white px-2 py-1 rounded text-xs font-semibold flex items-center">
+            <Calendar className="h-3 w-3 mr-1" />
+            Next: {date.toLocaleDateString()}
+          </div>
+        );
+      }
+    }
+    
+    return (
+      <div className="absolute top-4 left-4 bg-green-500 text-white px-2 py-1 rounded text-xs font-semibold">
+        AVAILABLE
+      </div>
+    );
   };
 
   const offerCategories = [
@@ -147,13 +188,16 @@ export const SpecialOffers = () => {
                       alt={product.title}
                       className="w-full h-full object-cover"
                     />
-                    <div className="absolute top-4 left-4 bg-[#ff914d] text-white px-3 py-2 rounded-lg font-bold">
+                    {/* Availability Status Badge */}
+                    {getAvailabilityBadge(product)}
+                    
+                    <div className="absolute top-4 right-4 bg-[#ff914d] text-white px-3 py-2 rounded-lg font-bold">
                       <div className="flex items-center">
                         <Percent className="h-4 w-4 mr-1" />
                         {calculateDiscount(product.price, product.discountPrice!)}% OFF
                       </div>
                     </div>
-                    <div className="absolute top-4 right-4 bg-red-500 text-white px-2 py-1 rounded text-xs font-semibold">
+                    <div className="absolute top-12 right-4 bg-red-500 text-white px-2 py-1 rounded text-xs font-semibold">
                       LIMITED TIME
                     </div>
                   </div>
@@ -178,6 +222,26 @@ export const SpecialOffers = () => {
                       {product.description}
                     </p>
                     
+                    {/* Availability Info */}
+                    <div className="mb-4">
+                      {product.availabilityStatus === 'AVAILABLE' ? (
+                        <p className="text-green-600 text-sm font-medium flex items-center">
+                          <Calendar className="h-4 w-4 mr-1" />
+                          Available for booking
+                        </p>
+                      ) : product.availabilityStatus === 'SOLD_OUT' ? (
+                        <p className="text-red-600 text-sm font-medium flex items-center">
+                          <AlertCircle className="h-4 w-4 mr-1" />
+                          Currently sold out
+                        </p>
+                      ) : product.nextAvailableDate ? (
+                        <p className="text-blue-600 text-sm font-medium flex items-center">
+                          <Calendar className="h-4 w-4 mr-1" />
+                          Next available: {new Date(product.nextAvailableDate).toLocaleDateString()}
+                        </p>
+                      ) : null}
+                    </div>
+
                     {/* Pricing with prominent savings */}
                     <div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-lg p-4 mb-4">
                       <div className="text-center">
@@ -193,9 +257,15 @@ export const SpecialOffers = () => {
 
                     <Link
                       to={`/product/${product.id}`}
-                      className="w-full bg-[#ff914d] text-white py-3 px-4 rounded-lg font-semibold hover:bg-[#e8823d] transition-colors text-center block"
+                      className={`w-full py-3 px-4 rounded-lg font-semibold transition-colors text-center block ${
+                        product.availabilityStatus === 'SOLD_OUT' || product.availabilityStatus === 'NOT_OPERATING'
+                          ? 'bg-gray-400 text-white cursor-not-allowed'
+                          : 'bg-[#ff914d] text-white hover:bg-[#e8823d]'
+                      }`}
                     >
-                      Book This Offer
+                      {product.availabilityStatus === 'SOLD_OUT' ? 'Sold Out' : 
+                       product.availabilityStatus === 'NOT_OPERATING' ? 'Not Available' : 
+                       'Book This Offer'}
                     </Link>
                   </div>
                 </div>

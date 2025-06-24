@@ -42,10 +42,11 @@ const limiter = rateLimit({
 app.use(limiter);
 app.use(helmet());
 app.use(cors({
-  origin: [
-    process.env.FRONTEND_URL || 'http://localhost:5173',
-    process.env.ADMIN_URL || 'http://localhost:5174'
-  ],
+  // origin: [
+  //   process.env.FRONTEND_URL || 'http://localhost:5173',
+  //   process.env.ADMIN_URL || 'http://localhost:5174'
+  // ],
+  origin: true,
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));

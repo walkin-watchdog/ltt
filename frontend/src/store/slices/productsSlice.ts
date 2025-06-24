@@ -22,6 +22,10 @@ interface Product {
   packages?: any[];
   reviews?: any[];
   availabilities?: any[];
+  // Add availability status fields
+  availabilityStatus?: 'AVAILABLE' | 'SOLD_OUT' | 'NOT_OPERATING';
+  nextAvailableDate?: string;
+  availableDates?: string[];
 }
 
 interface ProductsState {
@@ -33,6 +37,8 @@ interface ProductsState {
     type?: string;
     category?: string;
     location?: string;
+    // Add availability filter
+    availability?: string;
   };
 }
 

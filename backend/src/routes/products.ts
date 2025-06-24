@@ -23,14 +23,15 @@ const productSchema = z.object({
   itinerary: z.any().optional(),
   images: z.array(z.string()),
   tags: z.array(z.string()),
-  difficulty: z.string().optional(),
-  healthRestrictions: z.string().optional(),
-  accessibility: z.string().optional(),
+  difficulty: z.string().optional().nullable(),
+  healthRestrictions: z.string().optional().nullable(),
+  accessibility: z.string().optional().nullable(),
   guides: z.array(z.string()),
   languages: z.array(z.string()),
-  meetingPoint: z.string().optional(),
+  meetingPoint: z.string().optional().nullable(),
   pickupLocations: z.array(z.string()),
-  cancellationPolicy: z.string().min(1)
+  cancellationPolicy: z.string().min(1),
+  isActive: z.boolean().default(true)
 });
 
 // Get all products (public)
@@ -38,18 +39,14 @@ router.get('/', async (req, res, next) => {
   try {
     const { type, category, location, limit, offset } = req.query;
     
-    const where: any = { isActive: true };
+    const where: any = { };
     
     if (type) where.type = type;
     if (category) where.category = category;
     if (location) where.location = location;
 
     const products = await prisma.product.findMany({
-      where,
       include: {
-        packages: {
-          where: { isActive: true }
-        },
         reviews: {
           where: { isApproved: true },
           select: {
@@ -59,6 +56,15 @@ router.get('/', async (req, res, next) => {
             comment: true,
             createdAt: true
           }
+        },
+        availabilities: {
+          where: {
+            date: {
+              gte: new Date()
+            }
+          },
+          orderBy: { date: 'asc' },
+          take: 10
         }
       },
       take: limit ? parseInt(limit as string) : undefined,
@@ -66,7 +72,41 @@ router.get('/', async (req, res, next) => {
       orderBy: { createdAt: 'desc' }
     });
 
-    res.json(products);
+    // Add availability status to each product
+    const productsWithAvailability = products.map(product => {
+      const availabilities = product.availabilities;
+      let availabilityStatus = 'AVAILABLE';
+      let nextAvailableDate = null;
+      let availableDates: Date[] = [];
+
+      if (availabilities.length > 0) {
+        // Check if any dates are available
+        const availableDays = availabilities.filter(a => a.status === 'AVAILABLE');
+        const soldOutDays = availabilities.filter(a => a.status === 'SOLD_OUT');
+        const notOperating = availabilities.filter(a => a.status === 'NOT_OPERATING');
+
+        if (availableDays.length === 0 && soldOutDays.length > 0) {
+          availabilityStatus = 'SOLD_OUT';
+        } else if (availableDays.length === 0 && notOperating.length > 0) {
+          availabilityStatus = 'NOT_OPERATING';
+        }
+
+        // Get next available date
+        if (availableDays.length > 0) {
+          nextAvailableDate = availableDays[0].date;
+          availableDates = availableDays.map(a => a.date);
+        }
+      }
+
+      return {
+        ...product,
+        availabilityStatus,
+        nextAvailableDate,
+        availableDates
+      };
+    });
+
+    res.json(productsWithAvailability);
   } catch (error) {
     next(error);
   }
@@ -106,7 +146,37 @@ router.get('/:id', async (req, res, next) => {
       return res.status(404).json({ error: 'Product not found' });
     }
 
-    res.json(product);
+    // Add availability status
+    const availabilities = product.availabilities;
+    let availabilityStatus = 'AVAILABLE';
+    let nextAvailableDate = null;
+    let availableDates: Date[] = [];
+
+    if (availabilities.length > 0) {
+      const availableDays = availabilities.filter(a => a.status === 'AVAILABLE');
+      const soldOutDays = availabilities.filter(a => a.status === 'SOLD_OUT');
+      const notOperating = availabilities.filter(a => a.status === 'NOT_OPERATING');
+
+      if (availableDays.length === 0 && soldOutDays.length > 0) {
+        availabilityStatus = 'SOLD_OUT';
+      } else if (availableDays.length === 0 && notOperating.length > 0) {
+        availabilityStatus = 'NOT_OPERATING';
+      }
+
+      if (availableDays.length > 0) {
+        nextAvailableDate = availableDays[0].date;
+        availableDates = availableDays.map(a => a.date);
+      }
+    }
+
+    const productWithAvailability = {
+      ...product,
+      availabilityStatus,
+      nextAvailableDate,
+      availableDates
+    };
+
+    res.json(productWithAvailability);
   } catch (error) {
     next(error);
   }

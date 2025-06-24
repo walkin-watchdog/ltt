@@ -27,6 +27,11 @@ router.get('/product/:productId', async (req, res, next) => {
         gte: new Date(startDate as string),
         lte: new Date(endDate as string)
       };
+    } else {
+      // Default to future dates only
+      where.date = {
+        gte: new Date()
+      };
     }
 
     const availability = await prisma.availability.findMany({
@@ -34,7 +39,19 @@ router.get('/product/:productId', async (req, res, next) => {
       orderBy: { date: 'asc' }
     });
 
-    res.json(availability);
+    // Calculate availability summary
+    const summary = {
+      total: availability.length,
+      available: availability.filter(a => a.status === 'AVAILABLE').length,
+      soldOut: availability.filter(a => a.status === 'SOLD_OUT').length,
+      notOperating: availability.filter(a => a.status === 'NOT_OPERATING').length,
+      nextAvailable: availability.find(a => a.status === 'AVAILABLE')?.date || null
+    };
+
+    res.json({
+      availability,
+      summary
+    });
   } catch (error) {
     next(error);
   }
@@ -101,37 +118,133 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
 });
 
 // Bulk update availability (Admin/Editor only)
-router.post('/bulk', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, next) => {
+// router.post('/bulk-update', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, next) => {
+//   try {
+//     const { productId, startDate, endDate, status, available } = z.object({
+//       productId: z.string(),
+//       startDate: z.string().transform(str => new Date(str)),
+//       endDate: z.string().transform(str => new Date(str)),
+//       status: z.enum(['AVAILABLE', 'SOLD_OUT', 'NOT_OPERATING']),
+//       available: z.number().min(0).optional()
+//     }).parse(req.body);
+
+//     const dates = [];
+//     let currentDate = new Date(startDate);
+//     const endDateObj = new Date(endDate);
+
+//     while (currentDate <= endDateObj) {
+//       dates.push(new Date(currentDate));
+//       currentDate.setDate(currentDate.getDate() + 1);
+//     }
+
+//     const results = [];
+//     for (const date of dates) {
+//       const result = await prisma.availability.upsert({
+//         where: {
+//           productId_date: {
+//             productId,
+//             date
+//           }
+//         },
+//         update: {
+//           status,
+//           available: available || 0
+//         },
+//         create: {
+//           productId,
+//           date,
+//           status,
+//           available: available || 0
+//         }
+//       });
+//       results.push(result);
+//     }
+
+//     res.json({ 
+//       message: `Updated availability for ${results.length} dates`,
+//       results 
+//     });
+//   } catch (error) {
+//     next(error);
+//   }
+// });
+
+// // Get availability statistics (Admin/Editor/Viewer)
+// router.get('/stats', authenticate, authorize(['ADMIN', 'EDITOR', 'VIEWER']), async (req, res, next) => {
+//   try {
+//     const { productId, year, month } = req.query;
+    
+//     const where: any = {};
+//     if (productId) where.productId = productId;
+    
+//     if (year) {
+//       const startOfYear = new Date(parseInt(year as string), 0, 1);
+//       const endOfYear = new Date(parseInt(year as string), 11, 31);
+//       where.date = { gte: startOfYear, lte: endOfYear };
+      
+//       if (month) {
+//         const startOfMonth = new Date(parseInt(year as string), parseInt(month as string) - 1, 1);
+//         const endOfMonth = new Date(parseInt(year as string), parseInt(month as string), 0);
+//         where.date = { gte: startOfMonth, lte: endOfMonth };
+//       }
+//     }
+
+//     const stats = await prisma.availability.groupBy({
+//       by: ['status'],
+//       where,
+//       _count: { status: true },
+//       _sum: { available: true }
+//     });
+
+//     const totalStats = await prisma.availability.aggregate({
+//       where,
+//       _count: { id: true },
+//       _sum: { available: true, booked: true }
+//     });
+
+//     res.json({
+//       byStatus: stats,
+//       totals: {
+//         totalDays: totalStats._count.id,
+//         totalCapacity: totalStats._sum.available || 0,
+//         totalBooked: totalStats._sum.booked || 0,
+//         utilizationRate: totalStats._sum.available ? 
+//           ((totalStats._sum.booked || 0) / totalStats._sum.available * 100).toFixed(2) : 0
+//       }
+//     });
+//   } catch (error) {
+//     next(error);
+//   }
+// });
+
+// Update availability (Admin/Editor only)
+router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, next) => {
   try {
-    const { updates } = z.object({
-      updates: z.array(availabilitySchema)
+    const updateData = z.object({
+      status: z.enum(['AVAILABLE', 'SOLD_OUT', 'NOT_OPERATING']).optional(),
+      available: z.number().min(0).optional(),
+      date: z.string().transform(str => new Date(str)).optional()
     }).parse(req.body);
 
-    const results = [];
-    
-    for (const update of updates) {
-      const availability = await prisma.availability.upsert({
-        where: {
-          productId_date: {
-            productId: update.productId,
-            date: new Date(update.date)
-          }
-        },
-        update: {
-          status: update.status,
-          available: update.available || 0
-        },
-        create: {
-          productId: update.productId,
-          date: new Date(update.date),
-          status: update.status,
-          available: update.available || 0
-        }
-      });
-      results.push(availability);
-    }
+    const availability = await prisma.availability.update({
+      where: { id: req.params.id },
+      data: updateData
+    });
 
-    res.json(results);
+    res.json(availability);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Delete availability (Admin/Editor only)
+router.delete('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, next) => {
+  try {
+    await prisma.availability.delete({
+      where: { id: req.params.id }
+    });
+
+    res.json({ message: 'Availability deleted successfully' });
   } catch (error) {
     next(error);
   }
