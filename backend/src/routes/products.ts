@@ -33,7 +33,8 @@ const productSchema = z.object({
   cancellationPolicy: z.string().min(1),
   isActive: z.boolean().default(true),
   availabilityStartDate: z.string().transform(str => new Date(str)),
-  availabilityEndDate: z.string().transform(str => new Date(str)).optional()
+  availabilityEndDate: z.string().transform(str => new Date(str)).optional(),
+  blockedDates: z.array(z.object({date: z.string(), reason: z.string().optional()})).optional(),
 });
 
 // Get all products (public)
@@ -145,7 +146,8 @@ router.get('/:id', async (req, res, next) => {
             }
           },
           orderBy: { startDate: 'asc' }
-        }
+        },
+        blockedDates: true
       }
     });
 
@@ -193,17 +195,29 @@ router.get('/:id', async (req, res, next) => {
 // Create product (Admin/Editor only)
 router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, next) => {
   try {
-    const data = productSchema.parse(req.body);
+    const data  = productSchema.parse(req.body);
+    const { blockedDates = [], ...rest } = data;
 
-    const slug = data.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    const slug = rest.title.toLowerCase().replace(/\s+/g, '-')
+                     .replace(/[^a-z0-9-]/g, '');
 
     const product = await prisma.product.create({
       data: {
-        ...data,
-        slug
+        ...rest,
+        slug,
+        ...(blockedDates.length && {
+          blockedDates: {
+            create: blockedDates.map(b => ({
+              date:     new Date(b.date),
+              reason:   b.reason,
+              isActive: false
+            }))
+          }
+        })
       },
       include: {
-        packages: true
+        packages: true,
+        blockedDates: true
       }
     });
 
@@ -234,72 +248,45 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
 router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, next) => {
   try {
     const data = productSchema.partial().parse(req.body);
-
-    const updateData: any = { ...data };
-    if (data.title) {
-      updateData.slug = data.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-    }
+    const { blockedDates, ...rest } = data;
 
     const product = await prisma.product.update({
       where: { id: req.params.id },
-      data: updateData,
-      include: {
-        packages: true
-      }
+      data: {
+        ...rest,
+        ...(rest.title && { slug: rest.title.toLowerCase()
+                                        .replace(/\s+/g, '-')
+                                        .replace(/[^a-z0-9-]/g, '') }),
+        ...(blockedDates && {
+          blockedDates: {
+            deleteMany: {},
+            create: blockedDates.map(b => ({
+              date:     new Date(b.date),
+              reason:   b.reason,
+              isActive: false
+            }))
+          }
+        })
+      },
+      include: { packages: true, blockedDates: true }
     });
 
     // Update availability if date range changed
-    if (data.availabilityStartDate || data.availabilityEndDate) {
-      const existingProduct = await prisma.product.findUnique({
-        where: { id: req.params.id }
+    if (data.availabilityStartDate !== undefined || data.availabilityEndDate !== undefined) {
+      await prisma.availability.deleteMany({
+        where: { productId: product.id }
       });
-
-      if (existingProduct) {
-        const startDate = data.availabilityStartDate || existingProduct.availabilityStartDate;
-        const endDate = data.availabilityEndDate || existingProduct.availabilityEndDate ||
-          new Date(startDate!.getTime() + 30 * 24 * 60 * 60 * 1000);
-
-        if (startDate) {
-          // Remove existing availability records beyond the new range
-          await prisma.availability.deleteMany({
-            where: {
-              productId: req.params.id,
-              OR: [
-                { startDate: { lt: startDate } },
-                { startDate: { gt: endDate } }
-              ]
-            }
-          });
-
-          // Add missing availability records within the range
-          const existingDates = await prisma.availability.findMany({
-            where: { productId: req.params.id },
-            select: { startDate: true }
-          });
-
-          const existingDateStrings = existingDates.map(d => d.startDate.toISOString().split('T')[0]);
-          const newRecords = [];
-          const currentDate = new Date(startDate);
-
-          while (currentDate <= endDate) {
-            const dateString = currentDate.toISOString().split('T')[0];
-            if (!existingDateStrings.includes(dateString)) {
-              newRecords.push({
-                productId: req.params.id,
-                startDate: new Date(currentDate),
-                endDate: null,
-                status: 'AVAILABLE',
-                available: product.capacity
-              });
-            }
-            currentDate.setDate(currentDate.getDate() + 1);
-          }
-
-          if (newRecords.length > 0) {
-            await prisma.availability.createMany({ data: newRecords });
-          }
+      const start = data.availabilityStartDate ?? product.availabilityStartDate!;
+      const end   = data.availabilityEndDate   ?? null;
+      await prisma.availability.create({
+        data: {
+          productId:   product.id,
+          startDate:   start,
+          endDate:     end,
+          status:      'AVAILABLE',
+          booked:      0
         }
-      }
+      });
     }
 
     res.json(product);

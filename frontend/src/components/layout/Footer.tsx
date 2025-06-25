@@ -37,7 +37,7 @@ export const Footer = () => {
             <ul className="space-y-2">
               <li><Link to="/" className="text-gray-300 hover:text-[#ff914d] transition-colors">Home</Link></li>
               <li><Link to="/destinations" className="text-gray-300 hover:text-[#ff914d] transition-colors">Destinations</Link></li>
-              <li><Link to="/experiences" className="text-gray-300 hover:text-[#ff914d] transition-colors">Luxe Experiences</Link></li>
+              <li><Link to="/experiences" className="text-gray-300 hover:text-[#ff914d] transition-colors">Luxé Experiences</Link></li>
               <li><Link to="/offers" className="text-gray-300 hover:text-[#ff914d] transition-colors">Special Offers</Link></li>
               <li><Link to="/about" className="text-gray-300 hover:text-[#ff914d] transition-colors">About Us</Link></li>
             </ul>
@@ -79,16 +79,16 @@ export const Footer = () => {
         <div className="border-t border-gray-600 mt-8 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <p className="text-gray-300 text-sm">
-              © 2024 Luxé TimeTravel. All rights reserved.
+              © 2025 Luxé TimeTravel. All rights reserved.
             </p>
             <div className="flex space-x-6 mt-4 md:mt-0">
               <a 
-                href="https://luxetravels.in/blog" 
+                href="/blog" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="text-gray-300 hover:text-[#ff914d] transition-colors text-sm"
               >
-                The Luxe Journal
+                The Luxé Journal
               </a>
               <a 
                 href="https://quaintspaces.com" 
@@ -96,7 +96,7 @@ export const Footer = () => {
                 rel="noopener noreferrer"
                 className="text-gray-300 hover:text-[#ff914d] transition-colors text-sm"
               >
-                Luxe Stays
+                Luxé Stays
               </a>
             </div>
           </div>

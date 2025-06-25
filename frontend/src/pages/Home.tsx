@@ -19,13 +19,13 @@ export const Home = () => {
     <div className="min-h-screen">
       {/* Hero Section */}
       <section className="relative h-screen bg-gradient-to-r from-[#104c57] to-[#ff914d] text-white">
-        <div className="absolute inset-0 bg-black bg-opacity-40"></div>
+        <div className="absolute inset-0"></div>
         <div className="relative z-10 flex items-center justify-center h-full">
           <div className="text-center max-w-4xl mx-auto px-4">
-            <h1 className="text-5xl md:text-7xl font-bold mb-6">
-              <span className="text-[#ff914d]" style={{ fontSize: '38.8px' }}>Luxé</span>
-              <span className="ml-4" style={{ fontSize: '90px' }}>Time</span>
-              <span className="ml-4" style={{ fontSize: '90px' }}>Travel</span>
+            <h1 className="text-5xl md:text-7xl mb-6">
+              <span className="text-[#104c57] ml-80" style={{ fontSize: '38.8px' }}>Luxé<br /></span>
+              <span className="text-[#ff914d] font-bold" style={{ fontSize: '90px' }}>Time</span>
+              <span className=" text-[#ff914d] font-bold" style={{ fontSize: '90px' }}>Travel</span>
             </h1>
             <p className="text-xl md:text-2xl mb-8 text-gray-200">
               Discover the Extraordinary
@@ -37,13 +37,13 @@ export const Home = () => {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
                 to="/destinations"
-                className="bg-[#ff914d] text-white px-8 py-4 rounded-full text-lg font-semibold hover:bg-[#e8823d] transition-colors"
+                className="bg-[#ff914d] text-white px-8 py-4 text-lg font-semibold hover:bg-[#e8823d] transition-colors"
               >
                 Explore Destinations
               </Link>
               <Link
                 to="/plan-your-trip"
-                className="border-2 border-white text-white px-8 py-4 rounded-full text-lg font-semibold hover:bg-white hover:text-[#104c57] transition-colors"
+                className="border-2 border-white text-white px-8 py-4 text-lg font-semibold hover:bg-white hover:text-[#104c57] transition-colors"
               >
                 Plan Your Journey
               </Link>
@@ -198,12 +198,12 @@ export const Home = () => {
             <input
               type="email"
               placeholder="Enter your email"
-              className="flex-1 px-4 py-3 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#ff914d]"
+              className="flex-1 px-4 py-3 bg-white lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#ff914d]"
               required
             />
             <button
               type="submit"
-              className="bg-[#ff914d] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[#e8823d] transition-colors"
+              className="bg-[#ff914d] text-white px-6 py-3 lg font-semibold hover:bg-[#e8823d] transition-colors"
             >
               Subscribe
             </button>

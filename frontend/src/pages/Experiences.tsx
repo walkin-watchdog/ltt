@@ -41,7 +41,7 @@ export const Experiences = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <SEOHead
-        title="Luxe Experiences - Unique Cultural & Adventure Experiences"
+        title="Luxé Experiences - Unique Cultural & Adventure Experiences"
         description="Discover extraordinary experiences in India. From culinary adventures to heritage crafts and nature expeditions. Book unique luxury experiences with Luxé TimeTravel."
         keywords="luxury experiences india, cultural experiences, culinary tours, heritage crafts, adventure experiences"
       />
@@ -52,7 +52,7 @@ export const Experiences = () => {
         <div className="relative z-10 flex items-center justify-center h-full">
           <div className="text-center max-w-4xl mx-auto px-4">
             <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              Luxe Experiences
+              Luxé Experiences
             </h1>
             <p className="text-xl text-gray-200">
               Immerse yourself in extraordinary cultural adventures and unique experiences
@@ -87,7 +87,7 @@ export const Experiences = () => {
                       alt={category.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
-                    <div className="absolute inset-0 bg-black bg-opacity-30 group-hover:bg-opacity-20 transition-opacity"></div>
+                    <div className="absolute inset-0 group-hover:bg-opacity-20 transition-opacity"></div>
                     <div className="absolute bottom-4 left-4 text-white">
                       <h3 className="text-2xl font-bold">{category.name}</h3>
                       <p className="text-sm opacity-90">{category.count} Experiences Available</p>
@@ -110,7 +110,7 @@ export const Experiences = () => {
           {/* All Experiences */}
           <div>
             <h2 className="text-3xl font-bold text-[#104c57] mb-8 text-center">
-              All Luxe Experiences
+              All Luxé Experiences
             </h2>
             
             {isLoading ? (

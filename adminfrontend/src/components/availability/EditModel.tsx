@@ -1,6 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
-import type { AvailabilityProp, EditProps } from "@/types.ts";
-import { useState } from "react";
+import type { EditProps } from "@/types.ts";
 
 export const EditModel: React.FC<EditProps> = ({
 saveError,
@@ -10,8 +9,9 @@ fetchData,
 setModalData,
 setIsModalOpen,
 products,
+editingAvailability,
+setEditingAvailability,
 }) => {  
-    const [editingAvailability, setEditingAvailability] = useState<AvailabilityProp | null>(null);
       const { token} = useAuth();
      const handleSave = async () => {
         // Validate form data

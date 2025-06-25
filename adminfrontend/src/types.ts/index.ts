@@ -103,6 +103,11 @@ export interface DashboardStats {
   topProducts: any[];
 }
 
+interface BlockDate {
+  id?: string;
+  date: string;
+  reason?: string;
+}
 
 export interface ProductFormData {
   // Basic Details
@@ -143,6 +148,7 @@ export interface ProductFormData {
   // Availability
   availabilityStartDate: string;
   availabilityEndDate?: string;
+  blockedDates?: BlockDate[];
 }
 
 export interface Product {
@@ -237,8 +243,8 @@ export interface BlockDatesProps {
       endDate: string ;
       status: 'AVAILABLE' | 'SOLD_OUT' | 'NOT_OPERATING';
     }>>;
-    editingAvailability?: AvailabilityProp;
-    setEditingAvailability?: React.Dispatch<React.SetStateAction<AvailabilityProp | undefined>>;
+    editingAvailability: AvailabilityProp | null;
+    setEditingAvailability: React.Dispatch<React.SetStateAction<AvailabilityProp | null>>;
     setIsModalOpen: (value: boolean) => void;
     fetchData: () => void;
   }

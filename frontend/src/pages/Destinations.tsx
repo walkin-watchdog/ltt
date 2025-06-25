@@ -73,7 +73,7 @@ export const Destinations = () => {
                       alt={destination.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
-                    <div className="absolute inset-0 bg-black bg-opacity-30 group-hover:bg-opacity-20 transition-opacity"></div>
+                    <div className="absolute inset-0 group-hover:bg-opacity-20 transition-opacity"></div>
                     <div className="absolute bottom-4 left-4 text-white">
                       <h3 className="text-2xl font-bold">{destination.name}</h3>
                       <p className="text-sm opacity-90">{destination.tours} Tours Available</p>

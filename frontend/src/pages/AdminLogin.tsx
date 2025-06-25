@@ -17,7 +17,7 @@ export const AdminLogin = () => {
     try {
       await dispatch(login({ email, password })).unwrap();
       // Redirect to admin dashboard
-      window.location.href = 'http://localhost:3002'; // Change this to your admin URL
+      window.location.href = 'http://localhost:5173'; // Change this to your admin URL
     } catch (error) {
       console.error('Login failed:', error);
     }

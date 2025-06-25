@@ -5,6 +5,7 @@ import { ProductContentTab } from '../components/products/ProductContentTab';
 import { SchedulePriceTab } from '../components/products/SchedulePriceTab';
 import { BookingDetailsTab } from '../components/products/BookingDetailsTab';
 import { SpecialOffersTab } from '../components/products/SpecialOffersTab';
+import { AvailabilityTab } from '../components/products/AvailabilityTab';
 
 import { Save, ArrowLeft, Eye } from 'lucide-react';
 import type { ProductFormData } from '@/types.ts';
@@ -15,6 +16,7 @@ const tabs = [
   { id: 'schedule', name: 'Schedule & Price', component: SchedulePriceTab },
   { id: 'booking', name: 'Booking Details', component: BookingDetailsTab },
   { id: 'offers', name: 'Special Offers', component: SpecialOffersTab },
+  { id: 'availability', name: 'Availability', component: AvailabilityTab },
 ];
 
 export const ProductForm = () => {
@@ -22,6 +24,7 @@ export const ProductForm = () => {
   const navigate = useNavigate();
   const { token } = useAuth();
   const isEdit = Boolean(id);
+  const today = new Date().toISOString().split('T')[0];
 
   const [activeTab, setActiveTab] = useState('content');
   const [isLoading, setIsLoading] = useState(false);
@@ -46,7 +49,9 @@ export const ProductForm = () => {
     languages: [],
     cancellationPolicy: '',
     isActive: true,
-    availabilityStartDate: '',
+    availabilityStartDate: today,
+    availabilityEndDate: undefined,
+    blockedDates: [],
   });
 
   useEffect(() => {
@@ -66,7 +71,21 @@ export const ProductForm = () => {
       
       if (response.ok) {
         const product = await response.json();
-        setFormData(product);
+        const startDate = product.availabilityStartDate?.split('T')[0] || '';
+        const endDate   = product.availabilityEndDate   ? product.availabilityEndDate.split('T')[0] : undefined;
+
+        const blockedDates = (product.blockedDates || []).map((b: any) => ({
+          id:     b.id,
+          date:   b.date.split('T')[0],
+          reason: b.reason
+        }));
+
+        setFormData({
+          ...product,
+          availabilityStartDate: startDate,
+          availabilityEndDate:   endDate   || undefined,
+          blockedDates
+        });
       }
     } catch (error) {
       console.error('Error fetching product:', error);

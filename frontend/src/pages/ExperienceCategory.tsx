@@ -90,14 +90,14 @@ export const ExperienceCategory = () => {
       />
 
       {/* Hero Section */}
-      <section className="relative h-96">
+      <section className="relative h-80 mb-80">
         <img
           src={currentCategory.image}
           alt={currentCategory.name}
           className="w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-black bg-opacity-50"></div>
-        <div className="relative z-10 flex items-center justify-center h-full">
+        <div className="absolute inset-0"></div>
+        <div className="relative z-10 flex bg-black items-center justify-center h-full">
           <div className="text-center text-white max-w-4xl mx-auto px-4">
             <h1 className="text-4xl md:text-5xl font-bold mb-4">
               {currentCategory.name}
