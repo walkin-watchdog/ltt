@@ -1,33 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Search, Filter, Calendar, User, Phone, Mail, Eye, Download } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-
-interface Booking {
-  id: string;
-  bookingCode: string;
-  customerName: string;
-  customerEmail: string;
-  customerPhone: string;
-  adults: number;
-  children: number;
-  totalAmount: number;
-  status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED';
-  paymentStatus: 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED';
-  bookingDate: string;
-  createdAt: string;
-  product: {
-    id: string;
-    title: string;
-    productCode: string;
-  };
-  package?: {
-    id: string;
-    name: string;
-  };
-}
+import type { BookingProp } from '@/types.ts';
 
 export const Bookings = () => {
-  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [bookings, setBookings] = useState<BookingProp[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');

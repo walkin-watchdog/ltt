@@ -13,36 +13,12 @@ import {
   Filter
 } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
+import type { AbandonedCartProp } from '@/types.ts';
 
-interface AbandonedCart {
-  id: string;
-  email: string;
-  productId: string;
-  packageId?: string;
-  customerData: {
-    customerName: string;
-    customerEmail: string;
-    customerPhone: string;
-    adults: number;
-    children: number;
-    selectedDate: string;
-    totalAmount: number;
-  };
-  remindersSent: number;
-  createdAt: string;
-  updatedAt: string;
-  product: {
-    id: string;
-    title: string;
-    images: string[];
-    price: number;
-    discountPrice?: number;
-  };
-}
 
 export const AbandonedCarts = () => {
-  const [carts, setCarts] = useState<AbandonedCart[]>([]);
-  const [filteredCarts, setFilteredCarts] = useState<AbandonedCart[]>([]);
+  const [carts, setCarts] = useState<AbandonedCartProp[]>([]);
+  const [filteredCarts, setFilteredCarts] = useState<AbandonedCartProp[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [emailFilter, setEmailFilter] = useState('');
   const [isReminderSending, setIsReminderSending] = useState<{[key: string]: boolean}>({});

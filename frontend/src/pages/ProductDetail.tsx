@@ -83,7 +83,7 @@ export const ProductDetail = () => {
   const getAvailabilityStatus = () => {
     const status = currentProduct.availabilityStatus;
     const nextDate = currentProduct.nextAvailableDate;
-    
+    console.log('Current Product Availability:',currentProduct);
     if (status === 'SOLD_OUT') {
       return {
         status: 'sold_out',

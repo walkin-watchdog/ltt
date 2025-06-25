@@ -14,29 +14,13 @@ import {
   Package
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import type { Productprop } from '@/types.ts';
 
-interface Product {
-  id: string;
-  title: string;
-  productCode: string;
-  type: 'TOUR' | 'EXPERIENCE';
-  category: string;
-  location: string;
-  duration: string;
-  capacity: number;
-  price: number;
-  discountPrice?: number;
-  images: string[];
-  isActive: boolean;
-  createdAt: string;
-  _count?: {
-    bookings: number;
-  };
-}
+
 
 export const Products = () => {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<Productprop[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<Productprop[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('');

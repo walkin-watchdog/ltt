@@ -7,47 +7,8 @@ import { BookingDetailsTab } from '../components/products/BookingDetailsTab';
 import { SpecialOffersTab } from '../components/products/SpecialOffersTab';
 
 import { Save, ArrowLeft, Eye } from 'lucide-react';
+import type { ProductFormData } from '@/types.ts';
 
-interface ProductFormData {
-  // Basic Details
-  title: string;
-  productCode: string;
-  description: string;
-  type: 'TOUR' | 'EXPERIENCE';
-  category: string;
-  location: string;
-  duration: string;
-  capacity: number;
-  price: number;
-  discountPrice?: number;
-  
-  // Content
-  images: string[];
-  highlights: string[];
-  inclusions: string[];
-  exclusions: string[];
-  itinerary?: any;
-  tags: string[];
-  
-  // Location & Meeting
-  meetingPoint?: string;
-  pickupLocations: string[];
-  
-  // Tour Details
-  difficulty?: string;
-  healthRestrictions?: string;
-  accessibility?: string;
-  guides: string[];
-  languages: string[];
-  
-  // Policies
-  cancellationPolicy: string;
-  isActive: boolean;
-  
-  // Availability
-  availabilityStartDate: string;
-  availabilityEndDate?: string;
-}
 
 const tabs = [
   { id: 'content', name: 'Product Content', component: ProductContentTab },
@@ -139,9 +100,7 @@ export const ProductForm = () => {
         alert(error.error || 'Failed to save product');
         return;
       }
-      
-      const savedProduct = await response.json();
-      
+            
       navigate('/products');
       
     } catch (error) {

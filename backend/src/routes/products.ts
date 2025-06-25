@@ -40,15 +40,19 @@ const productSchema = z.object({
 router.get('/', async (req, res, next) => {
   try {
     const { type, category, location, limit, offset } = req.query;
-    
-    const where: any = { };
-    
+
+    const where: any = {};
+
     if (type) where.type = type;
     if (category) where.category = category;
     if (location) where.location = location;
 
     const products = await prisma.product.findMany({
+      where,
       include: {
+        packages: {
+          where: { isActive: true }
+        },
         reviews: {
           where: { isApproved: true },
           select: {
@@ -61,18 +65,17 @@ router.get('/', async (req, res, next) => {
         },
         availabilities: {
           where: {
-            date: {
-              gte: new Date()
+            startDate: {
+              gte: new Date(new Date().setHours(0, 0, 0, 0))
             }
           },
-          orderBy: { date: 'asc' },
-          take: 10
         }
       },
       take: limit ? parseInt(limit as string) : undefined,
       skip: offset ? parseInt(offset as string) : undefined,
       orderBy: { createdAt: 'desc' }
     });
+
 
     // Add availability status to each product
     const productsWithAvailability = products.map(product => {
@@ -86,6 +89,7 @@ router.get('/', async (req, res, next) => {
         const availableDays = availabilities.filter(a => a.status === 'AVAILABLE');
         const soldOutDays = availabilities.filter(a => a.status === 'SOLD_OUT');
         const notOperating = availabilities.filter(a => a.status === 'NOT_OPERATING');
+        console.log('availabilitiesssss', availabilities);
 
         if (availableDays.length === 0 && soldOutDays.length > 0) {
           availabilityStatus = 'SOLD_OUT';
@@ -95,8 +99,8 @@ router.get('/', async (req, res, next) => {
 
         // Get next available date
         if (availableDays.length > 0) {
-          nextAvailableDate = availableDays[0].date;
-          availableDates = availableDays.map(a => a.date);
+          nextAvailableDate = availableDays[0].startDate;
+          availableDates = availableDays.map(a => a.startDate);
         }
       }
 
@@ -117,6 +121,7 @@ router.get('/', async (req, res, next) => {
 // Get single product (public)
 router.get('/:id', async (req, res, next) => {
   try {
+    console.log('Fetching product with ID:', req.params.id);
     const product = await prisma.product.findUnique({
       where: { id: req.params.id },
       include: {
@@ -135,11 +140,11 @@ router.get('/:id', async (req, res, next) => {
         },
         availabilities: {
           where: {
-            date: {
-              gte: new Date()
+            startDate: {
+              gte: new Date(new Date().setHours(0, 0, 0, 0))
             }
           },
-          orderBy: { date: 'asc' }
+          orderBy: { startDate: 'asc' }
         }
       }
     });
@@ -153,11 +158,12 @@ router.get('/:id', async (req, res, next) => {
     let availabilityStatus = 'AVAILABLE';
     let nextAvailableDate = null;
     let availableDates: Date[] = [];
-
+    console.log('availabilities', availabilities);
     if (availabilities.length > 0) {
       const availableDays = availabilities.filter(a => a.status === 'AVAILABLE');
       const soldOutDays = availabilities.filter(a => a.status === 'SOLD_OUT');
       const notOperating = availabilities.filter(a => a.status === 'NOT_OPERATING');
+      console.log('availabilities', availabilities);
 
       if (availableDays.length === 0 && soldOutDays.length > 0) {
         availabilityStatus = 'SOLD_OUT';
@@ -166,8 +172,8 @@ router.get('/:id', async (req, res, next) => {
       }
 
       if (availableDays.length > 0) {
-        nextAvailableDate = availableDays[0].date;
-        availableDates = availableDays.map(a => a.date);
+        nextAvailableDate = availableDays[0].startDate;
+        availableDates = availableDays.map(a => a.startDate);
       }
     }
 
@@ -188,9 +194,9 @@ router.get('/:id', async (req, res, next) => {
 router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, next) => {
   try {
     const data = productSchema.parse(req.body);
-    
+
     const slug = data.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-    
+
     const product = await prisma.product.create({
       data: {
         ...data,
@@ -204,26 +210,18 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
     // Auto-create availability records for the date range
     if (data.availabilityStartDate) {
       const startDate = new Date(data.availabilityStartDate);
-      const endDate = data.availabilityEndDate || new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000); // Default 30 days
-      
-      const availabilityRecords = [];
-      const currentDate = new Date(startDate);
-      
-      while (currentDate <= endDate) {
-        availabilityRecords.push({
+      const endDate = data.availabilityEndDate || null; // Fixed semicolon
+    
+      // Create a single availability record for the date range
+      await prisma.availability.create({
+        data: {
           productId: product.id,
-          date: new Date(currentDate),
+          startDate: startDate,
+          endDate: endDate, // null means "forever"
           status: 'AVAILABLE',
-          available: data.capacity
-        });
-        currentDate.setDate(currentDate.getDate() + 1);
-      }
-
-      if (availabilityRecords.length > 0) {
-        await prisma.availability.createMany({
-          data: availabilityRecords
-        });
-      }
+          booked: 0
+        }
+      });
     }
 
     res.status(201).json(product);
@@ -236,7 +234,7 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
 router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, next) => {
   try {
     const data = productSchema.partial().parse(req.body);
-    
+
     const updateData: any = { ...data };
     if (data.title) {
       updateData.slug = data.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
@@ -258,8 +256,8 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
 
       if (existingProduct) {
         const startDate = data.availabilityStartDate || existingProduct.availabilityStartDate;
-        const endDate = data.availabilityEndDate || existingProduct.availabilityEndDate || 
-                       new Date(startDate!.getTime() + 30 * 24 * 60 * 60 * 1000);
+        const endDate = data.availabilityEndDate || existingProduct.availabilityEndDate ||
+          new Date(startDate!.getTime() + 30 * 24 * 60 * 60 * 1000);
 
         if (startDate) {
           // Remove existing availability records beyond the new range
@@ -267,8 +265,8 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
             where: {
               productId: req.params.id,
               OR: [
-                { date: { lt: startDate } },
-                { date: { gt: endDate } }
+                { startDate: { lt: startDate } },
+                { startDate: { gt: endDate } }
               ]
             }
           });
@@ -276,10 +274,10 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
           // Add missing availability records within the range
           const existingDates = await prisma.availability.findMany({
             where: { productId: req.params.id },
-            select: { date: true }
+            select: { startDate: true }
           });
-          
-          const existingDateStrings = existingDates.map(d => d.date.toISOString().split('T')[0]);
+
+          const existingDateStrings = existingDates.map(d => d.startDate.toISOString().split('T')[0]);
           const newRecords = [];
           const currentDate = new Date(startDate);
 
@@ -288,7 +286,8 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
             if (!existingDateStrings.includes(dateString)) {
               newRecords.push({
                 productId: req.params.id,
-                date: new Date(currentDate),
+                startDate: new Date(currentDate),
+                endDate: null,
                 status: 'AVAILABLE',
                 available: product.capacity
               });
@@ -335,7 +334,7 @@ router.post('/:id/clone', authenticate, authorize(['ADMIN', 'EDITOR']), async (r
     }
 
     const { packages, ...productData } = originalProduct;
-    
+
     // Generate unique ID with LTC prefix
     let newId: string;
     let counter = 1;
@@ -349,7 +348,7 @@ router.post('/:id/clone', authenticate, authorize(['ADMIN', 'EDITOR']), async (r
     } while (true);
 
     const currentTime = new Date();
-    
+
     const clonedProduct = await prisma.product.create({
       data: {
         ...productData,

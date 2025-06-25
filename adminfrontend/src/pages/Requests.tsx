@@ -1,25 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Search, Filter, Calendar, MapPin, Users, DollarSign, Download, Eye } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import type { TripRequest } from '@/types.ts';
 
-interface TripRequest {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  destination: string;
-  startDate: string;
-  endDate: string;
-  adults: number;
-  children: number;
-  budget: string;
-  interests: string[];
-  accommodation: string;
-  transport: string;
-  specialRequests?: string;
-  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'CANCELLED';
-  createdAt: string;
-}
 
 export const Requests = () => {
   const [requests, setRequests] = useState<TripRequest[]>([]);

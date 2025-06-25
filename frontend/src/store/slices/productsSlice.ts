@@ -71,8 +71,9 @@ export const fetchProducts = createAsyncThunk(
 export const fetchProduct = createAsyncThunk(
   'products/fetchProduct',
   async (id: string) => {
+    console.log('Fetching product with ID:', id);
     const response = await fetch(`${import.meta.env.VITE_API_URL}/products/${id}`);
-    
+    console.log('Response status:', response);
     if (!response.ok) {
       throw new Error('Failed to fetch product');
     }

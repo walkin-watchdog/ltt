@@ -1,46 +1,33 @@
 import { useState, useEffect } from 'react';
-import { Calendar, Search, Clock, CheckCircle, XCircle, AlertCircle, Plus, Edit, Trash2 } from 'lucide-react';
+import { Calendar, Search, Edit, Trash2, Ban, Eye} from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-
-interface Product {
-  id: string;
-  title: string;
-  productCode: string;
-  type: string;
-}
-
-interface Availability {
-  id: string;
-  productId: string;
-  date: string;
-  status: 'AVAILABLE' | 'SOLD_OUT' | 'NOT_OPERATING';
-  available: number;
-  booked: number;
-  product: Product;
-}
+import type { AvailabilityProp, BlockedDate, Product } from '@/types.ts';
+import { BlockDates } from '@/components/availability/BlockDates';
+import { formatDateRange, getStatusColor, getStatusIcon } from '@/components/availability/BasicFunctions';
+import { EditModel } from '@/components/availability/EditModel';
 
 export const Availability = () => {
-  const [availabilities, setAvailabilities] = useState<Availability[]>([]);
+  const [availabilities, setAvailabilities] = useState<AvailabilityProp[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [blockedDates, setBlockedDates] = useState<BlockedDate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProduct, setSelectedProduct] = useState('');
-  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedStartDate, setSelectedStartDate] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingAvailability, setEditingAvailability] = useState<Availability | null>(null);
-  const [selectedAvailabilities, setSelectedAvailabilities] = useState<string[]>([]);
+  const [editingAvailability, setEditingAvailability] = useState<AvailabilityProp | null>(null);
   const [isBlockModalOpen, setIsBlockModalOpen] = useState(false);
+  const [isViewBlockedModalOpen, setIsViewBlockedModalOpen] = useState(false);
   const [blockDates, setBlockDates] = useState({
-    startDate: '',
-    endDate: '',
-    status: 'NOT_OPERATING' as 'SOLD_OUT' | 'NOT_OPERATING'
+    selectedDates: [] as string[],
+    reason: '' as string
   });
   const [modalData, setModalData] = useState({
     productId: '',
-    date: '',
-    status: 'AVAILABLE' as 'AVAILABLE' | 'SOLD_OUT' | 'NOT_OPERATING',
-    available: 10
+    startDate: '',
+    endDate: '',
+    status: 'AVAILABLE' as 'AVAILABLE' | 'SOLD_OUT' | 'NOT_OPERATING'
   });
   const [saveError, setSaveError] = useState('');
   const { token, user } = useAuth();
@@ -49,24 +36,31 @@ export const Availability = () => {
     fetchData();
   }, [token]);
 
-  const fetchData = async () => {
+const fetchData = async () => {
     try {
-      const [availabilityRes, productsRes] = await Promise.all([
+      const [availabilityRes, productsRes, blockedRes] = await Promise.all([
         fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/availability`, {
           headers: { 'Authorization': `Bearer ${token}` },
         }),
         fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/products`, {
           headers: { 'Authorization': `Bearer ${token}` },
         }),
+        fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/availability/blocked`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+        }),
       ]);
-
-      if (availabilityRes.ok && productsRes.ok) {
-        const [availabilityData, productsData] = await Promise.all([
+  
+      if (availabilityRes.ok && productsRes.ok && blockedRes.ok) {
+        const [availabilityData, productsData, blockedData] = await Promise.all([
           availabilityRes.json(),
           productsRes.json(),
+          blockedRes.json(),
         ]);
-        setAvailabilities(availabilityData);
+        console.log('Fetched availability data:', availabilityData);
+        console.log('Fetched blocked data:', blockedData);
+        setAvailabilities(availabilityData || []);
         setProducts(productsData);
+        setBlockedDates(blockedData.blockedDates || []);
       }
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -74,83 +68,71 @@ export const Availability = () => {
       setIsLoading(false);
     }
   };
+  
+  // Get blocked dates count for a product
+  const getBlockedDatesCount = (productId: string) => {
+    return blockedDates.filter(bd => bd.productId === productId && bd.isActive === false).length;
+  };
+
+  // Check if a date is already blocked for a product
+  const isDateAlreadyBlocked = (productId: string, date: string) => {
+    return blockedDates.some(bd => 
+      bd.productId === productId && 
+      bd.date.split('T')[0] === date && 
+      bd.isActive === false
+    );
+  };
+
+  // Handle unblocking dates
+  const handleUnblockDate = async (blockedDateId: string) => {
+    if (!window.confirm('Are you sure you want to unblock this date?')) return;
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/availability/unblock/${blockedDateId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        fetchData(); // Refresh all data
+        setSaveError('Date unblocked successfully!');
+        // Clear success message after 3 seconds
+        setTimeout(() => setSaveError(''), 3000);
+      } else {
+        const errorData = await response.json();
+        setSaveError(errorData.message || 'Failed to unblock date');
+      }
+    } catch (error) {
+      console.error('Error unblocking date:', error);
+      setSaveError('Network error. Please try again.');
+    }
+  };
 
   const filteredAvailabilities = availabilities.filter(availability => {
+    if (!availability) return false;
+    
     const matchesSearch = 
-      availability.product.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      availability.product.productCode.toLowerCase().includes(searchTerm.toLowerCase());
+      availability.product?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      availability.product?.productCode?.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesProduct = !selectedProduct || availability.productId === selectedProduct;
-    const matchesDate = !selectedDate || availability.date.startsWith(selectedDate);
+    const matchesDate = !selectedStartDate || availability.startDate.startsWith(selectedStartDate);
     const matchesStatus = !selectedStatus || availability.status === selectedStatus;
     
     return matchesSearch && matchesProduct && matchesDate && matchesStatus;
   });
 
-  const handleSave = async () => {
-    // Validate form data
-    if (!modalData.productId || !modalData.date) {
-      setSaveError('Please fill in all required fields');
-      return;
-    }
-
-    // Validate date is not in the past (unless editing existing)
-    const selectedDate = new Date(modalData.date);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    if (!editingAvailability && selectedDate < today) {
-      setSaveError('Cannot set availability for past dates');
-      return;
-    }
-
-    setSaveError('');
-
-    try {
-      const url = editingAvailability 
-        ? `${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/availability/${editingAvailability.id}`
-        : `${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/availability`;
-      
-      const method = editingAvailability ? 'PUT' : 'POST';
-      
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(modalData),
-      });
-
-      if (response.ok) {
-        fetchData();
-        setIsModalOpen(false);
-        setEditingAvailability(null);
-        setSaveError('');
-        setModalData({
-          productId: '',
-          date: '',
-          status: 'AVAILABLE',
-          available: 10
-        });
-      } else {
-        const errorData = await response.json();
-        setSaveError(errorData.message || 'Failed to save availability');
-      }
-    } catch (error) {
-      console.error('Error saving availability:', error);
-      setSaveError('Network error. Please try again.');
-    }
-  };
-
-  const handleEdit = (availability: Availability) => {
+  const handleEdit = (availability: AvailabilityProp) => {
     setEditingAvailability(availability);
     setSaveError('');
     setModalData({
       productId: availability.productId,
-      date: availability.date,
-      status: availability.status,
-      available: availability.available
+      startDate: availability.startDate.split('T')[0], // Format for date input
+      endDate: availability.endDate ? availability.endDate.split('T')[0] : '',
+      status: availability.status
     });
     setIsModalOpen(true);
   };
@@ -173,23 +155,35 @@ export const Availability = () => {
   };
 
   const handleBulkBlock = async () => {
-    if (!blockDates.startDate || !selectedProduct) {
-      setSaveError('Please select a product and start date');
+    if (!blockDates.selectedDates || blockDates.selectedDates.length === 0 || !selectedProduct) {
+      setSaveError('Please select a product and at least one date');
       return;
     }
 
-    try {
-      const startDate = new Date(blockDates.startDate);
-      const endDate = blockDates.endDate ? new Date(blockDates.endDate) : startDate;
-      
-      const dates = [];
-      const currentDate = new Date(startDate);
-      
-      while (currentDate <= endDate) {
-        dates.push(currentDate.toISOString().split('T')[0]);
-        currentDate.setDate(currentDate.getDate() + 1);
-      }
+    if( blockDates.selectedDates.length > 30) {
+      setSaveError('You can block a maximum of 30 dates at a time');
+      return;
+    }
 
+     const today = new Date().toISOString().split('T')[0];
+  if (blockDates.selectedDates.some(date => date < today)) {
+    setSaveError('You cannot block past dates');
+    return;
+  }
+    // Check for duplicate dates
+    const duplicateDates = blockDates.selectedDates.filter(date => 
+      isDateAlreadyBlocked(selectedProduct, date)
+    );
+
+    if (duplicateDates.length > 0) {
+      const duplicatesFormatted = duplicateDates.map(date => 
+        new Date(date).toLocaleDateString('en-IN')
+      ).join(', ');
+      setSaveError(`The following dates are already blocked: ${duplicatesFormatted}`);
+      return;
+    }
+  
+    try {
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/availability/block`, {
         method: 'POST',
         headers: {
@@ -198,16 +192,18 @@ export const Availability = () => {
         },
         body: JSON.stringify({
           productId: selectedProduct,
-          dates,
-          status: blockDates.status
+          dates: blockDates.selectedDates,
+          reason: blockDates.reason
         }),
       });
-
+  
       if (response.ok) {
         fetchData();
         setIsBlockModalOpen(false);
-        setBlockDates({ startDate: '', endDate: '', status: 'NOT_OPERATING' });
-        setSaveError('');
+        setBlockDates({ selectedDates: [], reason: '' });
+        setSaveError('Dates blocked successfully!');
+        // Clear success message after 3 seconds
+        setTimeout(() => setSaveError(''), 3000);
       } else {
         const errorData = await response.json();
         setSaveError(errorData.message || 'Failed to block dates');
@@ -218,31 +214,15 @@ export const Availability = () => {
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'AVAILABLE':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'SOLD_OUT':
-        return <XCircle className="h-4 w-4 text-red-500" />;
-      case 'NOT_OPERATING':
-        return <AlertCircle className="h-4 w-4 text-orange-500" />;
-      default:
-        return <Clock className="h-4 w-4 text-gray-400" />;
+  const handleViewBlockedDates = async () => {
+    if (!selectedProduct) {
+      setSaveError('Please select a product first');
+      return;
     }
+    setIsViewBlockedModalOpen(true);
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'AVAILABLE':
-        return 'bg-green-100 text-green-800';
-      case 'SOLD_OUT':
-        return 'bg-red-100 text-red-800';
-      case 'NOT_OPERATING':
-        return 'bg-orange-100 text-orange-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
+  
 
   if (isLoading) {
     return (
@@ -251,6 +231,10 @@ export const Availability = () => {
       </div>
     );
   }
+
+  const selectedProductBlockedDates = selectedProduct 
+    ? blockedDates.filter(bd => bd.productId === selectedProduct && bd.isActive === false)
+    : [];
 
   return (
     <div className="space-y-6">
@@ -264,14 +248,27 @@ export const Availability = () => {
           <span className="text-sm text-gray-500">
             {filteredAvailabilities.length} availability records
           </span>
-          {(user?.role === 'ADMIN' || user?.role === 'EDITOR') && selectedProduct && (
-            <button
-              onClick={() => setIsBlockModalOpen(true)}
-              className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-            >
-              <XCircle className="h-4 w-4 mr-2" />
-              Block Dates
-            </button>
+          {(user?.role === 'ADMIN' || user?.role === 'EDITOR') && (
+            <>
+              {selectedProduct && (
+                <>
+                  <button
+                    onClick={handleViewBlockedDates}
+                    className="flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    View Blocked ({selectedProductBlockedDates.length})
+                  </button>
+                  <button
+                    onClick={() => setIsBlockModalOpen(true)}
+                    className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                  >
+                    <Ban className="h-4 w-4 mr-2" />
+                    Block Dates
+                  </button>
+                </>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -296,17 +293,21 @@ export const Availability = () => {
             className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
           >
             <option value="">All Products</option>
-            {products.map(product => (
-              <option key={product.id} value={product.id}>
-                {product.title}
-              </option>
-            ))}
+            {products.map(product => {
+              const blockedCount = getBlockedDatesCount(product.id);
+              return (
+                <option key={product.id} value={product.id}>
+                  {product.title} {blockedCount > 0 ? `(${blockedCount} blocked)` : ''}
+                </option>
+              );
+            })}
           </select>
           
           <input
             type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
+            placeholder="Start Date"
+            value={selectedStartDate}
+            onChange={(e) => setSelectedStartDate(e.target.value)}
             className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
           />
           
@@ -333,13 +334,10 @@ export const Availability = () => {
                   Product
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Date
+                  Date Range
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Available
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Booked
@@ -356,11 +354,17 @@ export const Availability = () => {
                 <tr key={availability.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
-                      <div className="text-sm font-medium text-gray-900">
-                        {availability.product.title}
+                      <div className="text-sm font-medium text-gray-900 flex items-center">
+                        {availability.product?.title || 'Unknown Product'}
+                        {getBlockedDatesCount(availability.productId) > 0 && (
+                          <span className="ml-2 inline-flex items-center px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full">
+                            <Ban className="h-3 w-3 mr-1" />
+                            {getBlockedDatesCount(availability.productId)} blocked
+                          </span>
+                        )}
                       </div>
                       <div className="text-sm text-gray-500">
-                        {availability.product.productCode}
+                        {availability.product?.productCode || 'N/A'}
                       </div>
                     </div>
                   </td>
@@ -368,7 +372,7 @@ export const Availability = () => {
                     <div className="flex items-center">
                       <Calendar className="h-4 w-4 text-gray-400 mr-2" />
                       <span className="text-sm text-gray-900">
-                        {new Date(availability.date).toLocaleDateString('en-IN')}
+                        {formatDateRange(availability.startDate, availability.endDate)}
                       </span>
                     </div>
                   </td>
@@ -381,10 +385,7 @@ export const Availability = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {availability.available}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {availability.booked}
+                    {availability.booked || 0}
                   </td>
                   {(user?.role === 'ADMIN' || user?.role === 'EDITOR') && (
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -416,190 +417,108 @@ export const Availability = () => {
           <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No availability records found</h3>
           <p className="text-gray-600">
-            Create products with availability dates to start managing bookings.
-            {selectedProduct && " Select a product above to view its availability."}
+            {availabilities.length === 0 
+              ? "No availability records exist. Add some availability records to get started."
+              : "No records match your current filters. Try adjusting your search criteria."
+            }
           </p>
         </div>
       )}
 
       {/* Edit Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-bold mb-4">
-              {editingAvailability ? 'Edit Availability' : 'Add Availability'}
-            </h3>
-            
-            {saveError && (
-              <div className="mb-4 p-3 bg-red-100 border border-red-300 text-red-700 rounded-md text-sm">
-                {saveError}
-              </div>
-            )}
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Product *</label>
-                <select
-                  value={modalData.productId}
-                  onChange={(e) => setModalData(prev => ({ ...prev, productId: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                  disabled={Boolean(editingAvailability)}
-                  required
-                >
-                  <option value="">Select Product</option>
-                  {products.map(product => (
-                    <option key={product.id} value={product.id}>
-                      {product.title} ({product.productCode})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Date *</label>
-                <input
-                  type="date"
-                  value={modalData.date}
-                  onChange={(e) => setModalData(prev => ({ ...prev, date: e.target.value }))}
-                  min={editingAvailability ? undefined : new Date().toISOString().split('T')[0]}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                  required
-                />
-                {!editingAvailability && (
-                  <p className="text-xs text-gray-500 mt-1">Cannot select past dates for new availability</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                <select
-                  value={modalData.status}
-                  onChange={(e) => setModalData(prev => ({ ...prev, status: e.target.value as any }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                >
-                  <option value="AVAILABLE">Available</option>
-                  <option value="SOLD_OUT">Sold Out</option>
-                  <option value="NOT_OPERATING">Not Operating</option>
-                </select>
-              </div>
-
-              {modalData.status === 'AVAILABLE' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Available Capacity</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={modalData.available}
-                    onChange={(e) => setModalData(prev => ({ ...prev, available: parseInt(e.target.value) }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                  />
-                </div>
-              )}
-              
-              <div className="flex justify-end space-x-3 mt-6">
-                <button
-                  onClick={() => {
-                    setIsModalOpen(false);
-                    setEditingAvailability(null);
-                    setSaveError('');
-                  }}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSave}
-                  disabled={!modalData.productId || !modalData.date}
-                  className="px-4 py-2 bg-[#ff914d] text-white rounded-md hover:bg-[#e8823d] disabled:bg-gray-300 disabled:cursor-not-allowed"
-                >
-                  Save
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <EditModel
+        saveError={saveError}
+        setSaveError={setSaveError}
+        setIsModalOpen={setIsModalOpen}
+        modalData={modalData}
+        setModalData={setModalData}
+        products={products}
+        fetchData={fetchData}
+        />
       )}
 
       {/* Block Dates Modal */}
       {isBlockModalOpen && (
+        <BlockDates
+        saveError={saveError}
+        setSaveError={setSaveError}
+        setSelectedProduct={setSelectedProduct}
+        products={products}
+        blockDates={blockDates}
+        setBlockDates={setBlockDates}
+        handleBulkBlock={handleBulkBlock}
+        isDateAlreadyBlocked={isDateAlreadyBlocked}
+        setIsBlockModalOpen={setIsBlockModalOpen}
+        selectedProduct= {selectedProduct}
+        />
+      )}
+
+      {/* View Blocked Dates Modal */}
+      {isViewBlockedModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-bold mb-4">Block Dates</h3>
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto">
+            <h3 className="text-lg font-bold mb-4">
+              Blocked Dates for {products.find(p => p.id === selectedProduct)?.title}
+            </h3>
             
             {saveError && (
-              <div className="mb-4 p-3 bg-red-100 border border-red-300 text-red-700 rounded-md text-sm">
+              <div className={`mb-4 p-3 border rounded-md text-sm ${
+                saveError.includes('successfully') 
+                  ? 'bg-green-100 border-green-300 text-green-700'
+                  : 'bg-red-100 border-red-300 text-red-700'
+              }`}>
                 {saveError}
               </div>
             )}
             
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Product</label>
-                <select
-                  value={selectedProduct}
-                  onChange={(e) => setSelectedProduct(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                >
-                  <option value="">Select Product</option>
-                  {products.map(product => (
-                    <option key={product.id} value={product.id}>
-                      {product.title} ({product.productCode})
-                    </option>
+              {selectedProductBlockedDates.length === 0 ? (
+                <p className="text-gray-600 text-center py-8">No blocked dates for this product.</p>
+              ) : (
+                <div className="space-y-2">
+                  {selectedProductBlockedDates.map((blockedDate) => (
+                    <div key={blockedDate.id} className="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg">
+                      <div>
+                        <div className="font-medium text-gray-900">
+                          {new Date(blockedDate.date).toLocaleDateString('en-IN', {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })}
+                        </div>
+                        {blockedDate.reason && (
+                          <div className="text-sm text-gray-600 mt-1">
+                            Reason: {blockedDate.reason}
+                          </div>
+                        )}
+                        <div className="text-xs text-gray-500 mt-1">
+                          Blocked on: {new Date(blockedDate.createdAt).toLocaleDateString('en-IN')}
+                        </div>
+                      </div>
+                      {(user?.role === 'ADMIN' || user?.role === 'EDITOR') && (
+                        <button
+                          onClick={() => handleUnblockDate(blockedDate.id)}
+                          className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
+                        >
+                          Unblock
+                        </button>
+                      )}
+                    </div>
                   ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
-                <input
-                  type="date"
-                  value={blockDates.startDate}
-                  onChange={(e) => setBlockDates(prev => ({ ...prev, startDate: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">End Date (Optional)</label>
-                <input
-                  type="date"
-                  value={blockDates.endDate}
-                  onChange={(e) => setBlockDates(prev => ({ ...prev, endDate: e.target.value }))}
-                  min={blockDates.startDate}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                />
-                <p className="text-xs text-gray-500 mt-1">Leave empty to block only the start date</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                <select
-                  value={blockDates.status}
-                  onChange={(e) => setBlockDates(prev => ({ ...prev, status: e.target.value as any }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                >
-                  <option value="NOT_OPERATING">Not Operating</option>
-                  <option value="SOLD_OUT">Sold Out</option>
-                </select>
-              </div>
+                </div>
+              )}
               
-              <div className="flex justify-end space-x-3 mt-6">
+              <div className="flex justify-end mt-6">
                 <button
                   onClick={() => {
-                    setIsBlockModalOpen(false);
-                    setBlockDates({ startDate: '', endDate: '', status: 'NOT_OPERATING' });
+                    setIsViewBlockedModalOpen(false);
                     setSaveError('');
                   }}
                   className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
                 >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleBulkBlock}
-                  disabled={!selectedProduct || !blockDates.startDate}
-                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
-                >
-                  Block Dates
+                  Close
                 </button>
               </div>
             </div>

@@ -2,30 +2,9 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, MapPin, Clock, Users, Star, Camera, CheckCircle, XCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import type { Product } from '@/types.ts';
 
-interface Product {
-  id: string;
-  title: string;
-  description: string;
-  images: string[];
-  price: number;
-  discountPrice?: number;
-  location: string;
-  duration: string;
-  capacity: number;
-  highlights: string[];
-  inclusions: string[];
-  exclusions: string[];
-  itinerary?: any[];
-  tags: string[];
-  difficulty?: string;
-  guides: string[];
-  languages: string[];
-  packages?: any[];
-  cancellationPolicy: string;
-  type: string;
-  category: string;
-}
+
 
 export const ProductPreview = () => {
   const { id } = useParams<{ id: string }>();

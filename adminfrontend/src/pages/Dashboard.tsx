@@ -12,32 +12,8 @@ import {
   Percent
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import type { DashboardStats } from '@/types.ts';
 
-interface DashboardStats {
-  overview: {
-    totalProducts: number;
-    totalBookings: number;
-    totalRevenue: number;
-    monthlyBookings: number;
-    monthlyRevenue: number;
-    weeklyBookings: number;
-    weeklyRevenue: number;
-    yearlyRevenue: number;
-    pendingRequests: number;
-    activeSubscribers: number;
-    totalAbandonedCarts: number;
-    conversionRate: number;
-  };
-  trends: {
-    monthlyGrowth: {
-      bookings: number;
-      revenue: number;
-    };
-  };
-  bookingTrends: any[];
-  revenueByCategory: any[];
-  topProducts: any[];
-}
 
 export const Dashboard = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
