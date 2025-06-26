@@ -14,6 +14,11 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+const sanitize = handlebars.escapeExpression;
+handlebars.registerHelper('sanitize', (context: unknown) =>
+  handlebars.escapeExpression(String(context ?? ''))
+);
+
 export interface EmailData {
   to: string | string[];
   subject: string;
@@ -30,7 +35,13 @@ export class EmailService {
       let html = data.html;
       
       if (data.template) {
-        const templatePath = path.join(__dirname, '../templates', `${data.template}.hbs`);
+        const templatePath = path.resolve(
+          process.cwd(),
+          'src',
+          'templates',
+          `${data.template}.hbs`
+        );
+
         if (fs.existsSync(templatePath)) {
           const templateSource = fs.readFileSync(templatePath, 'utf8');
           const template = handlebars.compile(templateSource);
@@ -63,9 +74,9 @@ export class EmailService {
       subject: `Booking Confirmation - ${product.title}`,
       template: 'booking-confirmation',
       context: {
-        customerName: booking.customerName,
-        bookingCode: booking.bookingCode,
-        productTitle: product.title,
+        customerName: sanitize(booking.customerName),
+        bookingCode: sanitize(booking.bookingCode),
+        productTitle: sanitize(product.title),
         bookingDate: new Date(booking.bookingDate).toLocaleDateString('en-IN', {
           weekday: 'long',
           year: 'numeric',
@@ -90,9 +101,9 @@ export class EmailService {
       subject: `Payment Received - ${booking.bookingCode}`,
       template: 'payment-confirmation',
       context: {
-        customerName: booking.customerName,
-        bookingCode: booking.bookingCode,
-        productTitle: product.title,
+        customerName: sanitize(booking.customerName),
+        bookingCode: sanitize(booking.bookingCode),
+        productTitle: sanitize(product.title),
         paymentAmount: payment.amount,
         paymentMethod: payment.paymentMethod,
         transactionId: payment.razorpayPaymentId,
@@ -110,9 +121,9 @@ export class EmailService {
       subject: `Complete Your Booking - ${product.title}`,
       template: 'abandoned-cart',
       context: {
-        customerName: cart.customerData.customerName,
-        productTitle: product.title,
-        productImage: product.images[0],
+        customerName: sanitize(cart.customerData.customerName),
+        productTitle: sanitize(product.title),
+        productImage: sanitize(product.images[0]),
         bookingUrl: `${process.env.FRONTEND_URL}/book/${product.id}`,
         companyName: process.env.COMPANY_NAME,
       },

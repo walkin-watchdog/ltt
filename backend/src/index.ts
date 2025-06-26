@@ -3,11 +3,11 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
-import { PrismaClient } from '@prisma/client';
+import cookieParser from 'cookie-parser';
+import { prisma } from './utils/prisma'
+import { globalLimiter } from './middleware/rateLimit'
 import { logger } from './utils/logger';
 import { errorHandler } from './middleware/errorHandler';
-import { AbandonedCartJob } from './jobs/abandonedCartJob';
-import { CronJob } from 'cron';
 
 // Routes
 import authRoutes from './routes/auth';
@@ -29,18 +29,38 @@ import paypalPaymentRoutes from './routes/paypalPayments';
 dotenv.config();
 
 const app = express();
-const prisma = new PrismaClient();
+
 const PORT = process.env.PORT || 3001;
 
-// Rate limiting
-// const limiter = rateLimit({
-//   windowMs: 15 * 60 * 1000, // 15 minutes
-//   max: 100 // limit each IP to 100 requests per windowMs
-// });
-
 // // Middleware
-// app.use(limiter);
-// app.use(helmet());
+app.set('trust proxy', 1);
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.use(cookieParser());
+app.use(globalLimiter);
+
+app.use(limiter);
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
+        scriptSrc  : ["'self'"],
+        styleSrc   : ["'self'", "https:"],
+        frameSrc   : ["'self'","https://www.paypal.com","https://*.paypal.com"],
+        connectSrc : ["'self'", "https://api-m.sandbox.paypal.com"]
+      },
+    },
+  })
+);
+
 app.use(cors({
   // origin: [
   //   process.env.FRONTEND_URL || 'http://localhost:5173',
@@ -73,30 +93,21 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-// Setup cron jobs
-const abandonedCartJob = new CronJob(
-  '0 */2 * * *', // Every 2 hours
-  AbandonedCartJob.processAbandonedCarts,
-  null,
-  true,
-  'Asia/Kolkata'
-);
-
-const cleanupJob = new CronJob(
-  '0 0 * * 0', // Every Sunday at midnight
-  AbandonedCartJob.cleanupOldCarts,
-  null,
-  true,
-  'Asia/Kolkata'
-);
-
 // Error handling
 app.use(errorHandler);
 // createAdmin();
 // Start server
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   logger.info(`Server running on port ${PORT}`);
-  logger.info('Cron jobs started for abandoned cart processing');
+});
+
+process.on('SIGTERM', async () => {
+  logger.info('SIGTERM received – draining connections');
+  server.close(async () => {
+    await prisma.$disconnect();
+    logger.info('HTTP server closed');
+    process.exit(0);
+  });
 });
 
 export default app;

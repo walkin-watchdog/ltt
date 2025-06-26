@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { Star, Clock, Users, MapPin } from 'lucide-react';
 import { fetchProducts } from '../store/slices/productsSlice';
 import type { AppDispatch, RootState } from '@/store/store';
+import { Helmet } from 'react-helmet-async';
 
 export const Home = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -17,33 +18,40 @@ export const Home = () => {
 
   return (
     <div className="min-h-screen">
+      <Helmet>
+        <link rel="preload" href="https://fonts.cdnfonts.com/css/steelfish" as="style" />
+        <link href="https://fonts.cdnfonts.com/css/steelfish" rel="stylesheet" />
+      </Helmet>
       {/* Hero Section */}
-      <section className="relative h-screen bg-gradient-to-r from-[#104c57] to-[#ff914d] text-white">
-        <div className="absolute inset-0"></div>
+      <section 
+        className="relative min-h-[calc(100vh-20vh)] bg-cover bg-center text-white"
+        style={{ backgroundImage: `url('https://www.luxetimetravel.com/hubfs/photo-1548013146-72479768bada.jpg')` }}  
+      >
+
+        <div 
+          className="absolute inset-0"
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}
+        ></div>
         <div className="relative z-10 flex items-center justify-center h-full">
           <div className="text-center max-w-4xl mx-auto px-4">
-            <h1 className="text-5xl md:text-7xl mb-6">
-              <span className="text-[#104c57] ml-80" style={{ fontSize: '38.8px' }}>Luxé<br /></span>
-              <span className="text-[#ff914d] font-bold" style={{ fontSize: '90px' }}>Time</span>
-              <span className=" text-[#ff914d] font-bold" style={{ fontSize: '90px' }}>Travel</span>
+            <h1 className="text-5xl steelfish mt-1.5 logo-text-big md:text-7xl mb-6">
+              <span className="text-[#104c57] ml-51" style={{ fontSize: '38.8pt' }}>Luxé<br /></span>
+              <span className="text-[#ff914d] font-regular" style={{ fontSize: '90pt' }}>Time</span>
+              <span className="text-[#ff914d] font-regular" style={{ fontSize: '90pt' }}>Travel</span>
             </h1>
-            <p className="text-xl md:text-2xl mb-8 text-gray-200">
+            <p className="text-xl md:text-2xl mb-60 text-gray-200">
               Discover the Extraordinary
-            </p>
-            <p className="text-lg mb-12 max-w-2xl mx-auto">
-              Embark on curated luxury journeys that transcend ordinary travel. 
-              Experience the finest destinations with our bespoke travel experiences.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
                 to="/destinations"
-                className="bg-[#ff914d] text-white px-8 py-4 text-lg font-semibold hover:bg-[#e8823d] transition-colors"
+                className="bg-[#104c57] text-white px-8 py-4 text-lg font-semibold hover:bg-[#e8823d] transition-colors"
               >
                 Explore Destinations
               </Link>
               <Link
                 to="/plan-your-trip"
-                className="border-2 border-white text-white px-8 py-4 text-lg font-semibold hover:bg-white hover:text-[#104c57] transition-colors"
+                className="border-2 border-gray-200 text-gray-200 px-8 py-4 text-lg font-semibold hover:border-[#ff914d] hover:bg-[#ff914d] hover:text-white transition-colors"
               >
                 Plan Your Journey
               </Link>
@@ -60,7 +68,8 @@ export const Home = () => {
               Featured Experiences
             </h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Discover our handpicked selection of extraordinary tours and experiences
+              Embark on curated luxury journeys that transcend ordinary travel.
+              Discover our bespoke selection of tours and experiences
             </p>
           </div>
 

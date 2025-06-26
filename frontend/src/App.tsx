@@ -1,8 +1,8 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { Provider } from 'react-redux';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useSelector } from 'react-redux';
 import { HelmetProvider } from 'react-helmet-async';
-import { store } from './store/store';
+import { type RootState } from './store/store';
 import { Navbar } from './components/layout/Navbar';
 import { Footer } from './components/layout/Footer';
 import { WhatsAppWidget } from './components/common/WhatsAppWidget';
@@ -31,99 +31,115 @@ import { Partnership } from './pages/Partnership';
 import { Careers } from './pages/Careers';
 import { FAQ } from './pages/FAQ';
 import { BookingFlow } from './pages/BookingFlow';
-import { AdminLogin } from './pages/AdminLogin';
+import { debounce } from '@/lib/utils';
 
 function App() {
   const [abandonedCart, setAbandonedCart] = useState<any>(null);
+  const email = useSelector((state: RootState) => state.auth.email);
+  const debouncedCheckRef = useRef<() => void>(() => {});
+
+  const checkAbandonedCarts = useCallback(async () => {
+    const keys = email
+      ? Object.keys(localStorage).filter(
+          (k) => k.startsWith('abandoned_cart_') && k.includes(email)
+        )
+      : Object.keys(localStorage).filter((k) => k.startsWith('abandoned_cart_'));
+
+    const lookups = await Promise.all(
+      keys.map(async (key) => {
+        try {
+          const raw = localStorage.getItem(key);
+          if (!raw) return null;
+          const cartData = JSON.parse(raw);
+          const resp = await fetch(
+            `${import.meta.env.VITE_API_URL}/abandoned-carts/status` +
+              `?email=${encodeURIComponent(cartData.customerEmail || email || '')}` +
+              `&productId=${cartData.productId}`
+          );
+          const server = resp.ok ? await resp.json() : null;
+          return server?.status === 'open' ? { key, cartData } : null;
+        } catch {
+          return null;
+        }
+      })
+    );
+
+    const open = lookups.find(Boolean);
+    if (!open) return;
+
+    setAbandonedCart({
+      productId: open.cartData.productId,
+      productTitle: open.cartData.productTitle || 'your booking',
+      date: open.cartData.selectedDate || new Date().toISOString(),
+    });
+  }, [email]);
 
   useEffect(() => {
-    // Check localStorage for abandoned carts
-    const checkAbandonedCarts = () => {
-      const email = localStorage.getItem('user_email');
-      if (!email) return;
-      
-      // Look through localStorage for abandoned cart keys
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith('abandoned_cart_') && key.includes(email)) {
-          try {
-            const cartData = JSON.parse(localStorage.getItem(key) || '');
-            if (cartData) {
-              // Get product ID from the key - format is abandoned_cart_PRODUCTID_EMAIL
-              const productId = key.split('_')[2];
-              setAbandonedCart({
-                productId,
-                productTitle: cartData.productTitle || 'your booking',
-                date: cartData.selectedDate || new Date().toISOString()
-              });
-              break;
-            }
-          } catch (e) {
-            console.error('Error parsing abandoned cart data:', e);
-          }
-        }
+    debouncedCheckRef.current = debounce(checkAbandonedCarts, 15_000);
+    debouncedCheckRef.current()
+    
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key?.startsWith('abandoned_cart_') && email && e.key.includes(email)) {
+        debouncedCheckRef.current();
       }
     };
-    
-    checkAbandonedCarts();
-    
-    // Check again if user logs in
-    const handleStorageChange = () => {
-      if (localStorage.getItem('user_email')) {
-        checkAbandonedCarts();
-      }
+
+    const handleCartUpdate = (_e: Event) => {
+      debouncedCheckRef.current();
     };
-    
+
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+    window.addEventListener('abandonedCartUpdated', handleCartUpdate);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('abandonedCartUpdated', handleCartUpdate);
+    };
+  }, [email, checkAbandonedCarts]);
 
   return (
     <ErrorBoundary>
     <HelmetProvider>
-      <Provider store={store}>
-        <Router>
-            <GoogleAnalytics />
-          <div className="min-h-screen bg-background">
-            <Navbar />
-            <main>
-                <ErrorBoundary>
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/destinations" element={<Destinations />} />
-                <Route path="/destinations/:city" element={<DestinationCity />} />
-                <Route path="/experiences" element={<Experiences />} />
-                <Route path="/experiences/:category" element={<ExperienceCategory />} />
-                <Route path="/blog" element={<Blog />} />
-                <Route path="/blog/:slug" element={<BlogPost />} />
-                <Route path="/blog/category/:slug" element={<BlogCategory />} />
-                <Route path="/blog/tag/:slug" element={<BlogTag />} />
-                <Route path="/product/:id" element={<ProductDetail />} />
-                <Route path="/offers" element={<SpecialOffers />} />
-                <Route path="/plan-your-trip" element={<PlanYourTrip />} />
-                <Route path="/contact" element={<Contact />} />
-                <Route path="/about" element={<About />} />
-                <Route path="/sustainable-travel" element={<SustainableTravel />} />
-                <Route path="/policies" element={<Policies />} />
-                <Route path="/partnership" element={<Partnership />} />
-                <Route path="/careers" element={<Careers />} />
-                <Route path="/faq" element={<FAQ />} />
-                <Route path="/book/:productId" element={<BookingFlow />} />
-                <Route path="/admin-login" element={<AdminLogin />} />
-              </Routes>
-                </ErrorBoundary>
-            </main>
-            <Footer />
-            <WhatsAppWidget />
-            {abandonedCart && (
-              <AbandonedCartNotification 
-                cart={abandonedCart} 
-                onDismiss={() => setAbandonedCart(null)} 
-              />
-            )}
-          </div>
-        </Router>
-      </Provider>
+      <Router>
+          <GoogleAnalytics />
+        <div className="min-h-screen bg-background">
+          <Navbar />
+          <main>
+              <ErrorBoundary>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/destinations" element={<Destinations />} />
+              <Route path="/destinations/:city" element={<DestinationCity />} />
+              <Route path="/experiences" element={<Experiences />} />
+              <Route path="/experiences/:category" element={<ExperienceCategory />} />
+              <Route path="/blog" element={<Blog />} />
+              <Route path="/blog/:slug" element={<BlogPost />} />
+              <Route path="/blog/category/:slug" element={<BlogCategory />} />
+              <Route path="/blog/tag/:slug" element={<BlogTag />} />
+              <Route path="/product/:id" element={<ProductDetail />} />
+              <Route path="/offers" element={<SpecialOffers />} />
+              <Route path="/plan-your-trip" element={<PlanYourTrip />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/sustainable-travel" element={<SustainableTravel />} />
+              <Route path="/policies" element={<Policies />} />
+              <Route path="/partnership" element={<Partnership />} />
+              <Route path="/careers" element={<Careers />} />
+              <Route path="/faq" element={<FAQ />} />
+              <Route path="/book/:productId" element={<BookingFlow />} />
+            </Routes>
+              </ErrorBoundary>
+          </main>
+          <Footer />
+          <WhatsAppWidget />
+          {abandonedCart && (
+            <AbandonedCartNotification 
+              cart={abandonedCart} 
+              onDismiss={() => setAbandonedCart(null)} 
+            />
+          )}
+        </div>
+      </Router>
     </HelmetProvider>
     </ErrorBoundary>
   );

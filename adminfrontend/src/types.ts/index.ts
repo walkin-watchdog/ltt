@@ -1,8 +1,58 @@
+export interface ItineraryDay {
+  day: number;
+  title: string;
+  description: string;
+  activities?: string[];
+  images?: string[];
+}
+
+export interface PackageOption {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  childPrice?: number;
+  currency: string;
+  inclusions: string[];
+  maxPeople?: number;
+  timeSlots?: string[];
+}
+
+export interface Review {
+  id: string;
+  name: string;
+  rating: number;
+  comment: string;
+}
+
 export interface Product {
   id: string;
   title: string;
   productCode: string;
-  type: string;
+  slug: string;
+  description: string;
+  type: 'TOUR' | 'EXPERIENCE';
+  category: string;
+  location: string;
+  duration: string;
+  capacity: number;
+  price: number;
+  discountPrice?: number;
+  highlights: string[];
+  inclusions: string[];
+  exclusions: string[];
+  itineraries?: ItineraryDay[];
+  images: string[];
+  tags: string[];
+  packages?: PackageOption[];
+  reviews?: Review[];
+  languages?: string[];
+  difficulty?: string;
+  cancellationPolicy?: string;
+  availabilities?: any[];
+  availabilityStatus: 'AVAILABLE' | 'SOLD_OUT' | 'NOT_OPERATING';
+  nextAvailableDate?: string;
+  availableDates?: string[];
 }
 
 export interface AvailabilityProp {
@@ -149,30 +199,7 @@ export interface ProductFormData {
   availabilityStartDate: string;
   availabilityEndDate?: string;
   blockedDates?: BlockDate[];
-}
-
-export interface Product {
-  id: string;
-  title: string;
-  description: string;
-  images: string[];
-  price: number;
-  discountPrice?: number;
-  location: string;
-  duration: string;
-  capacity: number;
-  highlights: string[];
-  inclusions: string[];
-  exclusions: string[];
-  itinerary?: any[];
-  tags: string[];
-  difficulty?: string;
-  guides: string[];
-  languages: string[];
-  packages?: any[];
-  cancellationPolicy: string;
-  type: string;
-  category: string;
+  packages?: PackageOption[];
 }
 
 export interface Productprop {

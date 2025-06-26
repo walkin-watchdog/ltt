@@ -6,8 +6,10 @@ interface Package {
   name: string;
   description: string;
   price: number;
+  childPrice?: number;
   currency: string;
   inclusions: string[];
+  timeSlots: string[];
   maxPeople: number;
   isActive: boolean;
 }
@@ -25,8 +27,10 @@ export const SchedulePriceTab = ({ formData, updateFormData }: SchedulePriceTabP
     name: '',
     description: '',
     price: 0,
+    childPrice: 0,
     currency: 'INR',
     inclusions: [],
+    timeSlots: [],
     maxPeople: 1,
     isActive: true,
   });
@@ -60,8 +64,10 @@ export const SchedulePriceTab = ({ formData, updateFormData }: SchedulePriceTabP
         name: '',
         description: '',
         price: 0,
+        childPrice: 0,
         currency: 'INR',
         inclusions: [],
+        timeSlots: [],
         maxPeople: 1,
         isActive: true,
       });
@@ -102,6 +108,25 @@ export const SchedulePriceTab = ({ formData, updateFormData }: SchedulePriceTabP
     );
     setPackages(updatedPackages);
     updateFormData({ packages: updatedPackages });
+  };
+
+  const addTimeSlotToPackage = (i: number, slot: string) => {
+    if (!slot.trim()) return;
+    const updated = packages.map((pkg, ii) =>
+      ii === i ? { ...pkg, timeSlots: [...pkg.timeSlots, slot.trim()] } : pkg
+    );
+    setPackages(updated);
+    updateFormData({ packages: updated });
+  };
+
+  const removeTimeSlotFromPackage = (i: number, si: number) => {
+    const updated = packages.map((pkg, ii) =>
+      ii === i
+        ? { ...pkg, timeSlots: pkg.timeSlots.filter((_, idx) => idx !== si) }
+        : pkg
+    );
+    setPackages(updated);
+    updateFormData({ packages: updated });
   };
 
   const PackageInclusionsInput = ({ packageIndex, inclusions }: { packageIndex: number; inclusions: string[] }) => {
@@ -254,6 +279,20 @@ export const SchedulePriceTab = ({ formData, updateFormData }: SchedulePriceTabP
                       />
                     </div>
                     <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Child Price</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={pkg.childPrice ?? ''}
+                        onChange={(e) =>
+                          updatePackage(index, {
+                            childPrice: e.target.value === '' ? undefined : parseFloat(e.target.value),
+                          })
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+                      />
+                    </div>
+                    <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Currency</label>
                       <select
                         value={pkg.currency}
@@ -278,6 +317,25 @@ export const SchedulePriceTab = ({ formData, updateFormData }: SchedulePriceTabP
                     />
                   </div>
                   <PackageInclusionsInput packageIndex={index} inclusions={pkg.inclusions} />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Time Slots
+                    </label>
+                    <input
+                      type="text"
+                      value={pkg.timeSlots.join(', ')}
+                      onChange={(e) =>
+                        updatePackage(index, {
+                          timeSlots: e.target.value
+                            .split(',')
+                            .map(s => s.trim())
+                            .filter(Boolean),
+                        })
+                      }
+                      placeholder="e.g. 08:00-10:00, 14:00-16:00"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d]"
+                    />
+                  </div>
                   <div className="flex justify-end">
                     <button
                       type="button"
@@ -294,7 +352,15 @@ export const SchedulePriceTab = ({ formData, updateFormData }: SchedulePriceTabP
                   <p className="text-sm text-gray-600">{pkg.description}</p>
                   <div className="flex items-center justify-between">
                     <span className="text-lg font-semibold text-[#ff914d]">
-                      {currencies.find(c => c.code === pkg.currency)?.symbol}{pkg.price.toLocaleString()}
+                      {currencies.find(c => c.code === pkg.currency)?.symbol}
+                      {pkg.price.toLocaleString()}
+                      {pkg.childPrice !== undefined && (
+                        <>
+                          {' / '}
+                          {currencies.find(c => c.code === pkg.currency)?.symbol}
+                          {pkg.childPrice.toLocaleString()}
+                        </>
+                      )}
                     </span>
                     <span className="text-sm text-gray-500">Max {pkg.maxPeople} people</span>
                   </div>
@@ -349,6 +415,21 @@ export const SchedulePriceTab = ({ formData, updateFormData }: SchedulePriceTabP
                 />
               </div>
               <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Child Price</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={newPackage.childPrice ?? ''}
+                  onChange={(e) =>
+                    setNewPackage({
+                      ...newPackage,
+                      childPrice: e.target.value === '' ? undefined : parseFloat(e.target.value),
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+                />
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Currency</label>
                 <select
                   value={newPackage.currency}
@@ -373,6 +454,26 @@ export const SchedulePriceTab = ({ formData, updateFormData }: SchedulePriceTabP
                 placeholder="Describe what's included in this package"
               />
             </div>
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Time Slots
+                </label>
+                <input
+                  type="text"
+                  value={newPackage.timeSlots.join(', ')}
+                  onChange={(e) =>
+                    setNewPackage({
+                      ...newPackage,
+                      timeSlots: e.target.value
+                        .split(',')
+                        .map(s => s.trim())
+                        .filter(Boolean),
+                    })
+                  }
+                  placeholder="e.g. 08:00-10:00, 14:00-16:00"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d]"
+                />
+              </div>
             <div className="flex justify-end">
               <button
                 type="button"

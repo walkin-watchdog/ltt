@@ -1,14 +1,28 @@
 import express from 'express';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import rateLimit from 'express-rate-limit';
+import bcrypt from 'bcrypt';
 import { z } from 'zod';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../utils/prisma'
+import { Prisma } from '@prisma/client';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { EmailService } from '../services/emailService';
 import crypto from 'crypto';
+import { signAccess, signRefresh } from '../utils/jwt';
+import { verifyRefresh, RefreshPayload } from '../utils/jwt';
 
 const router = express.Router();
-const prisma = new PrismaClient();
+
+const DUMMY_HASH = '$2b$12$CjwKCAjwjtOTBhAvEiwASG4b0JYkY9W7xI1kqlXr9F2j2PBpRPFfa';
+
+const loginLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 10
+});
+
+const forgotLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5
+});
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -31,11 +45,9 @@ const resetPasswordSchema = z.object({
   password: z.string().min(6)
 });
 // Login
-router.post('/login', async (req, res, next) => {
+router.post('/login', loginLimiter, async (req, res, next) => {
   try {
     const { email, password } = loginSchema.parse(req.body);
-    console.log('Login attempt for:', email);
-    console.log('Password length:', password);
     const user = await prisma.user.findUnique({
       where: { email }
     });
@@ -44,34 +56,83 @@ router.post('/login', async (req, res, next) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    const jwtSecret = process.env.JWT_SECRET;
-    const jwtExpires = process.env.JWT_EXPIRES_IN;
-    if (!jwtSecret) {
-      throw new Error('JWT_SECRET environment variable is not set');
-    }
-    
-    const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role },
-      jwtSecret,
-      { expiresIn: '1h' }
-    );
+    const jti     = crypto.randomUUID();
+    const access  = signAccess({ id: user.id, role: user.role, jti });
+    const refresh = signRefresh({ id:user.id, role:user.role }, jti);
 
+    res.cookie('rt', refresh, {
+      httpOnly : true,
+      sameSite : 'strict',
+      secure   : process.env.NODE_ENV === 'production',
+      maxAge   : 30 * 24 * 60 * 60 * 1000,
+    });
     res.json({
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role
-      }
+        access,
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role
+        }
     });
   } catch (error) {
     next(error);
   }
 });
 
+router.post('/refresh', async (req, res) => {
+  const token = req.cookies.rt;
+  if (!token) return res.sendStatus(401);
+
+  let payload: RefreshPayload;
+  try { payload = verifyRefresh(token); }
+  catch { return res.sendStatus(401); }
+
+  const black = await prisma.refreshTokenBlacklist.findUnique({
+    where: { jti: payload.jti },
+  });
+  if (black) return res.sendStatus(401);
+
+  const newJti     = crypto.randomUUID();
+  const access     = signAccess(payload);
+  const newRefresh = signRefresh({ id:payload.id, role:payload.role }, newJti);
+
+  res.cookie('rt', newRefresh, {
+    httpOnly : true,
+    sameSite : 'strict',
+    secure   : process.env.NODE_ENV === 'production',
+    maxAge   : 30 * 24 * 60 * 60 * 1000,
+  });
+  res.json({ access });
+});
+
+router.post('/logout', async (req, res) => {
+  const token = req.cookies.rt;
+  if (token) {
+    const { jti, exp } = verifyRefresh(token);
+    try {
+      await prisma.refreshTokenBlacklist.create({
+        data: { jti, exp: new Date(exp * 1000) },
+      });
+    } catch (err) {
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2002' &&
+        Array.isArray(err.meta?.target) &&
+        err.meta.target.includes('jti')
+      ) {
+        // no-op
+      } else {
+        throw err;
+      }
+    }
+  }
+  res.clearCookie('rt');
+  res.sendStatus(204);
+});
+
 // Forgot Password
-router.post('/forgot-password', async (req, res, next) => {
+router.post('/forgot-password', forgotLimiter, async (req, res, next) => {
   try {
     const { email } = forgotPasswordSchema.parse(req.body);
 
@@ -80,12 +141,13 @@ router.post('/forgot-password', async (req, res, next) => {
     });
 
     if (!user) {
-      // Don't reveal if user exists for security
+      await bcrypt.compare(email, DUMMY_HASH);
       return res.json({ message: 'If the email exists, a reset link has been sent.' });
     }
 
     // Generate reset token
-    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetTokenPlain  = crypto.randomBytes(32).toString('hex');
+    const resetToken       = crypto.createHash('sha256').update(resetTokenPlain).digest('hex');
     const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour
 
     // Store reset token (you might want to add these fields to User model)
@@ -98,7 +160,7 @@ router.post('/forgot-password', async (req, res, next) => {
     });
 
     // Send reset email
-    const resetUrl = `${process.env.ADMIN_URL}/reset-password?token=${resetToken}`;
+    const resetUrl = `${process.env.ADMIN_URL}/reset-password?token=${resetTokenPlain}`;
     await EmailService.sendEmail({
       to: email,
       subject: 'Password Reset Request - Luxé TimeTravel Admin',
@@ -120,10 +182,11 @@ router.post('/forgot-password', async (req, res, next) => {
 router.post('/reset-password', async (req, res, next) => {
   try {
     const { token, password } = resetPasswordSchema.parse(req.body);
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
 
     const user = await prisma.user.findFirst({
       where: {
-        resetToken: token,
+        resetToken: hashedToken,
         resetTokenExpiry: {
           gt: new Date()
         }

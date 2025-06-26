@@ -1,9 +1,9 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../utils/prisma'
 import { authenticate, authorize } from '../middleware/auth';
 
 const router = express.Router();
-const prisma = new PrismaClient();
+
 
 // Get dashboard analytics (Admin/Editor/Viewer)
 router.get('/dashboard', authenticate, authorize(['ADMIN', 'EDITOR', 'VIEWER']), async (req, res, next) => {
@@ -74,9 +74,7 @@ router.get('/dashboard', authenticate, authorize(['ADMIN', 'EDITOR', 'VIEWER']),
           status: 'CONFIRMED'
         }
       }),
-      // prisma.abandonedCart.count({
-      //   where: { isRecovered: false }
-      // }),
+      prisma.abandonedCart.count(),
       // Simple conversion rate calculation
       prisma.booking.count({ where: { status: 'CONFIRMED' } }).then(async (confirmed) => {
         const total = await prisma.booking.count();

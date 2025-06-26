@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { MapPin, Clock, Star } from 'lucide-react';
 import type { RootState, AppDispatch } from '@/store/store';
 import { fetchProducts } from '../store/slices/productsSlice';
+import { SEOHead } from '../components/seo/SEOHead';
 
 export const DestinationCity = () => {
   const { city } = useParams<{ city: string }>();
@@ -28,17 +29,38 @@ useEffect(() => {
     delhi: {
       name: 'Delhi',
       description: 'India\'s vibrant capital blends ancient heritage with modern dynamism',
-      image: 'https://images.pexels.com/photos/789750/pexels-photo-789750.jpeg'
+      image: 'https://images.pexels.com/photos/789750/pexels-photo-789750.jpeg',
+      highlights: [
+        '1',
+        '2',
+        '3',
+        '4',
+        '5'
+      ]
     },
     jaipur: {
       name: 'Jaipur',
       description: 'The Pink City showcases Rajasthan\'s royal grandeur and architectural marvels',
-      image: 'https://images.pexels.com/photos/3581368/pexels-photo-3581368.jpeg'
+      image: 'https://images.pexels.com/photos/3581368/pexels-photo-3581368.jpeg',
+      highlights: [
+        '1',
+        '2',
+        '3',
+        '4',
+        '5'
+      ]
     },
     agra: {
       name: 'Agra',
       description: 'Home to the iconic Taj Mahal and Mughal architectural masterpieces',
-      image: 'https://images.pexels.com/photos/1583339/pexels-photo-1583339.jpeg'
+      image: 'https://images.pexels.com/photos/1583339/pexels-photo-1583339.jpeg',
+      highlights: [
+        '1',
+        '2',
+        '3',
+        '4',
+        '5'
+      ]
     }
   };
 
@@ -58,17 +80,23 @@ useEffect(() => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-[calc(100vh-20vh)] bg-gray-50">
+      <SEOHead
+        title={`${currentCity.name} - Luxé TimeTravel`}
+        description={`${currentCity.description}. Book authentic ${city} experiences in India with expert guides and small groups.`}
+        keywords={`${city} experiences india, ${city} tours, luxury ${city}, cultural ${city}`}
+        image={currentCity.image}
+      />
       {/* Hero Section */}
-      {/* <section className="relative h-96">
+      <section className="relative h-80 mb-80">
         <img
           src={currentCity.image}
           alt={currentCity.name}
           className="w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-black bg-opacity-50"></div>
-        <div className="relative z-10 flex items-center justify-center h-full">
-          <div className="text-center text-white">
+        <div className="absolute inset-0"></div>
+        <div className="relative z-10 flex bg-black items-center justify-center h-full">
+          <div className="text-center text-white max-w-4xl mx-auto px-4">
             <h1 className="text-5xl md:text-6xl font-bold mb-4">
               {currentCity.name}
             </h1>
@@ -77,7 +105,28 @@ useEffect(() => {
             </p>
           </div>
         </div>
-      </section> */}
+      </section>
+
+      {/* Category Highlights */}
+      <section className="py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-[#104c57] mb-4">
+              Explore the City
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {currentCity.highlights.map((highlight, index) => (
+              <div key={index} className="flex items-center p-4 bg-gray-50 rounded-lg">
+                <div className="bg-[#ff914d] w-8 h-8 rounded-full flex items-center justify-center mr-4">
+                  <span className="text-white font-bold text-sm">{index + 1}</span>
+                </div>
+                <span className="text-gray-800 font-medium">{highlight}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
       {/* Tours Section */}
       <section className="py-16">

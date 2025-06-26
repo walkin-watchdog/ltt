@@ -32,15 +32,18 @@ interface AuthProviderProps {
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(localStorage.getItem('admin_token'));
+  const [token, setToken] = useState<string | null>(
+    sessionStorage.getItem('admin_token')
+  );
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const initAuth = async () => {
-      const savedToken = localStorage.getItem('admin_token');
+      const savedToken = sessionStorage.getItem('admin_token');
       if (savedToken) {
         try {
           const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/auth/me`, {
+            credentials: 'include',
             headers: {
               'Authorization': `Bearer ${savedToken}`,
             },
@@ -51,12 +54,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             setUser(userData);
             setToken(savedToken);
           } else {
-            localStorage.removeItem('admin_token');
+            sessionStorage.removeItem('admin_token');
             setToken(null);
           }
         } catch (error) {
           console.error('Auth initialization error:', error);
-          localStorage.removeItem('admin_token');
+          sessionStorage.removeItem('admin_token');
           setToken(null);
         }
       }
@@ -71,6 +74,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       console.log('Logging in with:', { email, password });
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/auth/login`, {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -82,20 +86,88 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         throw new Error(error.error || 'Login failed');
       }
 
-      const data = await response.json();
-      setUser(data.user);
-      setToken(data.token);
-      localStorage.setItem('admin_token', data.token);
+      const { access, user: loggedInUser } = await response.json();
+      setUser(loggedInUser);
+      setToken(access);
+      sessionStorage.setItem('admin_token', access);
     } catch (error) {
       throw error;
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await fetch(
+        `${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/auth/logout`,
+        { method: 'POST', credentials: 'include' }
+      );
+    } catch (_) {
+    }
     setUser(null);
     setToken(null);
-    localStorage.removeItem('admin_token');
+    sessionStorage.removeItem('admin_token');
   };
+
+  useEffect(() => {
+    const API = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+    const rawFetch = (window as any).fetch.bind(window);
+
+    (window as any).fetch = async (
+      input: RequestInfo | URL,
+      init: RequestInit = {}
+    ) => {
+      const authHdr: HeadersInit | undefined = token
+        ? { Authorization: `Bearer ${token}` }
+        : undefined;
+
+      const mergeHeaders = (...parts: (HeadersInit | undefined)[]): Headers => {
+        const h = new Headers();
+        for (const part of parts) {
+          if (!part) continue;
+          if (part instanceof Headers) {
+            part.forEach((v, k) => h.set(k, v));
+          } else if (Array.isArray(part)) {
+            part.forEach(([k, v]) => h.set(k, v));
+          } else {
+            Object.entries(part).forEach(([k, v]) => h.set(k, v as string));
+          }
+        }
+        return h;
+      };
+
+      const doFetch = (extra: RequestInit = {}) =>
+        rawFetch(input, {
+          ...init,
+          ...extra,
+          headers: mergeHeaders(init.headers, authHdr, extra.headers),
+          credentials: 'include',
+        });
+
+      let res = await doFetch();
+
+      if (res.status !== 401 || String(input).endsWith('/auth/refresh')) return res;
+
+      const r = await rawFetch(`${API}/auth/refresh`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      if (r.ok) {
+        const { access } = await r.json();
+        setToken(access);
+        sessionStorage.setItem('admin_token', access);
+        res = await doFetch({ headers: { Authorization: `Bearer ${access}` } });
+        if (res.status !== 401) return res;
+      }
+
+      await logout();
+      return res;
+    };
+
+    return () => {
+      (window as any).fetch = rawFetch;
+    };
+  }, [token]);
 
   return (
     <AuthContext.Provider value={{ user, token, login, logout, isLoading }}>

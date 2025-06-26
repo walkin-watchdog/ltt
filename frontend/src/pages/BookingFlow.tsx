@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { Calendar, User, CreditCard, CheckCircle, Phone, Mail, MapPin, CalendarIcon } from 'lucide-react';
+import { useAbandonedCart } from '@/hooks/useAbandonedCart';
 import type { RootState, AppDispatch } from '@/store/store';
 import { fetchProduct } from '../store/slices/productsSlice';
 import { createBooking } from '../store/slices/bookingSlice';
@@ -28,6 +29,8 @@ export const BookingFlow = () => {
   const { currentBooking, isLoading: bookingLoading } = useSelector((state: RootState) => state.booking);
 
   const [currentStep, setCurrentStep] = useState(1);
+  const [emailBlurred, setEmailBlurred] = useState(false);
+
   const [formData, setFormData] = useState<BookingFormData>({
     selectedDate: '',
     adults: 2,
@@ -38,8 +41,21 @@ export const BookingFlow = () => {
     customerPhone: '',
     notes: ''
   });
+  const calculateTotal = useCallback(() => {
+    const basePrice = formData.selectedPackage?.price || currentProduct?.discountPrice || currentProduct?.price || 0;
+    const adultPrice = basePrice * formData.adults;
+    const childPrice = basePrice * 0.5 * formData.children;
+    return adultPrice + childPrice;
+  },
+  [
+    formData.adults,
+    formData.children,
+    formData.selectedPackage,
+    currentProduct,
+  ]);
 
-  const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null);
+  const { saveAbandonedCart } = useAbandonedCart(productId);
+  const beganRef = useRef(false);
 
   useEffect(() => {
     if (productId) {
@@ -58,74 +74,26 @@ export const BookingFlow = () => {
     }
   }, [currentProduct, searchParams]);
 
-  // Save incomplete booking to abandoned cart after user has entered minimum info
   useEffect(() => {
-    // Only track once we have minimum required data (email and product)
-    if (formData.customerEmail && currentProduct?.id && currentStep === 2) {
-      // Clear any existing timeout
-      if (saveTimeout) {
-        clearTimeout(saveTimeout);
-      }
-      
-      // Set a new timeout to avoid too many API calls
-      const timeout = setTimeout(() => {
-        saveToAbandonedCart();
-      }, 5000); // Wait 5 seconds after user stops typing
-      
-      setSaveTimeout(timeout);
-    }
-    
-    return () => {
-      if (saveTimeout) {
-        clearTimeout(saveTimeout);
-      }
-    };
-  }, [formData, currentStep]);
-
-  const calculateTotal = () => {
-    const basePrice = formData.selectedPackage?.price || currentProduct?.discountPrice || currentProduct?.price || 0;
-    const adultPrice = basePrice * formData.adults;
-    const childPrice = basePrice * 0.5 * formData.children; // 50% for children
-    return adultPrice + childPrice;
-  };
-
-  const saveToAbandonedCart = async () => {
-    if (!formData.customerEmail || !currentProduct?.id) return;
-    
-    try {
-      // Format the data for the abandoned cart API
-      const cartData = {
-        email: formData.customerEmail,
-        productId: currentProduct.id,
+    if (currentStep === 2 && emailBlurred && formData.customerEmail && currentProduct?.id) {
+      saveAbandonedCart({
+        productId: productId!,
         packageId: formData.selectedPackage?.id,
-        customerData: {
-          customerName: formData.customerName,
-          customerEmail: formData.customerEmail,
-          customerPhone: formData.customerPhone,
-          adults: formData.adults,
-          children: formData.children,
-          selectedDate: formData.selectedDate,
-          totalAmount: calculateTotal()
-        }
-      };
-      
-      // Send to backend
-      await fetch(`${import.meta.env.VITE_API_URL}/abandoned-carts`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(cartData)
+        customerName: formData.customerName,
+        customerEmail: formData.customerEmail,
+        customerPhone: formData.customerPhone,
+        adults: formData.adults,
+        children: formData.children,
+        selectedDate: formData.selectedDate,
+        totalAmount: calculateTotal(),
       });
-      
-      // Track the abandoned cart event for analytics
-      trackBookingStart(currentProduct.id, currentProduct.title);
-      
-    } catch (error) {
-      console.error('Error saving abandoned cart:', error);
-      // Fail silently - don't interrupt user experience
+
+      if (!beganRef.current) {
+       trackBookingStart(productId!, currentProduct.title);
+       beganRef.current = true;
+      }
     }
-  };
+  }, [formData, currentStep, emailBlurred, calculateTotal]);
 
   const handleStepSubmit = async () => {
     if (currentStep === 1) {
@@ -136,10 +104,6 @@ export const BookingFlow = () => {
       }
       setCurrentStep(2);
     } else if (currentStep === 2) {
-      // Clear any abandoned cart timeout
-      if (saveTimeout) {
-        clearTimeout(saveTimeout);
-      }
       
       // Validate step 2 and create booking
       if (!formData.customerName || !formData.customerEmail || !formData.customerPhone) {
@@ -172,6 +136,7 @@ export const BookingFlow = () => {
   };
 
   const initializePayment = async () => {
+    if (!currentBooking) return;
     try {
       // Create Razorpay order
       const orderResponse = await fetch(`${import.meta.env.VITE_API_URL}/payments/create-order`, {
@@ -242,7 +207,7 @@ export const BookingFlow = () => {
     );
   }
 
-  const steps = [
+  const steps: { number: number; title: string; icon: React.ComponentType<any> }[] = [
     { number: 1, title: 'Select Date & Participants', icon: Calendar },
     { number: 2, title: 'Your Information', icon: User },
     { number: 3, title: 'Review & Payment', icon: CreditCard },
@@ -422,6 +387,7 @@ export const BookingFlow = () => {
                         type="email"
                         value={formData.customerEmail}
                         onChange={(e) => setFormData(prev => ({ ...prev, customerEmail: e.target.value }))}
+                        onBlur={() => setEmailBlurred(true)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
                         placeholder="Enter your email address"
                         required

@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { X, Plus, Image as ImageIcon, Calendar, MapPin } from 'lucide-react';
+import axios from 'axios';
+import { useToast } from '@/components/ui/toaster';
+import { X, Plus, Image as ImageIcon, Calendar } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface ProductContentTabProps {
@@ -18,7 +20,8 @@ interface ItineraryDay {
 
 export const ProductContentTab = ({ formData, updateFormData }: ProductContentTabProps) => {
   const { token } = useAuth();
-  const [uploading, setUploading] = useState(false);
+  const toast = useToast();
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [showItineraryBuilder, setShowItineraryBuilder] = useState(false);
   const [editingDay, setEditingDay] = useState<ItineraryDay | null>(null);
   const [newActivity, setNewActivity] = useState('');
@@ -27,32 +30,37 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
     const files = e.target.files;
     if (!files) return;
 
-    setUploading(true);
     try {
       const uploadFormData = new FormData();
       Array.from(files).forEach(file => {
         uploadFormData.append('images', file);
       });
 
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/uploads/products`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
+      const res = await axios.post(
+        `${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/uploads/products`,
+        uploadFormData,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+          },
+          onUploadProgress: ev => {
+            const pct = Math.round((ev.loaded * 100) / (ev.total || 1));
+            setUploadProgress(pct);   // ➌ live %
+          },
         },
-        body: uploadFormData,
-      });
+      );
 
-      if (response.ok) {
-        const data = await response.json();
-        const newImages = data.images.map((img: any) => img.url);
-        updateFormData({
-          images: [...(formData.images || []), ...newImages]
-        });
-      }
+      const { images } = res.data as { images: Array<{ url: string }> };
+      updateFormData({ images: [...(formData.images || []), ...images.map(i => i.url)] });
+      toast({ message: 'Images uploaded successfully', type: 'success' });
     } catch (error) {
-      console.error('Error uploading images:', error);
+      let errorMessage = 'Image upload failed';
+      if (axios.isAxiosError(error) && error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      }
+      toast({ message: errorMessage, type: 'error' });
     } finally {
-      setUploading(false);
     }
   };
 
@@ -60,7 +68,6 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
     const files = e.target.files;
     if (!files || !editingDay) return;
 
-    setUploading(true);
     try {
       const uploadFormData = new FormData();
       Array.from(files).forEach(file => {
@@ -85,8 +92,6 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
       }
     } catch (error) {
       console.error('Error uploading images:', error);
-    } finally {
-      setUploading(false);
     }
   };
 
@@ -259,6 +264,14 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
             </div>
           ))}
         </div>
+        {uploadProgress !== null && (
+          <div className="w-full bg-gray-200 rounded-full h-2.5 mb-3">
+            <div
+              className="bg-[#ff914d] h-2.5 rounded-full transition-all"
+              style={{ width: `${uploadProgress}%` }}
+            />
+          </div>
+        )}
         <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
           <input
             type="file"
@@ -271,7 +284,7 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
           <label htmlFor="images" className="cursor-pointer">
             <ImageIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <p className="text-sm text-gray-600">
-              {uploading ? 'Uploading...' : 'Click to upload images or drag and drop'}
+              {uploadProgress !== null ? `${uploadProgress}%` : 'Click to upload images or drag and drop'}
             </p>
             <p className="text-xs text-gray-500 mt-1">PNG, JPG, WEBP up to 5MB each</p>
           </label>
@@ -520,7 +533,7 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
       {formData.type === 'TOUR' && (
         <div>
           <div className="flex items-center justify-between mb-4">
-            <label className="block text-sm font-medium text-gray-700">
+            <label className="block text-md font-medium text-gray-700">
               Itinerary
             </label>
             <button
@@ -529,7 +542,7 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
               className="flex items-center px-4 py-2 bg-[#ff914d] text-white rounded-md hover:bg-[#e8823d] transition-colors"
             >
               <Calendar className="h-4 w-4 mr-2" />
-              Create Itinerary
+              Add Days
             </button>
           </div>
 
@@ -714,7 +727,7 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                       <label htmlFor="itinerary-images" className="cursor-pointer">
                         <ImageIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
                         <p className="text-xs text-gray-600">
-                          {uploading ? 'Uploading...' : 'Upload day images'}
+                          {uploadProgress !== null ? `${uploadProgress}%` : 'Upload day images'}
                         </p>
                       </label>
                     </div>

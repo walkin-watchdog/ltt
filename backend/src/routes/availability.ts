@@ -1,10 +1,10 @@
 import express from 'express';
 import { z } from 'zod';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../utils/prisma'
 import { authenticate, authorize } from '../middleware/auth';
 
 const router = express.Router();
-const prisma = new PrismaClient();
+
 
 const availabilitySchema = z.object({
   productId: z.string(),
@@ -18,21 +18,37 @@ const availabilitySchema = z.object({
 router.get('/product/:productId', async (req, res, next) => {
   try {
     const { startDate, endDate } = req.query;
-    
-    const where: any = {
-      productId: req.params.productId
-    };
 
+    let where: any;
     if (startDate && endDate) {
-      where.startDate = {
-        gte: new Date(startDate as string),
-        lte: new Date(endDate as string)
-      };
+      const from = new Date(startDate as string);
+      const to   = new Date(endDate   as string);
+
+      where = {
+       AND: [
+         { productId: req.params.productId },
+         { startDate: { lte: to } },
+         {
+           OR: [
+             { endDate: null },
+             { endDate:   { gte: from } }
+           ]
+         }
+       ]
+     };
     } else {
-      // Default to future dates only
-      where.startDate = {
-        gte: new Date()
-      };
+      const today = new Date();
+      where = {
+       AND: [
+         { productId: req.params.productId },
+         {
+           OR: [
+             { startDate: { lte: today }, endDate: null },
+             { endDate:   { gte: today } }
+           ]
+         }
+       ]
+     };
     }
 
     const availability = await prisma.availability.findMany({
@@ -56,6 +72,70 @@ router.get('/product/:productId', async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+});
+
+router.get('/package/:packageId/slots', async (req, res, next) => {
+  try {
+    const { packageId } = req.params;
+    const { date } = z.object({ date: z.string() }).parse(req.query);
+    const dayStart = new Date(date);
+    dayStart.setHours(0,0,0,0);
+    const dayEnd = new Date(date);
+    dayEnd.setHours(23,59,59,999);
+
+    const slots = await prisma.packageSlot.findMany({
+      where: {
+        packageId,
+        date: { gte: dayStart, lte: dayEnd },
+      },
+      orderBy: { startTime: 'asc' }
+    });
+
+    res.json({ date, slots });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/product/:productId/package-availability', async (req, res, next) => {
+  try {
+    const { date } = z.object({ date: z.string() }).parse(req.query);
+    const day      = new Date(date as string);
+
+    const pkgs = await prisma.package.findMany({
+      where: { productId: req.params.productId, isActive: true },
+      orderBy: { price: 'asc' }
+    });
+
+    const bookings = await prisma.booking.groupBy({
+      by:       ['packageId', 'status'],
+      where:    {
+        productId: req.params.productId,
+        bookingDate: {
+          gte: new Date(day.setHours(0,0,0,0)),
+          lt:  new Date(day.setHours(23,59,59,999))
+        }
+      },
+      _sum:     { adults: true, children: true }
+    });
+
+    const stats = pkgs.map(pkg => {
+      const confirmed = bookings
+        .filter(b => b.packageId === pkg.id && b.status === 'CONFIRMED')
+        .reduce((sum,b)=>sum + (b._sum.adults ?? 0) + (b._sum.children ?? 0), 0);
+      const cancelled = bookings
+        .filter(b => b.packageId === pkg.id && b.status === 'CANCELLED')
+        .reduce((sum,b)=>sum + (b._sum.adults ?? 0) + (b._sum.children ?? 0), 0);
+
+      return {
+        ...pkg,
+        childPrice: pkg.childPrice,
+        seatsLeft: Math.max(pkg.maxPeople - confirmed + cancelled, 0)
+      };
+    });
+
+    res.json({ date, packages: stats });
+  } catch (error) { next(error); }
 });
 
 // Get all availability (Admin/Editor only)

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useToast } from '@/components/ui/toaster';
 import { useAuth } from '../contexts/AuthContext';
 import { ProductContentTab } from '../components/products/ProductContentTab';
 import { SchedulePriceTab } from '../components/products/SchedulePriceTab';
@@ -23,6 +24,7 @@ export const ProductForm = () => {
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const { token } = useAuth();
+  const toast = useToast();
   const isEdit = Boolean(id);
   const today = new Date().toISOString().split('T')[0];
 
@@ -116,9 +118,10 @@ export const ProductForm = () => {
 
       if (!response.ok) {
         const error = await response.json();
-        alert(error.error || 'Failed to save product');
+        toast({ message: error.error || 'Failed to save product', type: 'error' });
         return;
       }
+      toast({ message: isEdit ? 'Product updated' : 'Product created', type: 'success' });
             
       navigate('/products');
       

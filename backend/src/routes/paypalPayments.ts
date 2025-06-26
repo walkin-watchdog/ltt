@@ -1,14 +1,15 @@
 import express from 'express';
 import { z } from 'zod';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../utils/prisma'
 import { PayPalService } from '../services/paypalService';
+import { rateLimitPayment } from '../middleware/rateLimit';
 import { EmailService } from '../services/emailService';
 import { PDFService } from '../services/pdfService';
 import { authenticate, authorize } from '../middleware/auth';
 import { logger } from '../utils/logger';
 
 const router = express.Router();
-const prisma = new PrismaClient();
+
 
 const createOrderSchema = z.object({
   bookingId: z.string(),
@@ -22,7 +23,7 @@ const captureOrderSchema = z.object({
 });
 
 // Create PayPal order
-router.post('/create-order', async (req, res, next) => {
+router.post('/create-order', authenticate, rateLimitPayment, async (req, res, next) => {
   try {
     const { bookingId, amount, currency } = createOrderSchema.parse(req.body);
     
@@ -50,7 +51,7 @@ router.post('/create-order', async (req, res, next) => {
     await prisma.payment.create({
       data: {
         bookingId: booking.id,
-        razorpayOrderId: order.id, // Reusing this field for PayPal order ID
+        paypalOrderId: order.id,
         amount,
         currency: currency || 'USD',
         status: 'PENDING',
@@ -68,7 +69,7 @@ router.post('/create-order', async (req, res, next) => {
 });
 
 // Capture PayPal payment
-router.post('/capture', async (req, res, next) => {
+router.post('/capture', authenticate, rateLimitPayment, async (req, res, next) => {
   try {
     const { bookingId, orderId } = captureOrderSchema.parse(req.body);
     
@@ -94,10 +95,10 @@ router.post('/capture', async (req, res, next) => {
     await prisma.payment.updateMany({
       where: {
         bookingId: booking.id,
-        razorpayOrderId: orderId, // PayPal order ID stored here
+        paypalOrderId: orderId, // PayPal order ID stored here
       },
       data: {
-        razorpayPaymentId: captureId, // PayPal capture ID stored here
+        paypalCaptureId: captureId, // PayPal capture ID stored here
         status: 'PAID',
         paymentMethod: 'PayPal',
       },
@@ -116,7 +117,7 @@ router.post('/capture', async (req, res, next) => {
     await EmailService.sendPaymentConfirmation(booking, {
       amount: booking.totalAmount,
       paymentMethod: 'PayPal',
-      razorpayPaymentId: captureId,
+      paypalCaptureId: captureId,
     }, booking.product);
 
     // Generate and send voucher
@@ -181,7 +182,7 @@ router.post('/:paymentId/refund', authenticate, authorize(['ADMIN']), async (req
       include: { booking: true },
     });
 
-    if (!payment || !payment.razorpayPaymentId || payment.paymentMethod !== 'PayPal') {
+    if (!payment || !payment.paypalCaptureId || payment.paymentMethod !== 'PayPal') {
       return res.status(404).json({ error: 'PayPal payment not found' });
     }
 
@@ -190,7 +191,7 @@ router.post('/:paymentId/refund', authenticate, authorize(['ADMIN']), async (req
     }
 
     const refund = await PayPalService.refundPayment(
-      payment.razorpayPaymentId, // This contains the PayPal capture ID
+      payment.paypalCaptureId,
       amount
     );
 

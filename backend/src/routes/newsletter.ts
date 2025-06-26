@@ -1,10 +1,10 @@
 import express from 'express';
 import { z } from 'zod';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../utils/prisma'
 import { authenticate, authorize } from '../middleware/auth';
 
 const router = express.Router();
-const prisma = new PrismaClient();
+
 
 const subscribeSchema = z.object({
   email: z.string().email(),

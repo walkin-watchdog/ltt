@@ -1,4 +1,12 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
+
+interface ItineraryDay {
+  day: number;
+  title: string;
+  description: string;
+  activities: string[];
+  images: string[];
+}
 
 interface Product {
   id: string;
@@ -16,16 +24,23 @@ interface Product {
   highlights: string[];
   inclusions: string[];
   exclusions: string[];
-  itinerary?: any;
+  itineraries?: ItineraryDay[];
   images: string[];
   tags: string[];
   packages?: any[];
   reviews?: any[];
   availabilities?: any[];
-  // Add availability status fields
-  availabilityStatus?: 'AVAILABLE' | 'SOLD_OUT' | 'NOT_OPERATING';
+  availabilityStatus: 'AVAILABLE' | 'SOLD_OUT' | 'NOT_OPERATING';
   nextAvailableDate?: string;
   availableDates?: string[];
+}
+
+interface ProductsFilter {
+  type?: string;
+  category?: string;
+  location?: string;
+  availability?: 'AVAILABLE' | 'SOLD_OUT' | 'NOT_OPERATING';
+  limit?: string;
 }
 
 interface ProductsState {
@@ -33,13 +48,7 @@ interface ProductsState {
   currentProduct: Product | null;
   isLoading: boolean;
   error: string | null;
-  filters: {
-    type?: string;
-    category?: string;
-    location?: string;
-    // Add availability filter
-    availability?: string;
-  };
+  filters: ProductsFilter;
 }
 
 const initialState: ProductsState = {
@@ -50,32 +59,47 @@ const initialState: ProductsState = {
   filters: {},
 };
 
-export const fetchProducts = createAsyncThunk(
-  'products/fetchProducts',
-  async (filters: { type?: string; category?: string; location?: string, limit?: string } = {}) => {
+const getErrorMessage = async (response: Response) => {
+  try {
+    const text = await response.text();
+    return `(${response.status}) ${text || response.statusText}`;
+  } catch {
+    return `(${response.status}) ${response.statusText}`;
+  }
+};
+
+export const fetchProducts = createAsyncThunk<
+   Product[],           //   ⬅️  return type
+   Partial<ProductsFilter> // ⬅️  argument type
+ >(
+   'products/fetchProducts',
+   async (filters = {}) => {
     const params = new URLSearchParams();
     Object.entries(filters).forEach(([key, value]) => {
-      if (value) params.append(key, value);
+      if (value !== undefined) params.append(key, String(value));
     });
 
     const response = await fetch(`${import.meta.env.VITE_API_URL}/products?${params}`);
     
     if (!response.ok) {
-      throw new Error('Failed to fetch products');
+      throw new Error(await getErrorMessage(response));
     }
 
     return await response.json();
   }
 );
 
-export const fetchProduct = createAsyncThunk(
-  'products/fetchProduct',
-  async (id: string) => {
+export const fetchProduct = createAsyncThunk<
+   Product,
+   string
+ >(
+   'products/fetchProduct',
+   async (id) => {
     console.log('Fetching product with ID:', id);
     const response = await fetch(`${import.meta.env.VITE_API_URL}/products/${id}`);
     console.log('Response status:', response);
     if (!response.ok) {
-      throw new Error('Failed to fetch product');
+      throw new Error(await getErrorMessage(response));
     }
 
     return await response.json();
@@ -86,8 +110,11 @@ const productsSlice = createSlice({
   name: 'products',
   initialState,
   reducers: {
-    setFilters: (state, action) => {
-      state.filters = action.payload;
+    setFilters: (
+     state,
+     action: PayloadAction<Partial<ProductsFilter>>
+    ) => {
+     state.filters = { ...state.filters, ...action.payload };
     },
     clearError: (state) => {
       state.error = null;

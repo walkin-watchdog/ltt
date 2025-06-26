@@ -1,4 +1,5 @@
 import winston from 'winston';
+import DailyRotateFile from 'winston-daily-rotate-file';
 
 export const logger = winston.createLogger({
   level: 'info',
@@ -9,8 +10,17 @@ export const logger = winston.createLogger({
   ),
   defaultMeta: { service: 'luxe-timetravel-backend' },
   transports: [
-    new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
-    new winston.transports.File({ filename: 'logs/combined.log' }),
+    new DailyRotateFile({
+      filename: 'logs/%DATE%-error.log',
+      level:    'error',
+      datePattern: 'YYYY-MM-DD',
+      maxFiles: '14d'
+    }),
+    new DailyRotateFile({
+      filename: 'logs/%DATE%-combined.log',
+      datePattern: 'YYYY-MM-DD',
+      maxFiles: '14d'
+    })
   ],
 });
 

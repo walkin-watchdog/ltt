@@ -22,16 +22,16 @@
         </div>
         
         <div class="content">
-            <p>Dear {{customerName}},</p>
+            <p>Dear {{sanitize customerName}},</p>
             <p>We have successfully received your payment. Thank you!</p>
             
             <div class="payment-details">
                 <h3>Payment Details</h3>
                 <p><strong>Booking Code:</strong> {{bookingCode}}</p>
-                <p><strong>Tour/Experience:</strong> {{productTitle}}</p>
+                <p><strong>Tour/Experience:</strong> {{sanitize productTitle}}</p>
                 <p><strong>Payment Amount:</strong> ₹{{paymentAmount}}</p>
-                <p><strong>Payment Method:</strong> {{paymentMethod}}</p>
-                <p><strong>Transaction ID:</strong> {{transactionId}}</p>
+                <p><strong>Payment Method:</strong> {{sanitize paymentMethod}}</p>
+                <p><strong>Transaction ID:</strong> {{sanitize transactionId}}</p>
             </div>
             
             <p>Your booking is now fully confirmed. You will receive a detailed voucher with tour instructions shortly.</p>

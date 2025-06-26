@@ -10,6 +10,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model RefreshTokenBlacklist {
+  jti   String  @id
+  exp   DateTime
+}
+
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
@@ -40,7 +45,7 @@ model Product {
   highlights  String[]
   inclusions  String[]
   exclusions  String[]
-  itinerary   Itinerary[]
+  itineraries   Itinerary[]
   images      String[]
   tags        String[]
   difficulty  String?
@@ -87,13 +92,17 @@ model Package {
   name        String
   description String
   price       Float
+  childPrice  Float?
   currency    String @default("INR")
   inclusions  String[]
+  timeSlots   String[]
   maxPeople   Int
   isActive    Boolean @default(true)
-
+  
+  availabilities Availability[] @relation("PackageAvailability")
   product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
   bookings  Booking[]
+  slots     PackageSlot[]
 
   @@map("packages")
 }
@@ -106,7 +115,9 @@ model Availability {
   status    AvailabilityStatus
   available Int               @default(0)
   booked    Int               @default(0)
+  packageId String?           /// new optional FK to support per-package tallies
 
+  package Package? @relation("PackageAvailability", fields: [packageId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@map("availabilities")
@@ -117,6 +128,7 @@ model Booking {
   bookingCode   String        @unique
   productId     String
   packageId     String?
+  slotId        String?
   customerName  String
   customerEmail String
   customerPhone String
@@ -132,9 +144,27 @@ model Booking {
 
   product Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   package Package? @relation(fields: [packageId], references: [id], onDelete: SetNull)
+  slot PackageSlot?  @relation(fields: [slotId], references: [id], onDelete: SetNull)
+
   payments Payment[]
 
   @@map("bookings")
+}
+
+model PackageSlot {
+  id        String   @id @default(cuid())
+  packageId String
+  date      DateTime
+  startTime DateTime
+  endTime   DateTime
+  available Int      @default(0)
+  booked    Int      @default(0)
+
+  package   Package  @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  bookings  Booking[]
+  
+  @@map("package_slots")
+  @@index([packageId, date])
 }
 
 model Payment {
@@ -142,6 +172,8 @@ model Payment {
   bookingId       String
   razorpayOrderId String?
   razorpayPaymentId String?
+  paypalOrderId      String?
+  paypalCaptureId    String?
   amount          Float
   currency        String        @default("INR")
   status          PaymentStatus @default(PENDING)

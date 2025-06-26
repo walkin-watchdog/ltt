@@ -1,14 +1,15 @@
 import express from 'express';
 import { z } from 'zod';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../utils/prisma'
 import { RazorpayService } from '../services/razorpayService';
+import { rateLimitPayment } from '../middleware/rateLimit';
 import { EmailService } from '../services/emailService';
 import { PDFService } from '../services/pdfService';
 import { authenticate, authorize } from '../middleware/auth';
 import { logger } from '../utils/logger';
 
 const router = express.Router();
-const prisma = new PrismaClient();
+
 
 const createOrderSchema = z.object({
   bookingId: z.string(),
@@ -24,7 +25,7 @@ const verifyPaymentSchema = z.object({
 });
 
 // Create Razorpay order
-router.post('/create-order', async (req, res, next) => {
+router.post('/create-order', authenticate, rateLimitPayment, async (req, res, next) => {
   try {
     const { bookingId, amount, currency } = createOrderSchema.parse(req.body);
     
@@ -75,7 +76,7 @@ router.post('/create-order', async (req, res, next) => {
 });
 
 // Verify payment
-router.post('/verify', async (req, res, next) => {
+router.post('/verify', authenticate, rateLimitPayment, async (req, res, next) => {
   try {
     const paymentData = verifyPaymentSchema.parse(req.body);
     

@@ -1,9 +1,9 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../utils/prisma'
 import { z } from 'zod';
 
 const router = express.Router();
-const prisma = new PrismaClient();
+
 
 const searchSchema = z.object({
   q: z.string().optional(),

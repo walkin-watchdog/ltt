@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
-import { PrismaClient } from '@prisma/client';
+import { verify } from '../utils/jwt';
+import { prisma } from '../utils/prisma'
 
-const prisma = new PrismaClient();
+
 
 export interface AuthRequest extends Request {
   user?: {
@@ -20,9 +20,17 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
       return res.status(401).json({ error: 'Access denied. No token provided.' });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    const payload = verify(token, 'user');
+
+    if (payload.jti) {
+      const blocked = await prisma.refreshTokenBlacklist.findUnique({
+        where: { jti: payload.jti },
+      });
+      if (blocked) return res.sendStatus(401);
+    }
+    
     const user = await prisma.user.findUnique({
-      where: { id: decoded.id },
+      where: { id: payload.id },
       select: { id: true, email: true, role: true }
     });
 

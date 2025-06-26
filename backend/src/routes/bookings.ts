@@ -1,12 +1,13 @@
 import express from 'express';
 import { z } from 'zod';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../utils/prisma'
 import { authenticate, authorize } from '../middleware/auth';
 
 const router = express.Router();
-const prisma = new PrismaClient();
+
 
 const bookingSchema = z.object({
+  slotId: z.string(),
   productId: z.string(),
   packageId: z.string().optional(),
   customerName: z.string().min(1),
@@ -60,6 +61,15 @@ router.get('/', authenticate, authorize(['ADMIN', 'EDITOR', 'VIEWER']), async (r
 router.post('/', async (req, res, next) => {
   try {
     const data = bookingSchema.parse(req.body);
+
+    const slot = await prisma.packageSlot.findUnique({ where: { id: data.slotId } });
+    if (!slot) {
+      return res.status(404).json({ error: 'Selected time-slot not found' });
+    }
+    const seats = data.adults + data.children;
+    if (slot.available - slot.booked < seats) {
+      return res.status(400).json({ error: 'Not enough seats in selected slot' });
+    }
     
     const product = await prisma.product.findUnique({
       where: { id: data.productId },
@@ -70,22 +80,25 @@ router.post('/', async (req, res, next) => {
       return res.status(404).json({ error: 'Product not found' });
     }
 
-    let totalAmount = product.discountPrice || product.price;
+    let baseAdultPrice  = product.discountPrice || product.price;
+    let baseChildPrice  = baseAdultPrice * 0.5;
     
     if (data.packageId) {
       const selectedPackage = product.packages.find(p => p.id === data.packageId);
       if (selectedPackage) {
-        totalAmount = selectedPackage.price;
+        baseAdultPrice = selectedPackage.price;
+        baseChildPrice = selectedPackage.childPrice ?? (selectedPackage.price * 0.5);
       }
     }
 
     // Calculate total for adults and children (assuming children are 50% price)
-    totalAmount = (totalAmount * data.adults) + (totalAmount * 0.5 * data.children);
+    const totalAmount = (baseAdultPrice * data.adults) + (baseChildPrice * data.children);
 
     const bookingCode = `LT${Date.now()}${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
 
     const booking = await prisma.booking.create({
       data: {
+        slotId: data.slotId,
         ...data,
         bookingCode,
         totalAmount
@@ -105,6 +118,11 @@ router.post('/', async (req, res, next) => {
           }
         }
       }
+    });
+
+    await prisma.packageSlot.update({
+      where: { id: data.slotId },
+      data: { booked: { increment: seats } }
     });
 
     res.status(201).json(booking);

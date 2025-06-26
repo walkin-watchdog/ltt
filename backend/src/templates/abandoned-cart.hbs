@@ -23,7 +23,7 @@
         </div>
         
         <div class="content">
-            <p>Hi {{customerName}},</p>
+            <p>Hi {{sanitize customerName}},</p>
             <p>You were just one step away from booking an amazing experience with us!</p>
             
             <div class="product-card">
@@ -31,7 +31,7 @@
                 <img src="{{productImage}}" alt="{{productTitle}}" class="product-image">
                 {{/if}}
                 <div>
-                    <h3>{{productTitle}}</h3>
+                    <h3>{{sanitize productTitle}}</h3>
                     <p>Complete your booking and embark on this extraordinary journey.</p>
                 </div>
             </div>

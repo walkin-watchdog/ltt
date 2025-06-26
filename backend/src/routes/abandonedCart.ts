@@ -1,11 +1,11 @@
 import express from 'express';
 import { z } from 'zod';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../utils/prisma'
 import { authenticate, authorize } from '../middleware/auth';
 import { EmailService } from '../services/emailService';
 
 const router = express.Router();
-const prisma = new PrismaClient();
+
 
 const abandonedCartSchema = z.object({
   email: z.string().email(),
@@ -46,7 +46,7 @@ router.post('/', async (req, res, next) => {
           remindersSent: 0 // Reset reminders for updated cart
         }
       });
-      return res.json(updatedCart);
+      return res.json({ ...updatedCart, status: 'open' });
     }
 
     // Create new abandoned cart
@@ -59,7 +59,7 @@ router.post('/', async (req, res, next) => {
       }
     });
 
-    res.status(201).json(abandonedCart);
+    res.status(201).json({ ...abandonedCart, status: 'open' });
   } catch (error) {
     next(error);
   }
@@ -104,6 +104,24 @@ router.get('/', authenticate, authorize(['ADMIN']), async (req, res, next) => {
         pages: Math.ceil(total / parseInt(limit as string))
       }
     });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/status', async (req, res, next) => {
+  try {
+    const { email, productId } = req.query;
+    if (!email || !productId)
+      return res.status(400).json({ error: 'email and productId required' });
+
+    const cart = await prisma.abandonedCart.findFirst({
+      where: { email: String(email), productId: String(productId) },
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    if (!cart) return res.status(404).json({ error: 'Cart not found' });
+    res.json({ ...cart, status: 'open' });
   } catch (error) {
     next(error);
   }

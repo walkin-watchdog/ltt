@@ -6,7 +6,9 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
+    "worker": "node dist/worker.js",
     "dev": "tsx watch src/index.ts",
+    "dev:worker": "tsx watch src/worker.ts",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
@@ -20,9 +22,10 @@
     "@prisma/client": "^5.7.1",
     "@types/bcrypt": "^5.0.2",
     "bcrypt": "^6.0.0",
-    "bcryptjs": "^2.4.3",
+    "file-type":"^21.0.0",
     "cloudinary": "^1.41.3",
     "cors": "^2.8.5",
+    "cookie-parser": "^1.4.7",
     "cron": "^3.1.6",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
@@ -36,11 +39,11 @@
     "pdfkit": "^0.14.0",
     "razorpay": "^2.9.2",
     "sharp": "^0.33.1",
-    "winston": "^3.11.0",
+    "winston": "^3.17.0",
+    "winston-daily-rotate-file": "^5.0.0",
     "zod": "^3.22.4"
   },
   "devDependencies": {
-    "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/jsonwebtoken": "^9.0.10",
@@ -48,6 +51,7 @@
     "@types/node": "^20.10.5",
     "@types/nodemailer": "^6.4.14",
     "@types/pdfkit": "^0.12.12",
+    "@types/cookie-parser": "^1.4.7",
     "prisma": "^5.7.1",
     "tsx": "^4.6.2",
     "typescript": "^5.3.3"

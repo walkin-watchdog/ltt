@@ -1,11 +1,19 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../utils/prisma'
 import { EmailService } from '../services/emailService';
 import { logger } from '../utils/logger';
 
-const prisma = new PrismaClient();
+const LOCK_NAMESPACE  = 42;
+const PROCESS_LOCK_ID = 1;
 
 export class AbandonedCartJob {
   static async processAbandonedCarts() {
+    const gotLock = await prisma.$queryRaw<Array<{ pg_try_advisory_lock: boolean }>>`
+        SELECT pg_try_advisory_lock(CAST(${LOCK_NAMESPACE} AS INT), CAST(${PROCESS_LOCK_ID} AS INT))`;
+    if (!gotLock[0]?.pg_try_advisory_lock) {
+      logger.info('Another worker owns the abandoned-cart lock – skipping.');
+      return;
+    }
+
     try {
       const cutoffTime = new Date();
       cutoffTime.setHours(cutoffTime.getHours() - 2); // 2 hours ago
@@ -48,6 +56,8 @@ export class AbandonedCartJob {
       }
     } catch (error) {
       logger.error('Error processing abandoned carts:', error);
+    } finally {
+      await prisma.$executeRaw`SELECT pg_advisory_unlock(CAST(${LOCK_NAMESPACE} AS INT), CAST(${PROCESS_LOCK_ID} AS INT))`;
     }
   }
 

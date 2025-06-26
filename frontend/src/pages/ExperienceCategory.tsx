@@ -69,7 +69,7 @@ export const ExperienceCategory = () => {
 
   if (!currentCategory) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-[calc(100vh-20vh)] flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Category Not Found</h1>
           <Link to="/experiences" className="text-[#ff914d] hover:underline">
@@ -102,7 +102,7 @@ export const ExperienceCategory = () => {
             <h1 className="text-4xl md:text-5xl font-bold mb-4">
               {currentCategory.name}
             </h1>
-            <p className="text-xl text-gray-200">
+            <p className="text-xlmd:text-2xl text-gray-200 max-w-2xl">
               {currentCategory.description}
             </p>
           </div>

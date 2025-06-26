@@ -42,7 +42,7 @@ export const Destinations = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <section className="relative h-64 bg-gradient-to-r from-[#104c57] to-[#ff914d] text-white">
+      <section className="relative h-96 bg-gradient-to-r from-[#104c57] to-[#ff914d] text-white">
         <div className="absolute inset-0 bg-black bg-opacity-30"></div>
         <div className="relative z-10 flex items-center justify-center h-full">
           <div className="text-center">
@@ -59,6 +59,14 @@ export const Destinations = () => {
       {/* Destinations Grid */}
       <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#104c57] mb-4">
+              Top Destinations
+            </h2>
+            <p className="text-lg text-gray-600">
+              Immerse in the heritage and vast culture of India
+            </p>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
             {destinations.map((destination) => (
               <Link
