@@ -23,6 +23,7 @@ import type { RootState, AppDispatch } from '@/store/store';
 import { fetchProduct } from '../store/slices/productsSlice';
 import { SEOHead } from '../components/seo/SEOHead';
 import { ReviewsWidget } from '../components/reviews/ReviewsWidget';
+import { formatDate, parse } from 'date-fns';
 
 export const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -427,32 +428,6 @@ export const ProductDetail = () => {
                 );
               })()}
               
-              {/* Available Dates Calendar */}
-              {currentProduct.availableDates && currentProduct.availableDates.length > 0 && (
-                <div className="mb-6">
-                  <h3 className="font-semibold text-gray-900 mb-3">Available Dates</h3>
-                  <div className="grid grid-cols-3 md:grid-cols-5 gap-2">
-                    {currentProduct.availableDates.slice(0, 10).map((date, index) => (
-                      <div key={index} className="bg-green-50 border border-green-200 rounded px-3 py-2 text-center">
-                        <div className="text-sm font-medium text-green-800">
-                          {new Date(date).toLocaleDateString('en-US', { 
-                            month: 'short', 
-                            day: 'numeric' 
-                          })}
-                        </div>
-                      </div>
-                    ))}
-                    {currentProduct.availableDates.length > 10 && (
-                      <div className="bg-gray-50 border border-gray-200 rounded px-3 py-2 text-center">
-                        <div className="text-sm font-medium text-gray-600">
-                          +{currentProduct.availableDates.length - 10} more
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
               <div className="flex items-center space-x-6 mb-6">
                 <div className="flex items-center">
                   <Star className="h-5 w-5 text-yellow-400 fill-current" />
@@ -657,9 +632,7 @@ export const ProductDetail = () => {
               onCheck={() => {
                 if (isMobile) { setShowAvail(true); return; }
 
-                const iso = new Date(selectedDateStr)
-                  .toISOString()
-                  .split('T')[0];
+                const iso = formatDate(parse(selectedDateStr, 'MM/dd/yyyy', new Date()), 'yyyy-MM-dd');
                 (async () => {
                   setCheckingAvail(true);
                   try {

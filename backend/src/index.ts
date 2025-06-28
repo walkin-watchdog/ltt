@@ -35,17 +35,17 @@ const PORT = process.env.PORT || 3001;
 // // Middleware
 app.set('trust proxy', 1);
 
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  standardHeaders: true,
-  legacyHeaders: false,
-});
+// const limiter = rateLimit({
+//   windowMs: 15 * 60 * 1000,
+//   max: 100,
+//   standardHeaders: true,
+//   legacyHeaders: false,
+// });
 
 app.use(cookieParser());
-app.use(globalLimiter);
+// app.use(globalLimiter);
 
-app.use(limiter);
+// app.use(limiter);
 app.use(
   helmet({
     contentSecurityPolicy: {

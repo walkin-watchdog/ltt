@@ -9,8 +9,8 @@ import useMediaQuery from '@mui/material/useMediaQuery';
 import { useAuth } from '../contexts/AuthContext';
 import { AdminAvailabilityBar }   from '@/components/common/AdminAvailabilityBar';
 import { AdminAvailabilityModal } from '@/components/common/AdminAvailabilityModal';
-
 import type { Product, PackageOption } from '@/types.ts';
+import { formatDate, parse } from 'date-fns';
 
 export const ProductPreview = () => {
   const { id }    = useParams<{ id: string }>();
@@ -138,7 +138,7 @@ export const ProductPreview = () => {
   const checkAvailabilityDesktop = () => {
     if (isMobile || !product) return;
 
-    const isoDate = new Date(selectedDateStr).toISOString().split('T')[0];
+    const isoDate = formatDate(parse(selectedDateStr, 'MM/dd/yyyy', new Date()), 'yyyy-MM-dd');
     setCheckingAvail(true);
 
     (async () => {
@@ -154,6 +154,7 @@ export const ProductPreview = () => {
             new Date(a.startDate) <= new Date(isoDate) &&
             (!a.endDate || new Date(a.endDate) >= new Date(isoDate))
         );
+
 
         if (!slot || slot.status !== 'AVAILABLE') {
           setIsDateOk(false);

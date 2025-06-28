@@ -42,18 +42,6 @@ export const SchedulePriceTab = ({ formData, updateFormData }: SchedulePriceTabP
     { code: 'GBP', symbol: '£', name: 'British Pound' },
   ];
 
-  const packageTypes = [
-    'Car Only',
-    'Car + Driver',
-    'Car + Guide',
-    'Car + Guide + Entry Tickets',
-    'Car + Guide + Entry Tickets + Lunch',
-    'Accommodation Package',
-    'Full Service Package',
-    'Group Package',
-    'Private Package',
-    'Premium Package',
-  ];
 
   const addPackage = () => {
     if (newPackage.name && newPackage.description) {
@@ -110,24 +98,24 @@ export const SchedulePriceTab = ({ formData, updateFormData }: SchedulePriceTabP
     updateFormData({ packages: updatedPackages });
   };
 
-  const addTimeSlotToPackage = (i: number, slot: string) => {
-    if (!slot.trim()) return;
-    const updated = packages.map((pkg, ii) =>
-      ii === i ? { ...pkg, timeSlots: [...pkg.timeSlots, slot.trim()] } : pkg
-    );
-    setPackages(updated);
-    updateFormData({ packages: updated });
-  };
+  // const addTimeSlotToPackage = (i: number, slot: string) => {
+  //   if (!slot.trim()) return;
+  //   const updated = packages.map((pkg, ii) =>
+  //     ii === i ? { ...pkg, timeSlots: [...pkg.timeSlots, slot.trim()] } : pkg
+  //   );
+  //   setPackages(updated);
+  //   updateFormData({ packages: updated });
+  // };
 
-  const removeTimeSlotFromPackage = (i: number, si: number) => {
-    const updated = packages.map((pkg, ii) =>
-      ii === i
-        ? { ...pkg, timeSlots: pkg.timeSlots.filter((_, idx) => idx !== si) }
-        : pkg
-    );
-    setPackages(updated);
-    updateFormData({ packages: updated });
-  };
+  // const removeTimeSlotFromPackage = (i: number, si: number) => {
+  //   const updated = packages.map((pkg, ii) =>
+  //     ii === i
+  //       ? { ...pkg, timeSlots: pkg.timeSlots.filter((_, idx) => idx !== si) }
+  //       : pkg
+  //   );
+  //   setPackages(updated);
+  //   updateFormData({ packages: updated });
+  // };
 
   const PackageInclusionsInput = ({ packageIndex, inclusions }: { packageIndex: number; inclusions: string[] }) => {
     const [inputValue, setInputValue] = useState('');
@@ -218,7 +206,7 @@ export const SchedulePriceTab = ({ formData, updateFormData }: SchedulePriceTabP
       {/* Package Management */}
       <div>
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold text-gray-900">Package Options</h3>
+          <h3 className="text-lg font-semibold text-gray-900">Package Options*</h3>
           <span className="text-sm text-gray-500">{packages.length} packages configured</span>
         </div>
 
@@ -381,41 +369,42 @@ export const SchedulePriceTab = ({ formData, updateFormData }: SchedulePriceTabP
           <h4 className="text-md font-semibold text-gray-900 mb-4">Add New Package</h4>
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Package Type</label>
-                <select
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Package Type*
+                </label>
+                <input
+                  type="text"
                   value={newPackage.name}
                   onChange={(e) => setNewPackage({ ...newPackage, name: e.target.value })}
+                  placeholder="Enter package type"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                >
-                  <option value="">Select package type</option>
-                  {packageTypes.map(type => (
-                    <option key={type} value={type}>{type}</option>
-                  ))}
-                </select>
+                  required
+                />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Max People</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Max People*</label>
                 <input
                   type="number"
                   min="1"
                   value={newPackage.maxPeople}
                   onChange={(e) => setNewPackage({ ...newPackage, maxPeople: parseInt(e.target.value) })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+                  required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Price</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Price*</label>
                 <input
                   type="number"
                   min="0"
                   value={newPackage.price}
                   onChange={(e) => setNewPackage({ ...newPackage, price: parseFloat(e.target.value) })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                />
+                  required                />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Child Price</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Child Price*</label>
                 <input
                   type="number"
                   min="0"
@@ -427,6 +416,7 @@ export const SchedulePriceTab = ({ formData, updateFormData }: SchedulePriceTabP
                     })
                   }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+                  required
                 />
               </div>
               <div>
@@ -445,18 +435,19 @@ export const SchedulePriceTab = ({ formData, updateFormData }: SchedulePriceTabP
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Description*</label>
               <textarea
                 rows={3}
                 value={newPackage.description}
                 onChange={(e) => setNewPackage({ ...newPackage, description: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
                 placeholder="Describe what's included in this package"
+                required
               />
             </div>
             <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Time Slots
+                  Time Slots*
                 </label>
                 <input
                   type="text"
@@ -472,6 +463,7 @@ export const SchedulePriceTab = ({ formData, updateFormData }: SchedulePriceTabP
                   }
                   placeholder="e.g. 08:00-10:00, 14:00-16:00"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d]"
+                  required
                 />
               </div>
             <div className="flex justify-end">

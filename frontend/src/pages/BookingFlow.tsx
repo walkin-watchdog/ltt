@@ -7,6 +7,7 @@ import type { RootState, AppDispatch } from '@/store/store';
 import { fetchProduct } from '../store/slices/productsSlice';
 import { createBooking } from '../store/slices/bookingSlice';
 import { trackBookingStart } from '../components/analytics/GoogleAnalytics';
+import { formatDate, parse } from 'date-fns';
 
 interface BookingFormData {
   selectedDate: string;
@@ -41,6 +42,37 @@ export const BookingFlow = () => {
     customerPhone: '',
     notes: ''
   });
+
+  useEffect(() => {
+    if (currentProduct?.packages && currentProduct.packages.length > 0) {
+      const packageId = searchParams.get('package');
+      let date = searchParams.get('date');
+      const adults = searchParams.get('adults');
+      const children = searchParams.get('children');
+      const slots = searchParams.get('slots');
+      if (date) {
+        const iso = formatDate(parse(date, 'MM/dd/yyyy', new Date()), 'yyyy-MM-dd');
+        if (iso) {
+          date = iso
+        } else {
+          date = '';
+        }
+      }
+  
+      const selectedPkg = packageId 
+        ? currentProduct.packages.find(p => p.id === packageId)
+        : currentProduct.packages[0];
+  
+      setFormData(prev => ({
+        ...prev,
+        selectedPackage: selectedPkg,
+        selectedDate: date || prev.selectedDate,
+        adults: adults ? parseInt(adults) : prev.adults,
+        children: children ? parseInt(children) : prev.children,
+      }));
+    }
+  }, [currentProduct, searchParams]);
+
   const calculateTotal = useCallback(() => {
     const basePrice = formData.selectedPackage?.price || currentProduct?.discountPrice || currentProduct?.price || 0;
     const adultPrice = basePrice * formData.adults;
@@ -63,16 +95,6 @@ export const BookingFlow = () => {
     }
   }, [dispatch, productId]);
 
-  useEffect(() => {
-    if (currentProduct?.packages && currentProduct.packages.length > 0) {
-      const packageId = searchParams.get('package');
-      const selectedPkg = packageId 
-        ? currentProduct.packages.find(p => p.id === packageId)
-        : currentProduct.packages[0];
-      
-      setFormData(prev => ({ ...prev, selectedPackage: selectedPkg }));
-    }
-  }, [currentProduct, searchParams]);
 
   useEffect(() => {
     if (currentStep === 2 && emailBlurred && formData.customerEmail && currentProduct?.id) {
@@ -325,36 +347,28 @@ export const BookingFlow = () => {
                     </div>
 
                     {/* Package Selection */}
-                    {currentProduct.packages && currentProduct.packages.length > 0 && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Select Package
-                        </label>
-                        <div className="space-y-2">
-                          {currentProduct.packages.map((pkg: any) => (
-                            <button
-                              key={pkg.id}
-                              onClick={() => setFormData(prev => ({ ...prev, selectedPackage: pkg }))}
-                              className={`w-full text-left p-4 rounded-lg border transition-colors ${
-                                formData.selectedPackage?.id === pkg.id
-                                  ? 'border-[#ff914d] bg-orange-50'
-                                  : 'border-gray-200 hover:border-gray-300'
-                              }`}
-                            >
-                              <div className="flex justify-between items-start">
-                                <div>
-                                  <p className="font-medium text-gray-900">{pkg.name}</p>
-                                  <p className="text-sm text-gray-600">{pkg.description}</p>
-                                </div>
-                                <span className="font-bold text-[#ff914d]">
-                                  ₹{pkg.price.toLocaleString()}
-                                </span>
-                              </div>
-                            </button>
-                          ))}
+                  {formData.selectedPackage && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Selected Package
+                  </label>
+                  <div className="space-y-2">
+                    <div
+                      className={`w-full text-left p-4 rounded-lg border transition-colors border-[#ff914d] bg-orange-50`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-medium text-gray-900">{formData.selectedPackage.name}</p>
+                          <p className="text-sm text-gray-600">{formData.selectedPackage.description}</p>
                         </div>
+                        <span className="font-bold text-[#ff914d]">
+                          ₹{formData.selectedPackage.price.toLocaleString()}
+                        </span>
                       </div>
-                    )}
+                    </div>
+                  </div>
+                </div>
+              )}
                   </div>
                 </div>
               )}
