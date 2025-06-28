@@ -15,45 +15,59 @@ export const AbandonedCartNotification: React.FC<AbandonedCartNotificationProps>
   cart, 
   onDismiss 
 }) => {
-  const [isVisible, setIsVisible] = useState(true);
+  const [isExiting, setIsExiting] = useState(false);
 
   const handleDismiss = () => {
-    setIsVisible(false);
-    onDismiss();
+    setIsExiting(true);
+    setTimeout(() => {
+      onDismiss();
+    }, 300);
   };
 
-  if (!isVisible) return null;
+  const navigateToProduct = () => {
+    window.location.href = `/product/${cart.productId}?recover=true`;
+  };
 
   return (
-    <div className="fixed bottom-20 right-6 max-w-sm bg-white shadow-lg rounded-lg overflow-hidden z-50 border border-gray-200 animate-fadeIn">
-      <div className="bg-blue-50 px-4 py-2 border-b border-blue-100">
-        <div className="flex items-center justify-between">
+    <div 
+      className={`fixed ${window.innerWidth < 768 ? 'bottom-6 left-6 right-6' : 'bottom-20 right-6 max-w-sm'} 
+      bg-white shadow-lg rounded-lg overflow-hidden z-50 border border-gray-200 
+      ${isExiting ? 'animate-fadeOut' : 'animate-fadeIn'}`}
+    >
+      <div className="bg-blue-600 px-4 py-2 border-b border-blue-700">
+        <div className="flex items-center justify-between text-white">
           <div className="flex items-center">
-            <Calendar className="h-4 w-4 text-blue-600 mr-2" />
-            <h3 className="font-medium text-blue-800">Continue Your Booking</h3>
+            <Calendar className="h-4 w-4 text-white mr-2" />
+            <h3 className="font-medium">Continue Your Booking</h3>
           </div>
           <button 
             onClick={handleDismiss} 
-            className="text-gray-400 hover:text-gray-600"
+            className="text-white hover:text-gray-200"
           >
             ×
           </button>
         </div>
       </div>
       <div className="p-4">
-        <p className="text-gray-700 text-sm mb-3">
-          You were booking <span className="font-semibold">{cart.productTitle}</span>
+        <p className="text-gray-700 text-sm mb-2">
+          <span className="font-semibold">{cart.productTitle}</span>
         </p>
-        <p className="text-gray-600 text-xs mb-4">
-          Your selection from {new Date(cart.date).toLocaleDateString()} is still saved!
+        <p className="text-gray-600 text-xs mb-3">
+          Your selection from {new Date(cart.date).toLocaleDateString('en-US', {month: 'short', day: 'numeric'})} is still saved!
         </p>
-        <div className="flex justify-end">
-          <Link
-            to={`/product/${cart.productId}?recover=true`}
-            className="flex items-center text-sm bg-[#ff914d] text-white px-4 py-2 rounded hover:bg-[#e8823d] transition-colors"
+        <div className="flex flex-col sm:flex-row gap-2">
+          <button
+            onClick={handleDismiss}
+            className="text-sm text-gray-700 px-4 py-2 border border-gray-300 rounded hover:bg-gray-50 transition-colors"
+          >
+            Dismiss
+          </button>
+          <button
+            onClick={navigateToProduct}
+            className="flex-1 text-sm bg-[#ff914d] text-white px-4 py-2 rounded hover:bg-[#e8823d] transition-colors flex items-center justify-center"
           >
             Continue <ArrowRight className="h-4 w-4 ml-2" />
-          </Link>
+          </button>
         </div>
       </div>
     </div>

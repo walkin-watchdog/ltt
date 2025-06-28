@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { MapPin, Clock, Star, Percent, Tag, Calendar, AlertCircle } from 'lucide-react';
 import type { RootState, AppDispatch } from '@/store/store';
 import { fetchProducts } from '../store/slices/productsSlice';
+import { NewsletterSubscription } from '../components/common/NewsletterSubscription';
 import { SEOHead } from '../components/seo/SEOHead';
 
 export const SpecialOffers = () => {
@@ -279,25 +280,14 @@ export const SpecialOffers = () => {
       <section className="py-16 bg-[#104c57] text-white">
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl font-bold mb-4">
-            Never Miss a Deal
+            Never Miss a Special Offer
           </h2>
           <p className="text-xl mb-8">
-            Subscribe to our newsletter and be the first to know about exclusive offers and flash sales
+            Subscribe to our newsletter and be the first to know about exclusive deals and flash sales
           </p>
-          <form className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
-            <input
-              type="email"
-              placeholder="Enter your email"
-              className="flex-1 px-4 py-3 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#ff914d]"
-              required
-            />
-            <button
-              type="submit"
-              className="bg-[#ff914d] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[#e8823d] transition-colors"
-            >
-              Subscribe
-            </button>
-          </form>
+          <div className="max-w-md mx-auto">
+            <NewsletterSubscription darkMode={true} />
+          </div>
           <p className="text-sm text-gray-300 mt-4">
             Join 10,000+ travelers getting exclusive deals every week
           </p>

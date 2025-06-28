@@ -594,7 +594,8 @@ export const ProductDetail = () => {
 
             {/* External Reviews Widget */}
             <ReviewsWidget 
-              businessId={currentProduct.id}
+              googlePlaceId={import.meta.env.VITE_GOOGLE_REVIEWS_PLACE_ID}
+              tripadvisorBusinessId={import.meta.env.VITE_TRIPADS_API_KEY}
               className="mb-8"
             />
           </div> 

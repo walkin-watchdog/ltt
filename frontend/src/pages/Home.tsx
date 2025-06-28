@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { Star, Clock, Users, MapPin } from 'lucide-react';
 import { fetchProducts } from '../store/slices/productsSlice';
+import { NewsletterSubscription } from '../components/common/NewsletterSubscription';
 import type { AppDispatch, RootState } from '@/store/store';
 import { Helmet } from 'react-helmet-async';
 
@@ -197,26 +198,16 @@ export const Home = () => {
       {/* Newsletter Signup */}
       <section className="py-16 bg-[#104c57] text-white">
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+          <h2 className="text-3xl font-bold mb-4">
             Stay Updated with Luxé TimeTravel
           </h2>
-          <p className="text-xl mb-8">
-            Get exclusive offers, travel tips, and destination insights delivered to your inbox
+          <p className="text-xl mb-6">
+            Get exclusive offers, travel tips, and destination insights 
+            delivered to your inbox
           </p>
-          <form className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
-            <input
-              type="email"
-              placeholder="Enter your email"
-              className="flex-1 px-4 py-3 bg-white lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#ff914d]"
-              required
-            />
-            <button
-              type="submit"
-              className="bg-[#ff914d] text-white px-6 py-3 lg font-semibold hover:bg-[#e8823d] transition-colors"
-            >
-              Subscribe
-            </button>
-          </form>
+          <div className="max-w-md mx-auto">
+            <NewsletterSubscription darkMode={true} />
+          </div>
         </div>
       </section>
     </div>

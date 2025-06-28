@@ -100,6 +100,29 @@ export const ProductForm = () => {
     e.preventDefault();
     setIsSaving(true);
 
+    // Validate form data
+    if (!formData.title || !formData.productCode || !formData.description || !formData.category || 
+        !formData.location || !formData.duration || !formData.price) {
+      toast({ message: "Please fill out all required fields in the Product Content tab", type: "error" });
+      setActiveTab('content');
+      setIsSaving(false);
+      return;
+    }
+
+    if (!formData.packages || formData.packages.length === 0) {
+      toast({ message: "You must add at least one package option", type: "error" });
+      setActiveTab('schedule');
+      setIsSaving(false);
+      return;
+    }
+
+    if (!formData.cancellationPolicy) {
+      toast({ message: "Cancellation policy is required in the Booking Details tab", type: "error" });
+      setActiveTab('booking');
+      setIsSaving(false);
+      return;
+    }
+
     try {
       const url = isEdit 
         ? `${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/products/${id}`
@@ -116,10 +139,25 @@ export const ProductForm = () => {
         body: JSON.stringify(formData),
       });
 
-      if (!response.ok) {
-        const error = await response.json();
-        toast({ message: error.error || 'Failed to save product', type: 'error' });
+      if (response.status === 400) {
+        const errorData = await response.json();
+        let errorMessage = "Validation Error";
+        
+        if (errorData.error && typeof errorData.error === 'string') {
+          errorMessage = errorData.error;
+        } else if (errorData.message && typeof errorData.message === 'string') {
+          errorMessage = errorData.message;
+        } else if (errorData.details) {
+          errorMessage = "Validation errors: " + Object.keys(errorData.details).map(key => 
+            `${key} - ${errorData.details[key]}`
+          ).join(", ");
+        }
+        
+        toast({ message: errorMessage, type: 'error' });
         return;
+      } else if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || error.message || 'Server error');
       }
       toast({ message: isEdit ? 'Product updated' : 'Product created', type: 'success' });
             
@@ -127,7 +165,10 @@ export const ProductForm = () => {
       
     } catch (error) {
       console.error('Error saving product:', error);
-      alert('Failed to save product');
+      toast({ 
+        message: error instanceof Error ? error.message : 'Failed to save product', 
+        type: 'error' 
+      });
     } finally {
       setIsSaving(false);
     }

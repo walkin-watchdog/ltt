@@ -69,7 +69,7 @@ function App() {
 
     setAbandonedCart({
       productId: open.cartData.productId,
-      productTitle: open.cartData.productTitle || 'your booking',
+      productTitle: open.cartData.productTitle || '',
       date: open.cartData.selectedDate || new Date().toISOString(),
     });
   }, [email]);
