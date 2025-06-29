@@ -2,6 +2,8 @@ import { Link, useLocation } from 'react-router-dom';
 import { 
   Home, 
   Package, 
+  MapPin,
+  Tag,
   Calendar, 
   BookOpen, 
   MessageSquare,
@@ -13,6 +15,8 @@ import { useAuth } from '../../contexts/AuthContext';
 const navigation = [
   { name: 'Dashboard', href: '/', icon: Home },
   { name: 'Products', href: '/products', icon: Package },
+  { name: 'Destinations', href: '/destinations-admin', icon: MapPin },
+  { name: 'Experience Categories', href: '/experience-categories', icon: Tag },
   { name: 'Availability', href: '/availability', icon: Calendar },
   { name: 'Bookings', href: '/bookings', icon: BookOpen },
   { name: 'Requests', href: '/requests', icon: MessageSquare },

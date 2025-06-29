@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   Plus, 
   Search, 
@@ -21,20 +21,33 @@ import type { Productprop } from '@/types.ts';
 export const Products = () => {
   const [products, setProducts] = useState<Productprop[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Productprop[]>([]);
+  const [searchParams] = useSearchParams();
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
+  const [filterDestination, setFilterDestination] = useState('');
   const { token, user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
+    const destination = searchParams.get('destination');
+    const category = searchParams.get('category');
+    
+    if (destination) {
+      setFilterDestination(destination);
+    }
+    
+    if (category) {
+      setFilterCategory(category);
+    }
+    
     fetchProducts();
-  }, [token]);
+  }, [token, searchParams]);
 
   useEffect(() => {
     filterProducts();
-  }, [products, searchTerm, filterType, filterCategory]);
+  }, [products, searchTerm, filterType, filterCategory, filterDestination]);
 
   const fetchProducts = async () => {
     try {
@@ -63,8 +76,9 @@ export const Products = () => {
       
       const matchesType = !filterType || product.type === filterType;
       const matchesCategory = !filterCategory || product.category.toLowerCase().includes(filterCategory.toLowerCase());
+      const matchesDestination = !filterDestination || product.location.toLowerCase().includes(filterDestination.toLowerCase());
       
-      return matchesSearch && matchesType && matchesCategory;
+      return matchesSearch && matchesType && matchesCategory && matchesDestination;
     });
     
     setFilteredProducts(filtered);
@@ -152,17 +166,28 @@ export const Products = () => {
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent w-full"
           >
             <option value="">All Types</option>
             <option value="TOUR">Tours</option>
             <option value="EXPERIENCE">Experiences</option>
           </select>
+
+          <select
+            value={filterDestination}
+            onChange={(e) => setFilterDestination(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent w-full"
+          >
+            <option value="">All Destinations</option>
+            {Array.from(new Set(products.map(p => p.location))).sort().map(location => (
+              <option key={location} value={location}>{location}</option>
+            ))}
+          </select>
           
           <select
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent w-full"
           >
             <option value="">All Categories</option>
             {uniqueCategories.map(category => (

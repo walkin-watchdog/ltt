@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useEffect } from 'react';
 import { Link} from 'react-router-dom';
 import { Menu, X, ChevronDown, User } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
@@ -6,18 +7,47 @@ import { Helmet } from 'react-helmet-async';
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [destinations, setDestinations] = useState<any[]>([]);
+  const [experienceCategories, setExperienceCategories] = useState<any[]>([]);
+  const [destinationsLoading, setDestinationsLoading] = useState(false);
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
 
-  const destinations = [
-    { name: 'Delhi', path: '/destinations/delhi' },
-    { name: 'Jaipur', path: '/destinations/jaipur' },
-    { name: 'Agra', path: '/destinations/agra' },
-  ];
+  // Format destinations and experiences path
+  const getDestinationPath = (slug: string) => `/destinations/${slug}`;
+  const getExperiencePath = (slug: string) => `/experiences/${slug}`;
 
-  const experiences = [
-    { name: 'Culinary', path: '/experiences/culinary' },
-    { name: 'Heritage', path: '/experiences/heritage' },
-    { name: 'Adventure & Nature', path: '/experiences/adventure-nature' },
-  ];
+  // Fetch destinations and experience categories
+  useEffect(() => {
+    const fetchData = async () => {
+      setDestinationsLoading(true);
+      setCategoriesLoading(true);
+      
+      try {
+        const [destResponse, catResponse] = await Promise.all([
+          fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/destinations`),
+          fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/experience-categories`)
+        ]);
+
+        if (destResponse.ok && catResponse.ok) {
+          const destData = await destResponse.json();
+          const catData = await catResponse.json();
+          setDestinations(destData);
+          setExperienceCategories(catData);
+        }
+      } catch (error) {
+        console.error('Error fetching destinations or categories:', error);
+      } finally {
+        setDestinationsLoading(false);
+        setCategoriesLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  // Get top 5 destinations and categories for dropdown
+  const destinationsToShow = destinationsLoading ? [] : destinations.slice(0, 5);
+  const categoriesToShow = categoriesLoading ? [] : experienceCategories.slice(0, 5);
 
   const adminUrl = import.meta.env.DEV
     ? 'http://localhost:5173/login'
@@ -56,15 +86,31 @@ export const Navbar = () => {
               </Link>
               {activeDropdown === 'destinations' && (
                 <div className="absolute top-full left-0 pt-2 w-48 bg-white shadow-lg py-2 z-50">
-                  {destinations.map((dest) => (
-                    <Link
-                      key={dest.name}
-                      to={dest.path}
-                      className="block px-4 py-2 text-gray-700 font-bold hover:text-[#ff914d]"
-                    >
-                      {dest.name}
-                    </Link>
-                  ))}
+                  {destinationsLoading ? (
+                    <p className="px-4 py-2 text-gray-400">Loading...</p>
+                  ) : destinationsToShow.length > 0 ? (
+                    <>
+                      {destinationsToShow.map((dest) => (
+                        <Link
+                          key={dest.id}
+                          to={getDestinationPath(dest.slug)}
+                          className="block px-4 py-2 text-gray-700 font-bold hover:text-[#ff914d]"
+                        >
+                          {dest.name}
+                        </Link>
+                      ))}
+                      {destinations.length > 5 && (
+                        <Link
+                          to="/destinations"
+                          className="block px-4 py-2 text-blue-600 font-bold hover:text-blue-700 border-t border-gray-100 mt-1 pt-1"
+                        >
+                          View All Destinations
+                        </Link>
+                      )}
+                    </>
+                  ) : (
+                    <p className="px-4 py-2 text-gray-400">No destinations</p>
+                  )}
                 </div>
               )}
             </div>
@@ -83,15 +129,31 @@ export const Navbar = () => {
               </Link>
               {activeDropdown === 'experiences' && (
                 <div className="absolute top-full left-0 pt-2 w-48 bg-white shadow-lg py-2 z-50">
-                  {experiences.map((exp) => (
-                    <Link
-                      key={exp.name}
-                      to={exp.path}
-                      className="block px-4 py-2 text-gray-700 font-bold hover:text-[#ff914d]"
-                    >
-                      {exp.name}
-                    </Link>
-                  ))}
+                  {categoriesLoading ? (
+                    <p className="px-4 py-2 text-gray-400">Loading...</p>
+                  ) : categoriesToShow.length > 0 ? (
+                    <>
+                      {categoriesToShow.map((cat) => (
+                        <Link
+                          key={cat.id}
+                          to={getExperiencePath(cat.slug)}
+                          className="block px-4 py-2 text-gray-700 font-bold hover:text-[#ff914d]"
+                        >
+                          {cat.name}
+                        </Link>
+                      ))}
+                      {experienceCategories.length > 5 && (
+                        <Link
+                          to="/experiences"
+                          className="block px-4 py-2 text-blue-600 font-bold hover:text-blue-700 border-t border-gray-100 mt-1 pt-1"
+                        >
+                          View All Experiences
+                        </Link>
+                      )}
+                    </>
+                  ) : (
+                    <p className="px-4 py-2 text-gray-400">No experiences</p>
+                  )}
                 </div>
               )}
             </div>
@@ -144,14 +206,44 @@ export const Navbar = () => {
           </div>
         </div>
 
-        {/* Mobile Navigation */}
         {isOpen && (
           <div className="md:hidden bg-white border-t">
             <div className="px-2 pt-2 pb-3">
               <Link to="/destinations" className="block px-3 py-2 text-gray-700">Destinations</Link>
+              {destinationsToShow.length > 0 ? destinationsToShow.map((dest) => (
+                <Link
+                  key={dest.id}
+                  to={getDestinationPath(dest.slug)}
+                  className="block px-4 py-2 text-gray-700 font-bold hover:text-[#ff914d]"
+                >
+                  {dest.name}
+                </Link>
+              )) : (
+                <p className="block px-4 py-2 text-gray-400">Loading destinations...</p>
+              )}
+              {destinations.length > 5 && (
+                <Link
+                  to="/destinations"
+                  className="block px-4 py-2 text-blue-600 font-bold hover:text-blue-700 border-t border-gray-100 mt-1 pt-1"
+                >
+                  View All Destinations
+                </Link>
+              )}
+              
               <Link to="/experiences" className="block px-3 py-2 text-gray-700">Luxé Experiences</Link>
+              {categoriesToShow.length > 0 ? categoriesToShow.map((cat) => (
+                <Link
+                  key={cat.id}
+                  to={getExperiencePath(cat.slug)}
+                  className="block px-4 py-2 text-gray-700 font-bold hover:text-[#ff914d]"
+                >
+                  {cat.name}
+                </Link>
+              )) : (
+                <p className="block px-4 py-2 text-gray-400">Loading categories...</p>
+              )}
+              
               <Link to="/offers" className="block px-3 py-2 text-gray-700">Special Offers</Link>
-              <Link to="/contact" className="block px-3 py-2 text-gray-700">Contact Us</Link>
               <Link to="/about" className="block px-3 py-2 text-gray-700">About</Link>
               <Link to="/blog" className="block px-3 py-2 text-gray-700">Blog</Link>
               <Link to="https://quaintspaces.in/" className="block px-3 py-2 text-gray-700">Luxé Stays</Link>

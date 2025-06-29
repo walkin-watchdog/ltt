@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { X, Upload, Plus, Image, PlusCircle } from 'lucide-react';
 import axios from 'axios';
-import { useToast } from '@/components/ui/toaster';
-import { X, Plus, Image as ImageIcon, Calendar } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { DestinationModal } from './DestinationModal';
+import { ExperienceCategoryModal } from './ExperienceCategoryModal';
 
 interface ProductContentTabProps {
   formData: any;
@@ -10,755 +11,762 @@ interface ProductContentTabProps {
   isEdit: boolean;
 }
 
-interface ItineraryDay {
-  day: number;
-  title: string;
-  description: string;
-  activities: string[];
-  images: string[];
-}
-
-export const ProductContentTab = ({ formData, updateFormData }: ProductContentTabProps) => {
+export const ProductContentTab = ({ formData, updateFormData, isEdit }: ProductContentTabProps) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const [newItem, setNewItem] = useState<{ 
+    highlight: string; 
+    inclusion: string; 
+    exclusion: string; 
+    tag: string; 
+    pickupLocation: string;
+    guide: string;
+    language: string;
+  }>({
+    highlight: '',
+    inclusion: '',
+    exclusion: '',
+    tag: '',
+    pickupLocation: '',
+    guide: '',
+    language: '',
+  });
   const { token } = useAuth();
-  const toast = useToast();
-  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
-  const [showItineraryBuilder, setShowItineraryBuilder] = useState(false);
-  const [editingDay, setEditingDay] = useState<ItineraryDay | null>(null);
-  const [newActivity, setNewActivity] = useState('');
+  const [isDestinationModalOpen, setIsDestinationModalOpen] = useState(false);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [destinations, setDestinations] = useState<any[]>([]);
+  const [experienceCategories, setExperienceCategories] = useState<any[]>([]);
+  const [isLoadingDestinations, setIsLoadingDestinations] = useState(false);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(false);
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
+  useEffect(() => {
+    fetchDestinations();
+    fetchExperienceCategories();
+  }, []);
 
+  const fetchDestinations = async () => {
     try {
-      const uploadFormData = new FormData();
-      Array.from(files).forEach(file => {
-        uploadFormData.append('images', file);
+      setIsLoadingDestinations(true);
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/destinations`, {
+        headers: { 'Authorization': `Bearer ${token}` }
       });
-
-      const res = await axios.post(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/uploads/products`,
-        uploadFormData,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data',
-          },
-          onUploadProgress: ev => {
-            const pct = Math.round((ev.loaded * 100) / (ev.total || 1));
-            setUploadProgress(pct);   // ➌ live %
-          },
-        },
-      );
-
-      const { images } = res.data as { images: Array<{ url: string }> };
-      updateFormData({ images: [...(formData.images || []), ...images.map(i => i.url)] });
-      toast({ message: 'Images uploaded successfully', type: 'success' });
-    } catch (error) {
-      let errorMessage = 'Image upload failed';
-      if (axios.isAxiosError(error) && error.response?.data?.error) {
-        errorMessage = error.response.data.error;
+      
+      if (response.ok) {
+        const data = await response.json();
+        setDestinations(data);
       }
-      toast({ message: errorMessage, type: 'error' });
+    } catch (error) {
+      console.error('Error fetching destinations:', error);
     } finally {
+      setIsLoadingDestinations(false);
     }
   };
 
-  const handleItineraryImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || !editingDay) return;
-
+  const fetchExperienceCategories = async () => {
     try {
-      const uploadFormData = new FormData();
-      Array.from(files).forEach(file => {
-        uploadFormData.append('images', file);
+      setIsLoadingCategories(true);
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/experience-categories`, {
+        headers: { 'Authorization': `Bearer ${token}` }
       });
-
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/uploads/products`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-        body: uploadFormData,
-      });
-
+      
       if (response.ok) {
         const data = await response.json();
-        const newImages = data.images.map((img: any) => img.url);
-        setEditingDay({
-          ...editingDay,
-          images: [...(editingDay.images || []), ...newImages]
-        });
+        setExperienceCategories(data);
+      }
+    } catch (error) {
+      console.error('Error fetching experience categories:', error);
+    } finally {
+      setIsLoadingCategories(false);
+    }
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    
+    const files = Array.from(e.target.files);
+    setIsUploading(true);
+    setUploadProgress(0);
+    
+    try {
+      const uploadFormData = new FormData();
+      files.forEach(file => {
+        uploadFormData.append('images', file);
+      });
+      
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/uploads/products`,
+        uploadFormData, 
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            'Authorization': `Bearer ${token}`
+          },
+          onUploadProgress: (progressEvent) => {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / (progressEvent.total || 1));
+            setUploadProgress(percentCompleted);
+          }
+        }
+      );
+      
+      if (response.data && response.data.images) {
+        const newImages = response.data.images.map((img: any) => img.url);
+        updateFormData({ images: [...(formData.images || []), ...newImages] });
       }
     } catch (error) {
       console.error('Error uploading images:', error);
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
-
+  
   const removeImage = (index: number) => {
-    const newImages = formData.images.filter((_: any, i: number) => i !== index);
-    updateFormData({ images: newImages });
-  };
-
-  const removeItineraryImage = (index: number) => {
-    if (!editingDay) return;
-    const newImages = editingDay.images.filter((_: any, i: number) => i !== index);
-    setEditingDay({
-      ...editingDay,
-      images: newImages
+    updateFormData({ 
+      images: formData.images.filter((_: any, i: number) => i !== index) 
     });
   };
 
-  const addToArray = (field: string, value: string) => {
-    if (value.trim()) {
-      const currentArray = formData[field] || [];
-      updateFormData({
-        [field]: [...currentArray, value.trim()]
-      });
-    }
-  };
-
-  const removeFromArray = (field: string, index: number) => {
-    const currentArray = formData[field] || [];
+  const addItem = (field: string, value: string) => {
+    if (!value.trim()) return;
+    
     updateFormData({
-      [field]: currentArray.filter((_: any, i: number) => i !== index)
+      [field]: [...formData[field], value.trim()]
+    });
+    
+    setNewItem(prev => ({ ...prev, [field]: '' }));
+  };
+  
+  const removeItem = (field: string, index: number) => {
+    updateFormData({
+      [field]: formData[field].filter((_: any, i: number) => i !== index)
     });
   };
 
-  const addActivity = () => {
-    if (newActivity.trim() && editingDay) {
-      setEditingDay({
-        ...editingDay,
-        activities: [...editingDay.activities, newActivity.trim()]
-      });
-      setNewActivity('');
-    }
-  };
-
-  const removeActivity = (index: number) => {
-    if (!editingDay) return;
-    setEditingDay({
-      ...editingDay,
-      activities: editingDay.activities.filter((_, i) => i !== index)
+  const handleDestinationSelect = (destination: any) => {
+    updateFormData({ 
+      location: destination.name,
+      destinationId: destination.id 
     });
+    setIsDestinationModalOpen(false);
   };
 
-  const saveItineraryDay = () => {
-    if (!editingDay) return;
-    
-    const currentItinerary = formData.itinerary || [];
-    const existingIndex = currentItinerary.findIndex((day: ItineraryDay) => day.day === editingDay.day);
-    
-    let updatedItinerary;
-    if (existingIndex >= 0) {
-      updatedItinerary = [...currentItinerary];
-      updatedItinerary[existingIndex] = editingDay;
-    } else {
-      updatedItinerary = [...currentItinerary, editingDay].sort((a, b) => a.day - b.day);
-    }
-    
-    updateFormData({ itinerary: updatedItinerary });
-    setEditingDay(null);
-    setShowItineraryBuilder(false);
-  };
-
-  const createNewDay = () => {
-    const currentItinerary = formData.itinerary || [];
-    const nextDay = currentItinerary.length > 0 ? Math.max(...currentItinerary.map((d: ItineraryDay) => d.day)) + 1 : 1;
-    
-    setEditingDay({
-      day: nextDay,
-      title: '',
-      description: '',
-      activities: [],
-      images: []
+  const handleCategorySelect = (category: any) => {
+    updateFormData({ 
+      category: category.name,
+      experienceCategoryId: category.id 
     });
-    setShowItineraryBuilder(true);
-  };
-
-  const editDay = (day: ItineraryDay) => {
-    setEditingDay({ ...day });
-    setShowItineraryBuilder(true);
-  };
-
-  const removeDay = (dayNumber: number) => {
-    const currentItinerary = formData.itinerary || [];
-    const updatedItinerary = currentItinerary.filter((day: ItineraryDay) => day.day !== dayNumber);
-    updateFormData({ itinerary: updatedItinerary });
-  };
-
-  const ArrayInput = ({ label, field, placeholder }: { label: string; field: string; placeholder: string }) => {
-    const [inputValue, setInputValue] = useState('');
-    
-    return (
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
-        <div className="space-y-2">
-          <div className="flex">
-            <input
-              type="text"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              placeholder={placeholder}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-              onKeyPress={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  addToArray(field, inputValue);
-                  setInputValue('');
-                }
-              }}
-            />
-            <button
-              type="button"
-              onClick={() => {
-                addToArray(field, inputValue);
-                setInputValue('');
-              }}
-              className="px-4 py-2 bg-[#ff914d] text-white rounded-r-md hover:bg-[#e8823d] transition-colors"
-            >
-              <Plus className="h-4 w-4" />
-            </button>
-          </div>
-          <div className="space-y-1">
-            {(formData[field] || []).map((item: string, index: number) => (
-              <div key={index} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-md">
-                <span className="text-sm">{item}</span>
-                <button
-                  type="button"
-                  onClick={() => removeFromArray(field, index)}
-                  className="text-red-500 hover:text-red-700"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
+    setIsCategoryModalOpen(false);
   };
 
   return (
     <div className="space-y-8">
-      {/* Images Gallery */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Product Images
-        </label>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-          {formData.images?.map((image: string, index: number) => (
+      {/* Images */}
+      <div className="bg-gray-50 rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Images</h3>
+        
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-6">
+          {formData.images.map((image: string, index: number) => (
             <div key={index} className="relative group">
               <img
                 src={image}
                 alt={`Product ${index + 1}`}
-                className="w-full h-32 object-cover rounded-lg"
+                className="h-32 w-full object-cover rounded-lg"
               />
               <button
-                type="button"
                 onClick={() => removeImage(index)}
-                className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
               >
-                <X className="h-3 w-3" />
+                <X className="h-4 w-4" />
               </button>
             </div>
           ))}
-        </div>
-        {uploadProgress !== null && (
-          <div className="w-full bg-gray-200 rounded-full h-2.5 mb-3">
-            <div
-              className="bg-[#ff914d] h-2.5 rounded-full transition-all"
-              style={{ width: `${uploadProgress}%` }}
+          
+          <div className="h-32 flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 cursor-pointer transition-colors">
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileSelect}
+              className="hidden"
+              multiple
+              accept="image/*"
             />
-          </div>
-        )}
-        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
-          <input
-            type="file"
-            id="images"
-            multiple
-            accept="image/*"
-            onChange={handleImageUpload}
-            className="hidden"
-          />
-          <label htmlFor="images" className="cursor-pointer">
-            <ImageIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-sm text-gray-600">
-              {uploadProgress !== null ? `${uploadProgress}%` : 'Click to upload images or drag and drop'}
-            </p>
-            <p className="text-xs text-gray-500 mt-1">PNG, JPG, WEBP up to 5MB each</p>
-          </label>
-        </div>
-      </div>
-
-      {/* Product Setup */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Product Title *
-          </label>
-          <input
-            type="text"
-            value={formData.title}
-            onChange={(e) => updateFormData({ title: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-            placeholder="Enter product title"
-            required
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Product Code *
-          </label>
-          <input
-            type="text"
-            value={formData.productCode}
-            onChange={(e) => updateFormData({ productCode: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-            placeholder="e.g., LT001"
-            required
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Type *
-          </label>
-          <select
-            value={formData.type}
-            onChange={(e) => updateFormData({ type: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-          >
-            <option value="TOUR">Tour</option>
-            <option value="EXPERIENCE">Experience</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Category *
-          </label>
-          <input
-            type="text"
-            value={formData.category}
-            onChange={(e) => updateFormData({ category: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-            placeholder="e.g., Heritage, Adventure, Culinary"
-            required
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Location *
-          </label>
-          <input
-            type="text"
-            value={formData.location}
-            onChange={(e) => updateFormData({ location: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-            placeholder="e.g., Delhi, India"
-            required
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Duration *
-          </label>
-          <input
-            type="text"
-            value={formData.duration}
-            onChange={(e) => updateFormData({ duration: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-            placeholder="e.g., 3 hours, Full day, 2 days"
-            required
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Capacity *
-          </label>
-          <input
-            type="number"
-            min="1"
-            value={formData.capacity}
-            onChange={(e) => updateFormData({ capacity: parseInt(e.target.value) })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-            placeholder="Maximum number of participants"
-            required
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Base Price (₹) *
-          </label>
-          <input
-            type="number"
-            min="0"
-            value={formData.price}
-            onChange={(e) => updateFormData({ price: parseFloat(e.target.value) })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-            placeholder="0"
-            required
-          />
-        </div>
-      </div>
-
-      {/* Description */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Description *
-        </label>
-        <textarea
-          rows={4}
-          value={formData.description}
-          onChange={(e) => updateFormData({ description: e.target.value })}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-          placeholder="Detailed description of the tour/experience"
-          required
-        />
-      </div>
-
-      {/* Array Fields */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <ArrayInput
-          label="Highlights"
-          field="highlights"
-          placeholder="Add a highlight"
-        />
-        <ArrayInput
-          label="Inclusions"
-          field="inclusions"
-          placeholder="Add an inclusion"
-        />
-        <ArrayInput
-          label="Exclusions"
-          field="exclusions"
-          placeholder="Add an exclusion"
-        />
-        <ArrayInput
-          label="Tags"
-          field="tags"
-          placeholder="Add a tag"
-        />
-      </div>
-
-      {/* Meeting & Pickup */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Meeting Point
-          </label>
-          <textarea
-            rows={3}
-            value={formData.meetingPoint || ''}
-            onChange={(e) => updateFormData({ meetingPoint: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-            placeholder="Describe the meeting point location"
-          />
-        </div>
-
-        <ArrayInput
-          label="Pickup Locations"
-          field="pickupLocations"
-          placeholder="Add a pickup location"
-        />
-      </div>
-
-      {/* Tour Details */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Difficulty Level
-          </label>
-          <select
-            value={formData.difficulty || ''}
-            onChange={(e) => updateFormData({ difficulty: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-          >
-            <option value="">Select difficulty</option>
-            <option value="Easy">Easy</option>
-            <option value="Moderate">Moderate</option>
-            <option value="Challenging">Challenging</option>
-            <option value="Extreme">Extreme</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Health Restrictions
-          </label>
-          <textarea
-            rows={3}
-            value={formData.healthRestrictions || ''}
-            onChange={(e) => updateFormData({ healthRestrictions: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-            placeholder="Any health restrictions or requirements"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Accessibility
-          </label>
-          <textarea
-            rows={3}
-            value={formData.accessibility || ''}
-            onChange={(e) => updateFormData({ accessibility: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-            placeholder="Accessibility information"
-          />
-        </div>
-      </div>
-
-      {/* Guides and Languages */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <ArrayInput
-          label="Guides"
-          field="guides"
-          placeholder="Add guide name"
-        />
-        <ArrayInput
-          label="Languages"
-          field="languages"
-          placeholder="Add language"
-        />
-      </div>
-
-      {/* Itinerary (for Tours only) */}
-      {formData.type === 'TOUR' && (
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <label className="block text-md font-medium text-gray-700">
-              Itinerary
-            </label>
             <button
               type="button"
-              onClick={createNewDay}
-              className="flex items-center px-4 py-2 bg-[#ff914d] text-white rounded-md hover:bg-[#e8823d] transition-colors"
+              onClick={() => fileInputRef.current?.click()}
+              className="flex flex-col items-center text-gray-600 hover:text-[#ff914d]"
+              disabled={isUploading}
             >
-              <Calendar className="h-4 w-4 mr-2" />
-              Add Days
+              {isUploading ? (
+                <>
+                  <div className="mb-2 relative w-10 h-10">
+                    <svg className="w-10 h-10 animate-spin" viewBox="0 0 24 24">
+                      <circle 
+                        className="opacity-25" 
+                        cx="12" 
+                        cy="12" 
+                        r="10" 
+                        stroke="currentColor" 
+                        strokeWidth="4"
+                        fill="none"
+                      />
+                      <path 
+                        className="opacity-75" 
+                        fill="currentColor" 
+                        d={`M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z`}
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-xs font-semibold">{uploadProgress}%</span>
+                    </div>
+                  </div>
+                  <span className="text-sm">Uploading...</span>
+                </>
+              ) : (
+                <>
+                  <Upload className="h-8 w-8 mb-1" />
+                  <span className="text-sm">Add Images</span>
+                </>
+              )}
             </button>
           </div>
-
-          {/* Existing Itinerary Days */}
-          {formData.itinerary && formData.itinerary.length > 0 && (
-            <div className="space-y-4 mb-6">
-              {formData.itinerary.map((day: ItineraryDay) => (
-                <div key={day.day} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-medium text-gray-900">Day {day.day}: {day.title}</h4>
-                    <div className="flex space-x-2">
-                      <button
-                        type="button"
-                        onClick={() => editDay(day)}
-                        className="text-blue-600 hover:text-blue-800 text-sm"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => removeDay(day.day)}
-                        className="text-red-600 hover:text-red-800 text-sm"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  </div>
-                  <p className="text-sm text-gray-600 mb-2">{day.description}</p>
-                  {day.activities.length > 0 && (
-                    <div className="mb-2">
-                      <p className="text-xs font-medium text-gray-700 mb-1">Activities:</p>
-                      <ul className="text-xs text-gray-600 list-disc list-inside">
-                        {day.activities.map((activity, idx) => (
-                          <li key={idx}>{activity}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  {day.images.length > 0 && (
-                    <div className="flex space-x-2 mt-2">
-                      {day.images.slice(0, 3).map((img, idx) => (
-                        <img key={idx} src={img} alt="" className="w-12 h-12 object-cover rounded" />
-                      ))}
-                      {day.images.length > 3 && (
-                        <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center text-xs text-gray-600">
-                          +{day.images.length - 3}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Itinerary Builder Modal */}
-          {showItineraryBuilder && editingDay && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-medium text-gray-900">
-                    Day {editingDay.day} Itinerary
-                  </h3>
+        </div>
+      </div>
+      {/* Basic Info */}
+      <div className="bg-gray-50 rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Basic Information</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Title *
+            </label>
+            <input
+              type="text"
+              value={formData.title}
+              onChange={(e) => updateFormData({ title: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+              placeholder="Enter product title"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Product Code *
+            </label>
+            <input
+              type="text"
+              value={formData.productCode}
+              onChange={(e) => updateFormData({ productCode: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+              placeholder="Enter unique product code"
+              required
+            />
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Description *
+            </label>
+            <textarea
+              rows={5}
+              value={formData.description}
+              onChange={(e) => updateFormData({ description: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+              placeholder="Enter detailed description"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Type *
+            </label>
+            <select
+              value={formData.type}
+              onChange={(e) => updateFormData({ type: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+              required
+            >
+              <option value="TOUR">Tour</option>
+              <option value="EXPERIENCE">Experience</option>
+            </select>
+          </div>
+          <div>
+            {formData.type === 'EXPERIENCE' ? (
+              <>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Category *
+                </label>
+                <div className="flex">
+                  <select
+                    value={formData.category}
+                    onChange={(e) => updateFormData({ 
+                      category: e.target.value,
+                      experienceCategoryId: experienceCategories.find(c => c.name === e.target.value)?.id || null
+                    })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+                    required
+                  >
+                    <option value="">Select a category</option>
+                    {experienceCategories.map(category => (
+                      <option key={category.id} value={category.name}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
                   <button
                     type="button"
-                    onClick={() => {
-                      setShowItineraryBuilder(false);
-                      setEditingDay(null);
-                    }}
-                    className="text-gray-400 hover:text-gray-600"
+                    onClick={() => setIsCategoryModalOpen(true)}
+                    className="px-3 py-2 bg-[#ff914d] text-white rounded-r-md hover:bg-[#e8823d] transition-colors"
                   >
-                    <X className="h-6 w-6" />
+                    <PlusCircle className="h-5 w-5" />
                   </button>
                 </div>
-
-                <div className="space-y-4">
-                  {/* Day Title */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Day Title *
-                    </label>
-                    <input
-                      type="text"
-                      value={editingDay.title}
-                      onChange={(e) => setEditingDay({ ...editingDay, title: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                      placeholder="e.g., Explore Old Delhi"
-                    />
-                  </div>
-
-                  {/* Day Description */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Description *
-                    </label>
-                    <textarea
-                      rows={3}
-                      value={editingDay.description}
-                      onChange={(e) => setEditingDay({ ...editingDay, description: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                      placeholder="Brief description of the day's activities"
-                    />
-                  </div>
-
-                  {/* Activities */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Activities
-                    </label>
-                    <div className="space-y-2">
-                      <div className="flex">
-                        <input
-                          type="text"
-                          value={newActivity}
-                          onChange={(e) => setNewActivity(e.target.value)}
-                          placeholder="Add an activity"
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                          onKeyPress={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              addActivity();
-                            }
-                          }}
-                        />
-                        <button
-                          type="button"
-                          onClick={addActivity}
-                          className="px-4 py-2 bg-[#ff914d] text-white rounded-r-md hover:bg-[#e8823d] transition-colors"
-                        >
-                          <Plus className="h-4 w-4" />
-                        </button>
-                      </div>
-                      <div className="space-y-1">
-                        {editingDay.activities.map((activity, index) => (
-                          <div key={index} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-md">
-                            <span className="text-sm">{activity}</span>
-                            <button
-                              type="button"
-                              onClick={() => removeActivity(index)}
-                              className="text-red-500 hover:text-red-700"
-                            >
-                              <X className="h-4 w-4" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Images */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Images (Optional)
-                    </label>
-                    <div className="grid grid-cols-3 gap-4 mb-4">
-                      {editingDay.images.map((image, index) => (
-                        <div key={index} className="relative group">
-                          <img
-                            src={image}
-                            alt={`Day ${editingDay.day} ${index + 1}`}
-                            className="w-full h-20 object-cover rounded-lg"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => removeItineraryImage(index)}
-                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition-colors">
-                      <input
-                        type="file"
-                        id="itinerary-images"
-                        multiple
-                        accept="image/*"
-                        onChange={handleItineraryImageUpload}
-                        className="hidden"
-                      />
-                      <label htmlFor="itinerary-images" className="cursor-pointer">
-                        <ImageIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                        <p className="text-xs text-gray-600">
-                          {uploadProgress !== null ? `${uploadProgress}%` : 'Upload day images'}
-                        </p>
-                      </label>
-                    </div>
-                  </div>
-
-                  {/* Save Button */}
-                  <div className="flex justify-end space-x-3 pt-4">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowItineraryBuilder(false);
-                        setEditingDay(null);
-                      }}
-                      className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      onClick={saveItineraryDay}
-                      className="px-4 py-2 bg-[#ff914d] text-white rounded-md hover:bg-[#e8823d] transition-colors"
-                      disabled={!editingDay.title || !editingDay.description}
-                    >
-                      Save Day
-                    </button>
-                  </div>
+                {isLoadingCategories && (
+                  <p className="text-sm text-gray-500 mt-1">Loading categories...</p>
+                )}
+              </>
+            ) : (
+              <>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Location *
+                </label>
+                <div className="flex">
+                  <select
+                    value={formData.location}
+                    onChange={(e) => updateFormData({ 
+                      location: e.target.value,
+                      destinationId: destinations.find(d => d.name === e.target.value)?.id || null
+                    })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+                    required
+                  >
+                    <option value="">Select a location</option>
+                    {destinations.map(destination => (
+                      <option key={destination.id} value={destination.name}>
+                        {destination.name}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => setIsDestinationModalOpen(true)}
+                    className="px-3 py-2 bg-[#ff914d] text-white rounded-r-md hover:bg-[#e8823d] transition-colors"
+                  >
+                    <PlusCircle className="h-5 w-5" />
+                  </button>
                 </div>
+                {isLoadingDestinations && (
+                  <p className="text-sm text-gray-500 mt-1">Loading destinations...</p>
+                )}
+              </>
+            )}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Duration *
+            </label>
+            <input
+              type="text"
+              value={formData.duration}
+              onChange={(e) => updateFormData({ duration: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+              placeholder="e.g., 3 hours, 2 days"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Max Capacity *
+            </label>
+            <input
+              type="number"
+              min="1"
+              value={formData.capacity}
+              onChange={(e) => updateFormData({ capacity: parseInt(e.target.value) })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+              placeholder="Max number of people"
+              required
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Lists */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Highlights */}
+        <div className="bg-gray-50 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Highlights</h3>
+          <div className="space-y-4">
+            <div className="flex">
+              <input
+                type="text"
+                value={newItem.highlight}
+                onChange={(e) => setNewItem({ ...newItem, highlight: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+                placeholder="Add a highlight"
+              />
+              <button
+                type="button"
+                onClick={() => addItem('highlights', newItem.highlight)}
+                className="px-3 py-2 bg-[#ff914d] text-white rounded-r-md hover:bg-[#e8823d] transition-colors"
+              >
+                <Plus className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="border border-gray-200 rounded-md max-h-64 overflow-y-auto">
+              <ul className="divide-y divide-gray-200">
+                {formData.highlights.map((highlight: string, index: number) => (
+                  <li key={index} className="flex justify-between items-center p-3 hover:bg-gray-50">
+                    <span className="text-gray-700">{highlight}</span>
+                    <button 
+                      onClick={() => removeItem('highlights', index)}
+                      className="text-red-500 hover:text-red-700 transition-colors"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </li>
+                ))}
+                {formData.highlights.length === 0 && (
+                  <li className="p-3 text-gray-500 text-center">No highlights added</li>
+                )}
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Inclusions */}
+        <div className="bg-gray-50 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Inclusions</h3>
+          <div className="space-y-4">
+            <div className="flex">
+              <input
+                type="text"
+                value={newItem.inclusion}
+                onChange={(e) => setNewItem({ ...newItem, inclusion: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+                placeholder="Add an inclusion"
+              />
+              <button
+                type="button"
+                onClick={() => addItem('inclusions', newItem.inclusion)}
+                className="px-3 py-2 bg-[#ff914d] text-white rounded-r-md hover:bg-[#e8823d] transition-colors"
+              >
+                <Plus className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="border border-gray-200 rounded-md max-h-64 overflow-y-auto">
+              <ul className="divide-y divide-gray-200">
+                {formData.inclusions.map((inclusion: string, index: number) => (
+                  <li key={index} className="flex justify-between items-center p-3 hover:bg-gray-50">
+                    <span className="text-gray-700">{inclusion}</span>
+                    <button 
+                      onClick={() => removeItem('inclusions', index)}
+                      className="text-red-500 hover:text-red-700 transition-colors"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </li>
+                ))}
+                {formData.inclusions.length === 0 && (
+                  <li className="p-3 text-gray-500 text-center">No inclusions added</li>
+                )}
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Exclusions */}
+        <div className="bg-gray-50 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Exclusions</h3>
+          <div className="space-y-4">
+            <div className="flex">
+              <input
+                type="text"
+                value={newItem.exclusion}
+                onChange={(e) => setNewItem({ ...newItem, exclusion: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+                placeholder="Add an exclusion"
+              />
+              <button
+                type="button"
+                onClick={() => addItem('exclusions', newItem.exclusion)}
+                className="px-3 py-2 bg-[#ff914d] text-white rounded-r-md hover:bg-[#e8823d] transition-colors"
+              >
+                <Plus className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="border border-gray-200 rounded-md max-h-64 overflow-y-auto">
+              <ul className="divide-y divide-gray-200">
+                {formData.exclusions.map((exclusion: string, index: number) => (
+                  <li key={index} className="flex justify-between items-center p-3 hover:bg-gray-50">
+                    <span className="text-gray-700">{exclusion}</span>
+                    <button 
+                      onClick={() => removeItem('exclusions', index)}
+                      className="text-red-500 hover:text-red-700 transition-colors"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </li>
+                ))}
+                {formData.exclusions.length === 0 && (
+                  <li className="p-3 text-gray-500 text-center">No exclusions added</li>
+                )}
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Tags */}
+        <div className="bg-gray-50 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Tags</h3>
+          <div className="space-y-4">
+            <div className="flex">
+              <input
+                type="text"
+                value={newItem.tag}
+                onChange={(e) => setNewItem({ ...newItem, tag: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+                placeholder="Add a tag"
+              />
+              <button
+                type="button"
+                onClick={() => addItem('tags', newItem.tag)}
+                className="px-3 py-2 bg-[#ff914d] text-white rounded-r-md hover:bg-[#e8823d] transition-colors"
+              >
+                <Plus className="h-5 w-5" />
+              </button>
+            </div>
+            <div>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {formData.tags.map((tag: string, index: number) => (
+                  <div
+                    key={index}
+                    className="flex items-center bg-gray-100 text-gray-800 px-3 py-1 rounded-full"
+                  >
+                    <span className="text-sm">{tag}</span>
+                    <button
+                      onClick={() => removeItem('tags', index)}
+                      className="ml-2 text-gray-500 hover:text-gray-700"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+                {formData.tags.length === 0 && (
+                  <p className="text-gray-500 text-sm">No tags added</p>
+                )}
               </div>
             </div>
-          )}
+          </div>
         </div>
+
+        {/* Languages */}
+        <div className="bg-gray-50 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Languages</h3>
+          <div className="space-y-4">
+            <div className="flex">
+              <input
+                type="text"
+                value={newItem.language}
+                onChange={(e) => setNewItem({ ...newItem, language: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+                placeholder="Add a language"
+              />
+              <button
+                type="button"
+                onClick={() => addItem('languages', newItem.language)}
+                className="px-3 py-2 bg-[#ff914d] text-white rounded-r-md hover:bg-[#e8823d] transition-colors"
+              >
+                <Plus className="h-5 w-5" />
+              </button>
+            </div>
+            <div>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {formData.languages.map((language: string, index: number) => (
+                  <div
+                    key={index}
+                    className="flex items-center bg-blue-100 text-blue-800 px-3 py-1 rounded-full"
+                  >
+                    <span className="text-sm">{language}</span>
+                    <button
+                      onClick={() => removeItem('languages', index)}
+                      className="ml-2 text-blue-500 hover:text-blue-700"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+                {formData.languages.length === 0 && (
+                  <p className="text-gray-500 text-sm">No languages added</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Tour Guides */}
+        <div className="bg-gray-50 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Tour Guides</h3>
+          <div className="space-y-4">
+            <div className="flex">
+              <input
+                type="text"
+                value={newItem.guide}
+                onChange={(e) => setNewItem({ ...newItem, guide: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+                placeholder="Add a guide"
+              />
+              <button
+                type="button"
+                onClick={() => addItem('guides', newItem.guide)}
+                className="px-3 py-2 bg-[#ff914d] text-white rounded-r-md hover:bg-[#e8823d] transition-colors"
+              >
+                <Plus className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="border border-gray-200 rounded-md max-h-32 overflow-y-auto">
+              <ul className="divide-y divide-gray-200">
+                {formData.guides.map((guide: string, index: number) => (
+                  <li key={index} className="flex justify-between items-center p-3 hover:bg-gray-50">
+                    <span className="text-gray-700">{guide}</span>
+                    <button 
+                      onClick={() => removeItem('guides', index)}
+                      className="text-red-500 hover:text-red-700 transition-colors"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </li>
+                ))}
+                {formData.guides.length === 0 && (
+                  <li className="p-3 text-gray-500 text-center">No guides added</li>
+                )}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Tour Details */}
+      <div className="bg-gray-50 rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Additional Details</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Difficulty Level
+            </label>
+            <select
+              value={formData.difficulty || ''}
+              onChange={(e) => updateFormData({ difficulty: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+            >
+              <option value="">Select difficulty</option>
+              <option value="Easy">Easy</option>
+              <option value="Moderate">Moderate</option>
+              <option value="Challenging">Challenging</option>
+              <option value="Difficult">Difficult</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Accessibility
+            </label>
+            <select
+              value={formData.accessibility || ''}
+              onChange={(e) => updateFormData({ accessibility: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+            >
+              <option value="">Select accessibility level</option>
+              <option value="Fully accessible">Fully accessible</option>
+              <option value="Partially accessible">Partially accessible</option>
+              <option value="Not wheelchair accessible">Not wheelchair accessible</option>
+              <option value="Limited mobility friendly">Limited mobility friendly</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Health Restrictions
+            </label>
+            <textarea
+              rows={3}
+              value={formData.healthRestrictions || ''}
+              onChange={(e) => updateFormData({ healthRestrictions: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+              placeholder="Any health restrictions or requirements..."
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Meeting Point
+            </label>
+            <textarea
+              rows={3}
+              value={formData.meetingPoint || ''}
+              onChange={(e) => updateFormData({ meetingPoint: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+              placeholder="Describe the meeting point..."
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Pickup Locations */}
+      <div className="bg-gray-50 rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Pickup Locations</h3>
+        <div className="space-y-4">
+          <div className="flex">
+            <input
+              type="text"
+              value={newItem.pickupLocation}
+              onChange={(e) => setNewItem({ ...newItem, pickupLocation: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+              placeholder="Add a pickup location"
+            />
+            <button
+              type="button"
+              onClick={() => addItem('pickupLocations', newItem.pickupLocation)}
+              className="px-3 py-2 bg-[#ff914d] text-white rounded-r-md hover:bg-[#e8823d] transition-colors"
+            >
+              <Plus className="h-5 w-5" />
+            </button>
+          </div>
+          <div className="border border-gray-200 rounded-md max-h-64 overflow-y-auto">
+            <ul className="divide-y divide-gray-200">
+              {formData.pickupLocations.map((location: string, index: number) => (
+                <li key={index} className="flex justify-between items-center p-3 hover:bg-gray-50">
+                  <span className="text-gray-700">{location}</span>
+                  <button 
+                    onClick={() => removeItem('pickupLocations', index)}
+                    className="text-red-500 hover:text-red-700 transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </li>
+              ))}
+              {formData.pickupLocations.length === 0 && (
+                <li className="p-3 text-gray-500 text-center">No pickup locations added</li>
+              )}
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      {/* Destination Modal */}
+      {isDestinationModalOpen && (
+        <DestinationModal 
+          isOpen={isDestinationModalOpen}
+          onClose={() => setIsDestinationModalOpen(false)}
+          onSelect={handleDestinationSelect}
+        />
+      )}
+
+      {/* Experience Category Modal */}
+      {isCategoryModalOpen && (
+        <ExperienceCategoryModal
+          isOpen={isCategoryModalOpen}
+          onClose={() => setIsCategoryModalOpen(false)}
+          onSelect={handleCategorySelect}
+        />
       )}
     </div>
   );

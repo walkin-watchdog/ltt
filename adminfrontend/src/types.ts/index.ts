@@ -165,6 +165,8 @@ export interface ProductFormData {
   productCode: string;
   description: string;
   type: 'TOUR' | 'EXPERIENCE';
+  destinationId: string;
+  experienceCategoryId: string;
   category: string;
   location: string;
   duration: string;

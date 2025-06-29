@@ -48,6 +48,8 @@ export const ProductForm = () => {
     pickupLocations: [],
     guides: [],
     languages: [],
+    destinationId: '',
+    experienceCategoryId: '',
     cancellationPolicy: '',
     isActive: true,
     availabilityStartDate: today,

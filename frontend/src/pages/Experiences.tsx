@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { MapPin, Clock, Star, Users } from 'lucide-react';
@@ -8,35 +9,34 @@ import { SEOHead } from '../components/seo/SEOHead';
 
 export const Experiences = () => {
   const dispatch = useDispatch<AppDispatch>();
+  const [experienceCategories, setExperienceCategories] = useState<any[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
   const { products, isLoading } = useSelector((state: RootState) => state.products);
 
   useEffect(() => {
     dispatch(fetchProducts({ type: 'EXPERIENCE' }));
   }, [dispatch]);
 
-  const experienceCategories = [
-    {
-      name: 'Culinary',
-      slug: 'culinary',
-      image: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg',
-      description: 'Savor authentic flavors and culinary traditions through immersive food experiences',
-      count: products.filter(p => p.category.toLowerCase().includes('culinary')).length
-    },
-    {
-      name: 'Heritage',
-      slug: 'heritage',
-      image: 'https://images.pexels.com/photos/2376995/pexels-photo-2376995.jpeg',
-      description: 'Discover India\'s rich cultural heritage through artisans, traditions, and crafts',
-      count: products.filter(p => p.category.toLowerCase().includes('heritage')).length
-    },
-    {
-      name: 'Adventure & Nature',
-      slug: 'adventure-nature',
-      image: 'https://images.pexels.com/photos/586687/pexels-photo-586687.jpeg',
-      description: 'Thrilling adventures and natural wonders for the adventurous spirit',
-      count: products.filter(p => p.category.toLowerCase().includes('adventure') || p.category.toLowerCase().includes('nature')).length
-    }
-  ];
+  // Fetch experience categories
+  useEffect(() => {
+    const fetchCategories = async () => {
+      setCategoriesLoading(true);
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/experience-categories`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          setExperienceCategories(data);
+        }
+      } catch (error) {
+        console.error('Error fetching experience categories:', error);
+      } finally {
+        setCategoriesLoading(false);
+      }
+    };
+    
+    fetchCategories();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -74,7 +74,23 @@ export const Experiences = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
-            {experienceCategories.map((category) => (
+            {categoriesLoading ? (
+              // Skeleton loading
+              [...Array(3)].map((_, index) => (
+                <div key={index} className="bg-white rounded-lg shadow-lg overflow-hidden animate-pulse">
+                  <div className="h-64 bg-gray-300"></div>
+                  <div className="p-6">
+                    <div className="h-6 bg-gray-300 rounded w-3/4 mb-3"></div>
+                    <div className="h-4 bg-gray-300 rounded w-1/2"></div>
+                  </div>
+                </div>
+              ))
+            ) : experienceCategories.length === 0 ? (
+              <div className="col-span-3 text-center py-12">
+                <p className="text-lg text-gray-600">No experience categories available at the moment.</p>
+              </div>
+            ) : (
+              experienceCategories.map((category) => (
               <Link
                 key={category.slug}
                 to={`/experiences/${category.slug}`}
@@ -90,11 +106,13 @@ export const Experiences = () => {
                     <div className="absolute inset-0 group-hover:bg-opacity-20 transition-opacity"></div>
                     <div className="absolute bottom-4 left-4 text-white">
                       <h3 className="text-2xl font-bold">{category.name}</h3>
-                      <p className="text-sm opacity-90">{category.count} Experiences Available</p>
+                      <p className="text-sm opacity-90">
+                        {products.filter(p => p.category.toLowerCase().includes(category.name.toLowerCase())).length} Experiences Available
+                      </p>
                     </div>
                   </div>
                   <div className="p-6">
-                    <p className="text-gray-600">{category.description}</p>
+                    <p className="text-gray-600">{category.tagline}</p>
                     <div className="mt-4 flex items-center text-[#ff914d]">
                       <span className="font-medium">Explore Experiences</span>
                       <svg className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -104,7 +122,7 @@ export const Experiences = () => {
                   </div>
                 </div>
               </Link>
-            ))}
+            )))}
           </div>
 
           {/* All Experiences */}

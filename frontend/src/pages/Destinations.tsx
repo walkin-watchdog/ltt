@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { MapPin, Clock, Star } from 'lucide-react';
@@ -8,36 +9,34 @@ import type { AppDispatch, RootState } from '@/store/store';
 export const Destinations = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { products, isLoading } = useSelector((state: RootState) => state.products);
+  const [destinations, setDestinations] = useState<any[]>([]);
+  const [destinationsLoading, setDestinationsLoading] = useState(true);
 
   useEffect(() => {
     dispatch(fetchProducts({ type: 'TOUR' }));
   }, [dispatch]);
 
-  console.log('Products:', products);
+  // Fetch destinations
+  useEffect(() => {
+    const fetchDestinations = async () => {
+      setDestinationsLoading(true);
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/destinations`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          setDestinations(data);
+        }
+      } catch (error) {
+        console.error('Error fetching destinations:', error);
+      } finally {
+        setDestinationsLoading(false);
+      }
+    };
+    
+    fetchDestinations();
+  }, []);
 
-  const destinations = [
-    {
-      name: 'Delhi',
-      slug: 'delhi',
-      image: 'https://images.pexels.com/photos/789750/pexels-photo-789750.jpeg',
-      description: 'Explore the rich heritage and vibrant culture of India\'s capital city',
-      tours: products.filter(p => p.location.toLowerCase().includes('delhi')).length
-    },
-    {
-      name: 'Jaipur',
-      slug: 'jaipur',
-      image: 'https://images.pexels.com/photos/3581368/pexels-photo-3581368.jpeg',
-      description: 'Discover the Pink City\'s majestic palaces and colorful markets',
-      tours: products.filter(p => p.location.toLowerCase().includes('jaipur')).length
-    },
-    {
-      name: 'Agra',
-      slug: 'agra',
-      image: 'https://images.pexels.com/photos/1583339/pexels-photo-1583339.jpeg',
-      description: 'Marvel at the Taj Mahal and Mughal architectural wonders',
-      tours: products.filter(p => p.location.toLowerCase().includes('agra')).length
-    }
-  ];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -68,7 +67,23 @@ export const Destinations = () => {
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
-            {destinations.map((destination) => (
+            {destinationsLoading ? (
+              // Skeleton loading for destinations
+              Array(3).fill(0).map((_, index) => (
+                <div key={index} className="bg-white rounded-lg shadow-lg overflow-hidden animate-pulse">
+                  <div className="h-64 bg-gray-300"></div>
+                  <div className="p-6">
+                    <div className="h-6 bg-gray-300 rounded w-3/4 mb-3"></div>
+                    <div className="h-4 bg-gray-300 rounded w-1/2"></div>
+                  </div>
+                </div>
+              ))
+            ) : destinations.length === 0 ? (
+              <div className="col-span-3 text-center">
+                <p className="text-gray-600">No destinations available at the moment.</p>
+              </div>
+            ) : (
+              destinations.map((destination) => (
               <Link
                 key={destination.slug}
                 to={`/destinations/${destination.slug}`}
@@ -84,7 +99,7 @@ export const Destinations = () => {
                     <div className="absolute inset-0 group-hover:bg-opacity-20 transition-opacity"></div>
                     <div className="absolute bottom-4 left-4 text-white">
                       <h3 className="text-2xl font-bold">{destination.name}</h3>
-                      <p className="text-sm opacity-90">{destination.tours} Tours Available</p>
+                      <p className="text-sm opacity-90">{destination.tours} {products.filter(p => p.location.toLowerCase().includes(destination.name.toLowerCase())).length} Tours Available</p>
                     </div>
                   </div>
                   <div className="p-6">
@@ -98,7 +113,7 @@ export const Destinations = () => {
                   </div>
                 </div>
               </Link>
-            ))}
+            )))}
           </div>
 
           {/* All Tours */}
@@ -166,7 +181,7 @@ export const Destinations = () => {
                         </div>
                         <Link
                           to={`/product/${product.id}`}
-                          className="bg-[#104c57] text-white px-4 py-2 rounded-lg hover:bg-[#0d3d47] transition-colors"
+                          className="text-[#ff914d] font-medium hover:underline"
                         >
                           View Details
                         </Link>

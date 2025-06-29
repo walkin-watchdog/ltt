@@ -23,6 +23,8 @@ import uploadRoutes from './routes/uploads';
 import searchRoutes from './routes/search';
 import abandonedCartRoutes from './routes/abandonedCart';
 import { createAdmin } from './create-admin';
+import destinationRoutes from './routes/destinations';
+import experienceCategoryRoutes from './routes/experienceCategories';
 import reviewsRoutes from './routes/reviews';
 import paypalPaymentRoutes from './routes/paypalPayments';
 
@@ -85,6 +87,8 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/uploads', uploadRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/abandoned-carts', abandonedCartRoutes);
+app.use('/api/destinations', destinationRoutes);
+app.use('/api/experience-categories', experienceCategoryRoutes);
 app.use('/api/reviews', reviewsRoutes);
 app.use('/api/payments/paypal', paypalPaymentRoutes);
 

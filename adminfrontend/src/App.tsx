@@ -12,6 +12,8 @@ import { ProductPreview } from './pages/ProductPreview';
 import { AbandonedCarts } from './pages/AbandonedCarts';
 import { Availability } from './pages/Availability';
 import { Bookings } from './pages/Bookings';
+import { DestinationsAdmin } from './pages/DestinationsAdmin';
+import { ExperienceCategoriesAdmin } from './pages/ExperienceCategoriesAdmin';
 import { Requests } from './pages/Requests';
 import { ToasterProvider } from './components/ui/toaster';
 
@@ -77,6 +79,20 @@ function App() {
                   <ProtectedRoute>
                     <Layout>
                       <Requests />
+                    </Layout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/destinations-admin" element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <DestinationsAdmin />
+                    </Layout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/experience-categories" element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <ExperienceCategoriesAdmin />
                     </Layout>
                   </ProtectedRoute>
                 } />

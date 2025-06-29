@@ -59,6 +59,8 @@ model Product {
   isActive    Boolean @default(true)
   availabilityStartDate DateTime?
   availabilityEndDate   DateTime?
+  destinationId String?
+  experienceCategoryId String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -68,6 +70,8 @@ model Product {
   reviews       Review[]
   abandonedCarts AbandonedCart[]
   blockedDates  BlockedDate[]
+  destination   Destination? @relation(fields: [destinationId], references: [id])
+  experienceCategory ExperienceCategory? @relation(fields: [experienceCategoryId], references: [id])
 
   @@map("products")
 }
@@ -353,4 +357,38 @@ enum RequestStatus {
   PROCESSING
   COMPLETED
   CANCELLED
+}
+
+model Destination {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  tagline     String
+  description String
+  image       String
+  bannerImage String
+  highlights  String[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  products    Product[]
+  
+  @@map("destinations")
+}
+
+model ExperienceCategory {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  tagline     String
+  description String
+  image       String
+  bannerImage String
+  highlights  String[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  products    Product[]
+  
+  @@map("experience_categories")
 }
