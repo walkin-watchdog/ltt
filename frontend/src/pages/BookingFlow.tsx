@@ -361,9 +361,6 @@ export const BookingFlow = () => {
                           <p className="font-medium text-gray-900">{formData.selectedPackage.name}</p>
                           <p className="text-sm text-gray-600">{formData.selectedPackage.description}</p>
                         </div>
-                        <span className="font-bold text-[#ff914d]">
-                          ₹{formData.selectedPackage.price.toLocaleString()}
-                        </span>
                       </div>
                     </div>
                   </div>

@@ -7,7 +7,6 @@ import { SchedulePriceTab } from '../components/products/SchedulePriceTab';
 import { BookingDetailsTab } from '../components/products/BookingDetailsTab';
 import { SpecialOffersTab } from '../components/products/SpecialOffersTab';
 import { AvailabilityTab } from '../components/products/AvailabilityTab';
-
 import { Save, ArrowLeft, Eye } from 'lucide-react';
 import type { ProductFormData } from '@/types.ts';
 
@@ -81,7 +80,6 @@ export const ProductForm = () => {
           date:   b.date.split('T')[0],
           reason: b.reason
         }));
-
         setFormData({
           ...product,
           availabilityStartDate: startDate,
@@ -115,6 +113,7 @@ export const ProductForm = () => {
       setIsSaving(false);
       return;
     }
+    console.log('Form Data:', formData);
 
     if (!formData.cancellationPolicy) {
       toast({ message: "Cancellation policy is required in the Booking Details tab", type: "error" });

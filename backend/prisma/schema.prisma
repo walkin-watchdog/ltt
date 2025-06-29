@@ -86,25 +86,71 @@ model Itinerary {
   @@map("itineraries")
 }
 
+// Fixed Prisma Schema
 model Package {
   id          String @id @default(cuid())
   productId   String
   name        String
   description String
-  price       Float
-  childPrice  Float?
   currency    String @default("INR")
   inclusions  String[]
-  timeSlots   String[]
   maxPeople   Int
   isActive    Boolean @default(true)
+  startDate   DateTime @default(now())
+  endDate     DateTime?
   
   availabilities Availability[] @relation("PackageAvailability")
   product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
   bookings  Booking[]
   slots     PackageSlot[]
 
+
   @@map("packages")
+}
+
+model PackageSlot {
+  id        String   @id @default(cuid())
+  packageId String
+  Time      String[]
+  available Int      @default(0)
+  booked    Int      @default(0)
+  
+  package   Package  @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  bookings  Booking[]
+  adultTiers SlotAdultTier[]  // Separate model for slot-specific tiers
+  childTiers SlotChildTier[]  // Separate model for slot-specific tiers
+  
+  @@map("package_slots")
+  @@index([packageId])
+}
+
+// New models for slot-specific pricing
+model SlotAdultTier {
+  id     String @id @default(cuid())
+  slotId String
+  min    Int
+  max    Int
+  price  Float
+  currency String
+  isActive Boolean @default(true)
+  
+  slot PackageSlot @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  
+  @@map("slot_adult_tiers")
+}
+
+model SlotChildTier {
+  id     String @id @default(cuid())
+  slotId String
+  min    Int
+  max    Int
+  price  Float
+  currency String
+  isActive Boolean @default(true)
+  
+  slot PackageSlot @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  
+  @@map("slot_child_tiers")
 }
 
 model Availability {
@@ -122,6 +168,7 @@ model Availability {
 
   @@map("availabilities")
 }
+
 
 model Booking {
   id            String        @id @default(cuid())
@@ -151,21 +198,7 @@ model Booking {
   @@map("bookings")
 }
 
-model PackageSlot {
-  id        String   @id @default(cuid())
-  packageId String
-  date      DateTime
-  startTime DateTime
-  endTime   DateTime
-  available Int      @default(0)
-  booked    Int      @default(0)
 
-  package   Package  @relation(fields: [packageId], references: [id], onDelete: Cascade)
-  bookings  Booking[]
-  
-  @@map("package_slots")
-  @@index([packageId, date])
-}
 
 model Payment {
   id              String        @id @default(cuid())

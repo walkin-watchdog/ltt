@@ -5,7 +5,6 @@ import { authenticate, authorize } from '../middleware/auth';
 
 const router = express.Router();
 
-
 const productSchema = z.object({
   title: z.string().min(1),
   productCode: z.string().min(1),
@@ -22,23 +21,37 @@ const productSchema = z.object({
   exclusions: z.array(z.string()),
   itinerary: z.array(
     z.object({
-      day:         z.number().int().positive(),
-      title:       z.string().min(1),
+      day: z.number().int().positive(),
+      title: z.string().min(1),
       description: z.string().min(1),
-      activities:  z.array(z.string()).default([]),
-      images:      z.array(z.string()).default([])
+      activities: z.array(z.string()).default([]),
+      images: z.array(z.string()).default([])
     })
   ).optional(),
   packages: z.array(z.object({
     name: z.string().min(1),
     description: z.string().min(1),
-    price: z.number().min(0),
-    childPrice: z.number().min(0).optional(),
     currency: z.string().optional(),
     inclusions: z.array(z.string()),
-    timeSlots: z.array(z.string()),
     maxPeople: z.number().min(1),
-    isActive: z.boolean().optional()
+    isActive: z.boolean().optional(),
+    startDate: z.string().min(1),
+    endDate: z.string().optional().nullable(),
+    slotConfigs: z.array(z.object({
+      times: z.array(z.string()),
+      adultTiers: z.array(z.object({
+        min: z.number(),
+        max: z.number(),
+        price: z.number(),
+        currency: z.string()
+      })),
+      childTiers: z.array(z.object({
+        min: z.number(),
+        max: z.number(),
+        price: z.number(),
+        currency: z.string()
+      }))
+    })).optional()
   })).optional(),
   images: z.array(z.string()),
   tags: z.array(z.string()),
@@ -71,15 +84,16 @@ router.get('/', async (req, res, next) => {
       where,
       include: {
         packages: {
-          where:  { isActive: true },
-          select: {
-            id: true, name: true, description: true,
-            price: true, childPrice: true,
-            inclusions: true, timeSlots: true, maxPeople: true,
-            isActive: true, currency: true
+          where: { isActive: true },
+          include: {
+            slots: {
+              include: {
+                adultTiers: true,
+                childTiers: true
+              }
+            }
           }
         },
-
         reviews: {
           where: { isApproved: true },
           select: {
@@ -104,7 +118,6 @@ router.get('/', async (req, res, next) => {
       orderBy: { createdAt: 'desc' }
     });
 
-
     // Add availability status to each product
     const productsWithAvailability = products.map(product => {
       const availabilities = product.availabilities;
@@ -113,11 +126,9 @@ router.get('/', async (req, res, next) => {
       let availableDates: Date[] = [];
 
       if (availabilities.length > 0) {
-        // Check if any dates are available
         const availableDays = availabilities.filter(a => a.status === 'AVAILABLE');
         const soldOutDays = availabilities.filter(a => a.status === 'SOLD_OUT');
         const notOperating = availabilities.filter(a => a.status === 'NOT_OPERATING');
-        console.log('availabilitiesssss', availabilities);
 
         if (availableDays.length === 0 && soldOutDays.length > 0) {
           availabilityStatus = 'SOLD_OUT';
@@ -125,7 +136,6 @@ router.get('/', async (req, res, next) => {
           availabilityStatus = 'NOT_OPERATING';
         }
 
-        // Get next available date
         if (availableDays.length > 0) {
           nextAvailableDate = availableDays[0].startDate;
           availableDates = availableDays.map(a => a.startDate);
@@ -154,12 +164,14 @@ router.get('/:id', async (req, res, next) => {
       where: { id: req.params.id },
       include: {
         packages: {
-          where:  { isActive: true },
-          select: {
-            id: true, name: true, description: true,
-            price: true, childPrice: true,
-            inclusions: true, timeSlots: true, maxPeople: true,
-            isActive: true, currency: true
+          where: { isActive: true },
+          include: {
+            slots: {
+              include: {
+                adultTiers: true,
+                childTiers: true
+              }
+            }
           }
         },
         reviews: {
@@ -194,12 +206,11 @@ router.get('/:id', async (req, res, next) => {
     let availabilityStatus = 'AVAILABLE';
     let nextAvailableDate = null;
     let availableDates: Date[] = [];
-    console.log('availabilities', availabilities);
+
     if (availabilities.length > 0) {
       const availableDays = availabilities.filter(a => a.status === 'AVAILABLE');
       const soldOutDays = availabilities.filter(a => a.status === 'SOLD_OUT');
       const notOperating = availabilities.filter(a => a.status === 'NOT_OPERATING');
-      console.log('availabilities', availabilities);
 
       if (availableDays.length === 0 && soldOutDays.length > 0) {
         availabilityStatus = 'SOLD_OUT';
@@ -229,51 +240,111 @@ router.get('/:id', async (req, res, next) => {
 // Create product (Admin/Editor only)
 router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, next) => {
   try {
-    const data  = productSchema.parse(req.body);
+    const data = productSchema.parse(req.body);
     const { blockedDates = [], itinerary = [], packages = [], ...rest } = data;
 
     const slug = rest.title.toLowerCase().replace(/\s+/g, '-')
                      .replace(/[^a-z0-9-]/g, '');
 
-    const product = await prisma.product.create({
-      data: {
-        ...rest,
-        slug,
-        ...(blockedDates.length && {
-          blockedDates: {
-            create: blockedDates.map(b => ({
-              date:     new Date(b.date),
-              reason:   b.reason,
-              isActive: false
-            }))
-          }
-        }),
-        ...(itinerary.length && {
-          itineraries: {
-            create: itinerary
-          }
-        }),
-        ...(packages.length > 0 && {
-          packages: {
-            create: packages.map(pkg => ({
-              name:        pkg.name,
+    // Use transaction to ensure data consistency
+    const product = await prisma.$transaction(async (tx) => {
+      // Create the product first
+      const createdProduct = await tx.product.create({
+        data: {
+          ...rest,
+          slug,
+          ...(blockedDates.length && {
+            blockedDates: {
+              create: blockedDates.map(b => ({
+                date: new Date(b.date),
+                reason: b.reason,
+                isActive: false
+              }))
+            }
+          }),
+          ...(itinerary.length && {
+            itineraries: {
+              create: itinerary
+            }
+          })
+        }
+      });
+
+      // Create packages separately if they exist
+      if (packages.length > 0) {
+        for (const pkg of packages) {
+          const createdPackage = await tx.package.create({
+            data: {
+              productId: createdProduct.id,
+              name: pkg.name,
               description: pkg.description,
-              price:       pkg.price,
-              childPrice:  pkg.childPrice,
-              currency:    pkg.currency,
-              inclusions:  pkg.inclusions,
-              timeSlots:   pkg.timeSlots,
-              maxPeople:   pkg.maxPeople,
-              isActive:    pkg.isActive ?? true
-            }))
+              currency: pkg.currency || 'INR',
+              inclusions: pkg.inclusions,
+              maxPeople: pkg.maxPeople,
+              isActive: pkg.isActive ?? true,
+              startDate: new Date(pkg.startDate),
+              endDate: pkg.endDate ? new Date(pkg.endDate) : null
+            }
+          });
+
+          // Create slots for this package
+          if (pkg.slotConfigs && pkg.slotConfigs.length > 0) {
+            for (const slotConfig of pkg.slotConfigs) {
+              const createdSlot = await tx.packageSlot.create({
+                data: {
+                  packageId: createdPackage.id,
+                  Time: slotConfig.times
+                }
+              });
+
+              // Create adult tiers for this slot
+              if (slotConfig.adultTiers && slotConfig.adultTiers.length > 0) {
+                await tx.slotAdultTier.createMany({
+                  data: slotConfig.adultTiers.map(tier => ({
+                    slotId: createdSlot.id,
+                    min: tier.min,
+                    max: tier.max,
+                    price: tier.price,
+                    currency: tier.currency
+                  }))
+                });
+              }
+
+              // Create child tiers for this slot
+              if (slotConfig.childTiers && slotConfig.childTiers.length > 0) {
+                await tx.slotChildTier.createMany({
+                  data: slotConfig.childTiers.map(tier => ({
+                    slotId: createdSlot.id,
+                    min: tier.min,
+                    max: tier.max,
+                    price: tier.price,
+                    currency: tier.currency
+                  }))
+                });
+              }
+            }
           }
-        })
-      },
-      include: {
-        packages:     true,
-        blockedDates: true,
-        itineraries:  true
+        }
       }
+
+      // Return the product with all related data
+      return await tx.product.findUniqueOrThrow({
+        where: { id: createdProduct.id },
+        include: {
+          packages: {
+            include: {
+              slots: {
+                include: {
+                  adultTiers: true,
+                  childTiers: true
+                }
+              }
+            }
+          },
+          blockedDates: true,
+          itineraries: { orderBy: { day: 'asc' } }
+        }
+      });
     });
 
     // Auto-create availability records for the date range
@@ -290,9 +361,9 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
                 packageId: pkg.id,
                 startDate,
                 endDate,
-                status:    'AVAILABLE',
+                status: 'AVAILABLE',
                 available: pkg.maxPeople,
-                booked:    0,
+                booked: 0,
               },
             })
           )
@@ -303,9 +374,9 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
             productId: product.id,
             startDate,
             endDate,
-            status:    'AVAILABLE',
+            status: 'AVAILABLE',
             available: product.capacity,
-            booked:    0,
+            booked: 0,
           },
         });
       }
@@ -313,6 +384,7 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
 
     res.status(201).json(product);
   } catch (error) {
+    console.error('Error creating product:', error);
     next(error);
   }
 });
@@ -323,62 +395,132 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
     const data = productSchema.partial().parse(req.body);
     const { blockedDates, itinerary, packages, ...rest } = data;
 
-    let product = await prisma.product.update({
-      where: { id: req.params.id },
-      data: {
-        ...rest,
-        ...(rest.title && { slug: rest.title.toLowerCase()
-                                        .replace(/\s+/g, '-')
-                                        .replace(/[^a-z0-9-]/g, '') }),
-        ...(blockedDates && Array.isArray(blockedDates) && {
-          blockedDates: {
-            deleteMany: {},
-            create: blockedDates.map(b => ({
-              date:     new Date(b.date),
-              reason:   b.reason,
+    const product = await prisma.$transaction(async (tx) => {
+      // Update the main product data
+      let updatedProduct = await tx.product.update({
+        where: { id: req.params.id },
+        data: {
+          ...rest,
+          ...(rest.title && { 
+            slug: rest.title.toLowerCase()
+                      .replace(/\s+/g, '-')
+                      .replace(/[^a-z0-9-]/g, '') 
+          }),
+        }
+      });
+
+      // Handle blocked dates update
+      if (blockedDates && Array.isArray(blockedDates)) {
+        await tx.blockedDate.deleteMany({ where: { productId: req.params.id } });
+        if (blockedDates.length > 0) {
+          await tx.blockedDate.createMany({
+            data: blockedDates.map(b => ({
+              productId: req.params.id,
+              date: new Date(b.date),
+              reason: b.reason,
               isActive: false
             }))
-          }
-        }),
-        ...(packages && Array.isArray(packages) && {
-          packages: {
-            deleteMany: {},
-            create: packages.map(pkg => ({
-              name:        pkg.name,
-              description: pkg.description,
-              price:       pkg.price,
-              childPrice:  pkg.childPrice,
-              currency:    pkg.currency ?? 'INR',
-              inclusions:  pkg.inclusions,
-              timeSlots:   pkg.timeSlots,
-              maxPeople:   pkg.maxPeople,
-              isActive:    pkg.isActive ?? true
-            }))
-          }
-        })
-      },
-      include: { packages: true, blockedDates: true, itineraries: true }
-    });
-
-    if (itinerary) {
-      await prisma.itinerary.deleteMany({ where: { productId: product.id } });
-      if (itinerary.length) {
-        await prisma.itinerary.createMany({
-          data: itinerary.map(d => ({ ...d, productId: product.id }))
-        });
+          });
+        }
       }
-      product = await prisma.product.findUniqueOrThrow({
-        where: { id: product.id },
-        include: { packages: true, blockedDates: true, itineraries: { orderBy: { day: 'asc' } } }
+
+      // Handle itinerary update
+      if (itinerary) {
+        await tx.itinerary.deleteMany({ where: { productId: req.params.id } });
+        if (itinerary.length > 0) {
+          await tx.itinerary.createMany({
+            data: itinerary.map(d => ({ ...d, productId: req.params.id }))
+          });
+        }
+      }
+
+      // Handle packages update (most complex part)
+      if (packages && Array.isArray(packages)) {
+        // Delete existing packages and their related data (cascade should handle slots and tiers)
+        await tx.package.deleteMany({ where: { productId: req.params.id } });
+        
+        // Create new packages
+        for (const pkg of packages) {
+          const createdPackage = await tx.package.create({
+            data: {
+              productId: req.params.id,
+              name: pkg.name,
+              description: pkg.description,
+              currency: pkg.currency ?? 'INR',
+              inclusions: pkg.inclusions,
+              maxPeople: pkg.maxPeople,
+              isActive: pkg.isActive ?? true,
+              startDate: new Date(pkg.startDate),
+              endDate: pkg.endDate ? new Date(pkg.endDate) : null
+            }
+          });
+
+          // Create slots for this package
+          if (pkg.slotConfigs && pkg.slotConfigs.length > 0) {
+            for (const slotConfig of pkg.slotConfigs) {
+              const createdSlot = await tx.packageSlot.create({
+                data: {
+                  packageId: createdPackage.id,
+                  Time: slotConfig.times
+                }
+              });
+
+              // Create adult tiers for this slot
+              if (slotConfig.adultTiers && slotConfig.adultTiers.length > 0) {
+                await tx.slotAdultTier.createMany({
+                  data: slotConfig.adultTiers.map(tier => ({
+                    slotId: createdSlot.id,
+                    min: tier.min,
+                    max: tier.max,
+                    price: tier.price,
+                    currency: tier.currency
+                  }))
+                });
+              }
+
+              // Create child tiers for this slot
+              if (slotConfig.childTiers && slotConfig.childTiers.length > 0) {
+                await tx.slotChildTier.createMany({
+                  data: slotConfig.childTiers.map(tier => ({
+                    slotId: createdSlot.id,
+                    min: tier.min,
+                    max: tier.max,
+                    price: tier.price,
+                    currency: tier.currency
+                  }))
+                });
+              }
+            }
+          }
+        }
+      }
+
+      // Return updated product with all relations
+      return await tx.product.findUniqueOrThrow({
+        where: { id: req.params.id },
+        include: {
+          packages: {
+            include: {
+              slots: {
+                include: {
+                  adultTiers: true,
+                  childTiers: true
+                }
+              }
+            }
+          },
+          blockedDates: true,
+          itineraries: { orderBy: { day: 'asc' } }
+        }
       });
-    }
+    });
 
     // Update availability if date range changed
     if (data.availabilityStartDate !== undefined || data.availabilityEndDate !== undefined) {
       await prisma.availability.deleteMany({ where: { productId: product.id } });
 
       const start = data.availabilityStartDate ?? product.availabilityStartDate!;
-      const end   = data.availabilityEndDate   ?? null;
+      const end = data.availabilityEndDate ?? null;
 
       if (product.packages && product.packages.length) {
         await Promise.all(
@@ -388,10 +530,10 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
                 productId: product.id,
                 packageId: pkg.id,
                 startDate: start,
-                endDate:   end,
-                status:    'AVAILABLE',
+                endDate: end,
+                status: 'AVAILABLE',
                 available: pkg.maxPeople,
-                booked:    0,
+                booked: 0,
               },
             })
           )
@@ -401,10 +543,10 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
           data: {
             productId: product.id,
             startDate: start,
-            endDate:   end,
-            status:    'AVAILABLE',
+            endDate: end,
+            status: 'AVAILABLE',
             available: product.capacity,
-            booked:    0,
+            booked: 0,
           },
         });
       }
@@ -412,6 +554,7 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
 
     res.json(product);
   } catch (error) {
+    console.error('Error updating product:', error);
     next(error);
   }
 });
@@ -434,7 +577,19 @@ router.post('/:id/clone', authenticate, authorize(['ADMIN', 'EDITOR']), async (r
   try {
     const originalProduct = await prisma.product.findUnique({
       where: { id: req.params.id },
-      include: { packages: true, itineraries: true }
+      include: { 
+        packages: {
+          include: {
+            slots: {
+              include: {
+                adultTiers: true,
+                childTiers: true
+              }
+            }
+          }
+        }, 
+        itineraries: true 
+      }
     });
 
     if (!originalProduct) {
@@ -457,49 +612,104 @@ router.post('/:id/clone', authenticate, authorize(['ADMIN', 'EDITOR']), async (r
 
     const currentTime = new Date();
 
-    const clonedProduct = await prisma.product.create({
-      data: {
-        ...productData,
-        id: newId,
-        title: `${productData.title} (Copy)`,
-        productCode: `${productData.productCode}-COPY`,
-        slug: `${productData.slug}-copy`,
-        createdAt: currentTime,
-        updatedAt: currentTime
+    const result = await prisma.$transaction(async (tx) => {
+      // Create cloned product
+      const clonedProduct = await tx.product.create({
+        data: {
+          ...productData,
+          id: newId,
+          title: `${productData.title} (Copy)`,
+          productCode: `${productData.productCode}-COPY`,
+          slug: `${productData.slug}-copy`,
+          createdAt: currentTime,
+          updatedAt: currentTime
+        }
+      });
+
+      // Clone packages with their slots and tiers
+      for (const pkg of packages) {
+        const { slots, ...packageData } = pkg;
+        
+        const clonedPackage = await tx.package.create({
+          data: {
+            ...packageData,
+            id: undefined,
+            productId: clonedProduct.id
+          }
+        });
+
+        // Clone slots and their tiers
+        for (const slot of slots) {
+          const { adultTiers, childTiers, ...slotData } = slot;
+          
+          const clonedSlot = await tx.packageSlot.create({
+            data: {
+              ...slotData,
+              id: undefined,
+              packageId: clonedPackage.id
+            }
+          });
+
+          // Clone adult tiers
+          if (adultTiers.length > 0) {
+            await tx.slotAdultTier.createMany({
+              data: adultTiers.map(tier => ({
+                ...tier,
+                id: undefined,
+                slotId: clonedSlot.id
+              }))
+            });
+          }
+
+          // Clone child tiers
+          if (childTiers.length > 0) {
+            await tx.slotChildTier.createMany({
+              data: childTiers.map(tier => ({
+                ...tier,
+                id: undefined,
+                slotId: clonedSlot.id
+              }))
+            });
+          }
+        }
       }
-    });
 
-    // Clone packages
-    for (const pkg of packages) {
-      await prisma.package.create({
-        data: {
-          ...pkg,
-          id: undefined,
-          productId: clonedProduct.id
+      // Clone itineraries
+      for (const day of itineraries) {
+        await tx.itinerary.create({
+          data: {
+            productId: clonedProduct.id,
+            day: day.day,
+            title: day.title,
+            description: day.description,
+            activities: day.activities,
+            images: day.images
+          }
+        });
+      }
+
+      // Return the complete cloned product
+      return await tx.product.findUniqueOrThrow({
+        where: { id: clonedProduct.id },
+        include: { 
+          packages: {
+            include: {
+              slots: {
+                include: {
+                  adultTiers: true,
+                  childTiers: true
+                }
+              }
+            }
+          }, 
+          itineraries: true 
         }
       });
-    }
-
-    for (const day of itineraries) {
-      await prisma.itinerary.create({
-        data: {
-          productId:  clonedProduct.id,
-          day:        day.day,
-          title:      day.title,
-          description:day.description,
-          activities: day.activities,
-          images:     day.images
-        }
-      });
-    }
-
-    const result = await prisma.product.findUnique({
-      where: { id: clonedProduct.id },
-      include: { packages: true, itineraries: true }
     });
 
     res.status(201).json(result);
   } catch (error) {
+    console.error('Error cloning product:', error);
     next(error);
   }
 });

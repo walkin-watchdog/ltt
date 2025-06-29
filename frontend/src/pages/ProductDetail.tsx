@@ -32,6 +32,7 @@ export const ProductDetail = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedPackage, setSelectedPackage] = useState<any>(null);
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<any>(null);
   const [showAvail, setShowAvail] = useState(false);
   const [checkingAvail, setCheckingAvail] = useState(false);
   const [isDateOk, setIsDateOk] = useState<boolean | null>(null);
@@ -44,7 +45,7 @@ export const ProductDetail = () => {
   const { email } = useSelector((state: RootState) => state.auth);
   const [abandonedCart, setAbandonedCart] = useState<any>(null);
   const [showRecoveryPrompt, setShowRecoveryPrompt] = useState(false);
-
+  const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const handleBarChange = ({
     date,
     adults,
@@ -54,21 +55,28 @@ export const ProductDetail = () => {
     setAdultsCount(adults);
     setChildrenCount(children);
     setSelectedPackage(null);
+    setSelectedSlotId(null);
+    setSelectedSlot(null);
     setIsDateOk(null);
     setAvailablePkgs([]);
   };
 
-  const handlePackageSelect = (slotId: string) => {
-    const pkg = currentProduct?.packages?.find((p: any) => p.id === slotId);
+  const handlePackageSelect = (pkgId: string) => {
+    const pkg = currentProduct?.packages?.find((p: any) => p.id === pkgId);
     if (!pkg) return;
-
     setSelectedPackage(pkg);
-    setSelectedSlotId(slotId);
-
+    setSelectedSlotId(null);
+    setSelectedSlot(null);
     if (isMobile) {
       setIsDateOk(true);
       setShowAvail(false);
     }
+  };
+
+  const handleSlotSelect = (slotId: string) => {
+    setSelectedSlotId(slotId);
+    const slot = selectedPackage?.slots?.find((s: any) => s.id === slotId);
+    setSelectedSlot(slot || null);
   };
 
   const navigate = useNavigate();
@@ -88,7 +96,6 @@ export const ProductDetail = () => {
   const checkForAbandonedCart = async () => {
     try {
       const savedCart = localStorage.getItem(`abandoned_cart_${id}_${email}`);
-      
       if (savedCart) {
         const cartData = JSON.parse(savedCart);
         setAbandonedCart(cartData);
@@ -625,7 +632,7 @@ export const ProductDetail = () => {
             </div>
 
             {/* check-availability */}
-              <AvailabilityBar
+            <AvailabilityBar
               selectedDate={selectedDateStr}
               adults={adultsCount}
               children={childrenCount}
@@ -692,9 +699,6 @@ export const ProductDetail = () => {
                       )}
                     </span>
                     <div className="flex flex-col text-right">
-                      <span className="font-bold text-[#ff914d]">
-                        ₹{pkg.price.toLocaleString()} / ₹{((pkg as any).childPrice ?? Math.round(pkg.price*0.5)).toLocaleString()}
-                      </span>
                       {pkg.seatsLeft !== undefined && (
                         <span className="text-xs text-gray-600">
                           {pkg.seatsLeft} left
@@ -706,6 +710,85 @@ export const ProductDetail = () => {
               </div>
             )}
 
+            {/* Slot selection dropdown */}
+            {selectedPackage && selectedPackage.slots && selectedPackage.slots.length > 0 && (
+  <div className="mb-4">
+    <label className="block text-sm font-medium text-gray-700 mb-2">
+      Select Time Slot *
+    </label>
+    <select
+      value={selectedSlotId || ''}
+      onChange={e => handleSlotSelect(e.target.value)}
+      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+      required
+    >
+      <option value="" disabled>Select a slot</option>
+      {selectedPackage.slots.map((slot: any) => (
+        <option key={slot.id} value={slot.id}>
+          {slot.Time.join(', ')}
+        </option>
+      ))}
+    </select>
+    {/* Time selection dropdown */}
+    {selectedSlot && (
+      <div className="mt-2">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Select Time *
+        </label>
+        <select
+          value={selectedTime || ''}
+          onChange={e => setSelectedTime(e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+          required
+        >
+          <option value="" disabled>Select a time</option>
+          {selectedSlot.Time.map((time: string, idx: number) => (
+            <option key={idx} value={time}>{time}</option>
+          ))}
+        </select>
+        {/* Slot config details */}
+        <div className="flex items-center justify-between mt-2">
+          <span className="font-medium text-gray-800">
+            {selectedSlot.Time.join(', ')}
+          </span>
+          <span className="text-xs text-gray-500">
+            {selectedSlot.available - selectedSlot.booked} seats left
+          </span>
+        </div>
+        <div className="mt-1 text-sm text-gray-700">
+          <div>
+            <span className="font-semibold">Adult Tiers:</span>
+            {selectedSlot.adultTiers.length > 0 ? (
+              <ul>
+                {selectedSlot.adultTiers.map((tier: any) => (
+                  <li key={tier.id}>
+                    {tier.min}-{tier.max} @ ₹{tier.price} {tier.currency}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <span> N/A</span>
+            )}
+          </div>
+          <div>
+            <span className="font-semibold">Child Tiers:</span>
+            {selectedSlot.childTiers.length > 0 ? (
+              <ul>
+                {selectedSlot.childTiers.map((tier: any) => (
+                  <li key={tier.id}>
+                    {tier.min}-{tier.max} @ ₹{tier.price} {tier.currency}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <span> N/A</span>
+            )}
+          </div>
+        </div>
+      </div>
+    )}
+  </div>
+)}
             {selectedPackage && isDateOk && selectedSlotId && (
               <Link
                 to={
