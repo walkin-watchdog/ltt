@@ -5,6 +5,13 @@ import { authenticate, authorize } from '../middleware/auth';
 
 const router = express.Router();
 
+const ensureNumeric = (value: any): number => {
+  if (typeof value === 'string') {
+    return Number(value);
+  }
+  return value;
+};
+
 const productSchema = z.object({
   title: z.string().min(1),
   productCode: z.string().min(1),
@@ -14,8 +21,6 @@ const productSchema = z.object({
   location: z.string().min(1),
   duration: z.string().min(1),
   capacity: z.number().min(1),
-  price: z.number().min(0),
-  discountPrice: z.number().min(0).optional(),
   highlights: z.array(z.string()),
   inclusions: z.array(z.string()),
   exclusions: z.array(z.string()),
@@ -31,9 +36,12 @@ const productSchema = z.object({
   packages: z.array(z.object({
     name: z.string().min(1),
     description: z.string().min(1),
+    basePrice: z.union([z.number().min(0), z.string().transform(val => Number(val))]),
+    discountType: z.enum(['none', 'percentage', 'fixed']).optional().default('none'),
+    discountValue: z.union([z.number().min(0), z.string().transform(val => Number(val))]).optional().default(0),
     currency: z.string().optional(),
     inclusions: z.array(z.string()),
-    maxPeople: z.number().min(1),
+    maxPeople: z.union([z.number().min(1), z.string().transform(val => Number(val))]),
     isActive: z.boolean().optional(),
     startDate: z.string().min(1),
     endDate: z.string().optional().nullable(),
@@ -41,15 +49,19 @@ const productSchema = z.object({
       times: z.array(z.string()),
       days: z.array(z.string()),
       adultTiers: z.array(z.object({
-        min: z.number(),
-        max: z.number(),
-        price: z.number(),
+        min: z.union([z.number(), z.string().transform(val => Number(val))]),
+        max: z.union([z.number(), z.string().transform(val => Number(val))]),
+        price: z.union([z.number(), z.string().transform(val => Number(val))]),
+        discountType: z.enum(['none', 'percentage', 'fixed']).optional().default('none'),
+        discountValue: z.union([z.number().min(0), z.string().transform(val => Number(val))]).optional().default(0),
         currency: z.string()
       })),
       childTiers: z.array(z.object({
-        min: z.number(),
-        max: z.number(),
-        price: z.number(),
+        min: z.union([z.number(), z.string().transform(val => Number(val))]),
+        max: z.union([z.number(), z.string().transform(val => Number(val))]),
+        price: z.union([z.number(), z.string().transform(val => Number(val))]),
+        discountType: z.enum(['none', 'percentage', 'fixed']).optional().default('none'),
+        discountValue: z.union([z.number().min(0), z.string().transform(val => Number(val))]).optional().default(0),
         currency: z.string()
       }))
     })).optional()
@@ -73,13 +85,16 @@ const productSchema = z.object({
 // Get all products (public)
 router.get('/', async (req, res, next) => {
   try {
-    const { type, category, location, limit, offset } = req.query;
+    const { type, category, location, limit, offset, minPrice, maxPrice } = req.query;
 
     const where: any = {};
 
     if (type) where.type = type;
     if (category) where.category = category;
     if (location) where.location = location;
+    
+    // If price filtering is needed, we need to join with packages
+    const priceFilter = minPrice || maxPrice;
 
     const products = await prisma.product.findMany({
       where,
@@ -120,15 +135,43 @@ router.get('/', async (req, res, next) => {
     });
 
     // Add availability status to each product
-    const productsWithAvailability = products.map(product => {
+    let productsWithAvailability = products.map(product => {
       const availabilities = product.availabilities;
-      let availabilityStatus = 'AVAILABLE';
+      let availabilityStatus = 'AVAILABLE'; 
       let nextAvailableDate = null;
       let availableDates: Date[] = [];
+      
+      // Find the cheapest package price
+      let lowestPrice: number | null = null;
+      let lowestDiscountedPrice: number | null = null;
+      
+      if (product.packages && product.packages.length > 0) {
+        for (const pkg of product.packages) {
+          // Use basePrice as the main price reference
+          const basePrice = pkg.basePrice;
+          
+          // Calculate discounted price if applicable
+          let discountedPrice = basePrice;
+          if (pkg.discountType === 'percentage' && pkg.discountValue) {
+            discountedPrice = basePrice - (basePrice * pkg.discountValue / 100);
+          } else if (pkg.discountType === 'fixed' && pkg.discountValue) {
+            discountedPrice = basePrice - pkg.discountValue;
+          }
+          
+          // Track lowest prices
+          if (lowestPrice === null || basePrice < lowestPrice) {
+            lowestPrice = basePrice;
+          }
+          
+          if (pkg.discountType !== 'none' && (lowestDiscountedPrice === null || discountedPrice < lowestDiscountedPrice)) {
+            lowestDiscountedPrice = discountedPrice;
+          }
+        }
+      }
 
       if (availabilities.length > 0) {
         const availableDays = availabilities.filter(a => a.status === 'AVAILABLE');
-        const soldOutDays = availabilities.filter(a => a.status === 'SOLD_OUT');
+        const soldOutDays = availabilities.filter(a => a.status === 'SOLD_OUT' || a.booked >= (a.product?.capacity || 0));
         const notOperating = availabilities.filter(a => a.status === 'NOT_OPERATING');
 
         if (availableDays.length === 0 && soldOutDays.length > 0) {
@@ -147,9 +190,23 @@ router.get('/', async (req, res, next) => {
         ...product,
         availabilityStatus,
         nextAvailableDate,
-        availableDates
+        availableDates,
+        lowestPackagePrice: lowestPrice,
+        lowestDiscountedPackagePrice: lowestDiscountedPrice !== lowestPrice ? lowestDiscountedPrice : null
       };
     });
+    
+    // Apply price filtering if needed
+    if (priceFilter) {
+      productsWithAvailability = productsWithAvailability.filter(product => {
+        const price = product.lowestDiscountedPackagePrice || product.lowestPackagePrice;
+        if (!price) return true;
+        
+        if (minPrice && price < parseFloat(minPrice as string)) return false;
+        if (maxPrice && price > parseFloat(maxPrice as string)) return false;
+        return true;
+      });
+    }
 
     res.json(productsWithAvailability);
   } catch (error) {
@@ -203,14 +260,35 @@ router.get('/:id', async (req, res, next) => {
     }
 
     // Add availability status
-    const availabilities = product.availabilities;
+    const availabilities = product.availabilities || [];
     let availabilityStatus = 'AVAILABLE';
-    let nextAvailableDate = null;
+    let nextAvailableDate = null; 
     let availableDates: Date[] = [];
+    
+    // Calculate package prices and discounts
+    if (product.packages && product.packages.length > 0) {
+      for (const pkg of product.packages) {
+        // Use basePrice as the main price reference
+        const basePrice = pkg.basePrice;
+        
+        // Calculate discounted price if applicable
+        let effectivePrice = basePrice;
+        if (pkg.discountType === 'percentage' && pkg.discountValue) {
+          effectivePrice = basePrice - (basePrice * pkg.discountValue / 100);
+        } else if (pkg.discountType === 'fixed' && pkg.discountValue) {
+          effectivePrice = basePrice - pkg.discountValue;
+        }
+        
+        // Add these calculated fields to each package
+        pkg.effectivePrice = effectivePrice;
+        pkg.discountPercentage = pkg.discountType === 'percentage' ? pkg.discountValue : 
+          pkg.discountType === 'fixed' && basePrice > 0 ? (pkg.discountValue / basePrice) * 100 : 0;
+      }
+    }
 
     if (availabilities.length > 0) {
       const availableDays = availabilities.filter(a => a.status === 'AVAILABLE');
-      const soldOutDays = availabilities.filter(a => a.status === 'SOLD_OUT');
+      const soldOutDays = availabilities.filter(a => a.status === 'SOLD_OUT' || a.booked >= (product.capacity || 0));
       const notOperating = availabilities.filter(a => a.status === 'NOT_OPERATING');
 
       if (availableDays.length === 0 && soldOutDays.length > 0) {
@@ -279,6 +357,7 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
               productId: createdProduct.id,
               name: pkg.name,
               description: pkg.description,
+              basePrice: pkg.basePrice,
               currency: pkg.currency || 'INR',
               inclusions: pkg.inclusions,
               maxPeople: pkg.maxPeople,
@@ -394,7 +473,9 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
 // Update product (Admin/Editor only)
 router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, next) => {
   try {
-    const data = productSchema.partial().parse(req.body);
+    // Parse the request body with the schema that handles string-to-number conversion
+    let data = productSchema.partial().parse(req.body);
+    
     const { blockedDates, itinerary, packages, ...rest } = data;
 
     const product = await prisma.$transaction(async (tx) => {
@@ -448,6 +529,7 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
               productId: req.params.id,
               name: pkg.name,
               description: pkg.description,
+              basePrice: pkg.basePrice,
               currency: pkg.currency ?? 'INR',
               inclusions: pkg.inclusions,
               maxPeople: pkg.maxPeople,

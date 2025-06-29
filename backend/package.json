@@ -10,6 +10,7 @@
     "dev": "tsx watch src/index.ts",
     "dev:worker": "tsx watch src/worker.ts",
     "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
     "db": "sudo docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=postgres postgres && npx prisma migrate dev"

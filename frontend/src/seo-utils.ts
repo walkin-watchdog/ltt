@@ -13,6 +13,24 @@ export const getCanonicalUrl = (path: string): string => {
 
 // Generate JSON-LD schema for different content types
 export const generateProductSchema = (product: any) => {
+  // Find lowest package price if available
+  const cheapestPackage = product.packages && product.packages.length > 0 ? 
+    product.packages.reduce((cheapest: any, pkg: any) => {
+      const currentPrice = pkg.basePrice;
+      const effectivePrice = pkg.discountType === 'percentage' ? 
+        currentPrice * (1 - pkg.discountValue / 100) :
+        pkg.discountType === 'fixed' ? 
+        currentPrice - pkg.discountValue :
+        currentPrice;
+        
+      return (!cheapest || effectivePrice < cheapest.effectivePrice) ?
+        { package: pkg, effectivePrice } : cheapest;
+    }, null) : null;
+    
+  const price = cheapestPackage ? 
+    cheapestPackage.effectivePrice : 
+    product.lowestDiscountedPackagePrice || product.lowestPackagePrice || 0;
+    
   return {
     '@context': 'https://schema.org',
     '@type': 'Product',
@@ -22,8 +40,8 @@ export const generateProductSchema = (product: any) => {
     sku: product.productCode,
     offers: {
       '@type': 'Offer',
-      price: product.discountPrice || product.price,
-      priceCurrency: 'INR',
+      price: price,
+      priceCurrency: cheapestPackage?.package?.currency || 'INR',
       availability: product.isActive 
         ? 'https://schema.org/InStock' 
         : 'https://schema.org/OutOfStock',
@@ -33,6 +51,24 @@ export const generateProductSchema = (product: any) => {
 };
 
 export const generateTourSchema = (tour: any) => {
+  // Find lowest package price if available
+  const cheapestPackage = tour.packages && tour.packages.length > 0 ? 
+    tour.packages.reduce((cheapest: any, pkg: any) => {
+      const currentPrice = pkg.basePrice;
+      const effectivePrice = pkg.discountType === 'percentage' ? 
+        currentPrice * (1 - pkg.discountValue / 100) :
+        pkg.discountType === 'fixed' ? 
+        currentPrice - pkg.discountValue :
+        currentPrice;
+        
+      return (!cheapest || effectivePrice < cheapest.effectivePrice) ?
+        { package: pkg, effectivePrice } : cheapest;
+    }, null) : null;
+    
+  const price = cheapestPackage ? 
+    cheapestPackage.effectivePrice : 
+    tour.lowestDiscountedPackagePrice || tour.lowestPackagePrice || 0;
+    
   return {
     '@context': 'https://schema.org',
     '@type': 'TouristTrip',
@@ -41,8 +77,8 @@ export const generateTourSchema = (tour: any) => {
     image: tour.images,
     offers: {
       '@type': 'Offer',
-      price: tour.discountPrice || tour.price,
-      priceCurrency: 'INR'
+      price: price,
+      priceCurrency: cheapestPackage?.package?.currency || 'INR'
     },
     provider: {
       '@type': 'TravelAgency',

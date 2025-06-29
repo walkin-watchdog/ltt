@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { 
   X, 
   Save,
@@ -218,13 +218,15 @@ export const ExperienceCategoryModal = ({ isOpen, onClose, onSelect }: Experienc
                         className="border rounded-lg p-3 cursor-pointer hover:border-[#ff914d] transition-colors"
                       >
                         <div className="flex items-center space-x-3">
-                          {category.image && (
-                            <img
-                              src={category.image}
-                              alt={category.name}
-                              className="h-12 w-12 object-cover rounded"
-                            />
-                          )}
+                          <div className="h-12 w-12 rounded bg-gray-100 flex-shrink-0 overflow-hidden">
+                            {category.image && (
+                              <img
+                                src={category.image}
+                                alt={category.name}
+                                className="h-full w-full object-cover"
+                              />
+                            )}
+                          </div>
                           <div>
                             <h3 className="font-medium text-gray-900">{category.name}</h3>
                             <p className="text-sm text-gray-500 truncate">{category.tagline}</p>

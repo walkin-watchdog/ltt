@@ -72,51 +72,6 @@ export const SpecialOffersTab = ({ formData, updateFormData }: SpecialOffersTabP
 
   return (
     <div className="space-y-8">
-      {/* Discount Pricing */}
-      <div className="bg-gray-50 p-6 rounded-lg">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Base Discount Pricing</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Regular Price (₹)
-            </label>
-            <input
-              type="number"
-              min="0"
-              value={formData.price}
-              onChange={(e) => updateFormData({ price: parseFloat(e.target.value) })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-              disabled
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Special Offer Price (₹)
-            </label>
-            <input
-              type="number"
-              min="0"
-              value={formData.discountPrice || ''}
-              onChange={(e) => updateFormData({ discountPrice: e.target.value ? parseFloat(e.target.value) : undefined })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-              placeholder="Enter discounted price"
-            />
-          </div>
-        </div>
-        {formData.price && formData.discountPrice && (
-          <div className="mt-4 p-4 bg-green-50 rounded-lg">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-green-800">
-                Discount: {Math.round(((formData.price - formData.discountPrice) / formData.price) * 100)}% OFF
-              </span>
-              <span className="text-sm text-green-600">
-                Savings: ₹{(formData.price - formData.discountPrice).toLocaleString()}
-              </span>
-            </div>
-          </div>
-        )}
-      </div>
-
       {/* Special Offers Management */}
       <div>
         <div className="flex items-center justify-between mb-6">

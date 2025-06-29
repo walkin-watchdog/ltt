@@ -11,7 +11,7 @@ import {
   Save,
   Check
 } from 'lucide-react';
-import { useToast } from '@/components/ui/toaster';
+import { useToast } from '../components/ui/toaster';
 import axios from 'axios';
 
 interface ExperienceCategory {
@@ -272,17 +272,17 @@ export const ExperienceCategoriesAdmin = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredCategories.map(category => (
           <div key={category.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
-            <div className="relative h-48">
-              <img
-                src={category.image}
-                alt={category.name}
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute top-0 left-0 w-full h-full bg-black bg-opacity-30 flex items-end">
-                <div className="p-4 text-white">
-                  <h3 className="text-xl font-bold">{category.name}</h3>
-                  <p className="text-sm text-gray-200">{category._count?.products || 0} products</p>
-                </div>
+            <div className="relative h-48 bg-gray-100">
+              {category.image && (
+                <img
+                  src={category.image}
+                  alt={category.name}
+                  className="w-full h-full object-cover"
+                />
+              )}
+              <div className="absolute bottom-4 left-4 text-white">
+                <h3 className="text-xl font-bold">{category.name}</h3>
+                <p className="text-sm text-gray-200 bg-black bg-opacity-30 px-2 py-1 rounded">{category._count?.products || 0} products</p>
               </div>
             </div>
             

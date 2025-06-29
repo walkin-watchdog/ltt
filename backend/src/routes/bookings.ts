@@ -62,12 +62,39 @@ router.post('/', async (req, res, next) => {
   try {
     const data = bookingSchema.parse(req.body);
 
-    const slot = await prisma.packageSlot.findUnique({ where: { id: data.slotId } });
-    if (!slot) {
+    // Verify the slot exists
+    const packageSlot = await prisma.packageSlot.findUnique({ 
+      where: { id: data.slotId },
+      include: {
+        adultTiers: true,
+        childTiers: true,
+        package: true
+      } 
+    });
+    
+    if (!packageSlot) {
       return res.status(404).json({ error: 'Selected time-slot not found' });
     }
+    
+    // Count existing bookings for this slot
+    const existingBookings = await prisma.booking.findMany({
+      where: {
+        slotId: data.slotId,
+        status: { in: ['CONFIRMED', 'PENDING'] },
+      },
+      select: {
+        adults: true,
+        children: true
+      }
+    });
+    
+    // Calculate total booked seats
     const seats = data.adults + data.children;
-    if (slot.available - slot.booked < seats) {
+    const bookedSeats = existingBookings.reduce((total, booking) => 
+      total + booking.adults + booking.children, 0);
+    
+    // Check if there's enough capacity
+    if (packageSlot.package.maxPeople - bookedSeats < seats) {
       return res.status(400).json({ error: 'Not enough seats in selected slot' });
     }
     
@@ -80,25 +107,61 @@ router.post('/', async (req, res, next) => {
       return res.status(404).json({ error: 'Product not found' });
     }
 
-    let baseAdultPrice  = product.discountPrice || product.price;
-    let baseChildPrice  = baseAdultPrice * 0.5;
-    
+    // Get pricing based on package and tiers
+    let totalAmount = 0;
+
     if (data.packageId) {
-      const selectedPackage = product.packages.find(p => p.id === data.packageId);
-      if (selectedPackage) {
-        baseAdultPrice = selectedPackage.price;
-        baseChildPrice = selectedPackage.childPrice ?? (selectedPackage.price * 0.5);
+      const pkg = product.packages.find(p => p.id === data.packageId);
+      
+      if (!pkg) {
+        return res.status(400).json({ error: 'Selected package not found' });
       }
+
+      // Calculate adult price from tiers if available
+      let adultPrice = pkg.basePrice;
+      let childPrice = pkg.basePrice * 0.5; // Default child price is 50% of adult price
+      
+      // Apply package-level discount if available
+      if (pkg.discountType === 'percentage' && pkg.discountValue) {
+        adultPrice = adultPrice * (1 - (pkg.discountValue / 100));
+        childPrice = childPrice * (1 - (pkg.discountValue / 100));
+      } else if (pkg.discountType === 'fixed' && pkg.discountValue) {
+        adultPrice = Math.max(0, adultPrice - pkg.discountValue);
+        childPrice = Math.max(0, childPrice - pkg.discountValue);
+      }
+
+      // Use tier pricing if available
+      if (packageSlot.adultTiers && packageSlot.adultTiers.length > 0) {
+        // Find applicable adult tier
+        const adultTier = packageSlot.adultTiers.find(tier => 
+          data.adults >= tier.min && data.adults <= tier.max
+        );
+        
+        if (adultTier) {
+          adultPrice = adultTier.price;
+        }
+      }
+      
+      if (data.children > 0 && packageSlot.childTiers && packageSlot.childTiers.length > 0) {
+        // Find applicable child tier
+        const childTier = packageSlot.childTiers.find(tier => 
+          data.children >= tier.min && data.children <= tier.max
+        );
+        
+        if (childTier) {
+          childPrice = childTier.price;
+        }
+      }
+      
+      totalAmount = (adultPrice * data.adults) + (childPrice * data.children);
     }
 
-    // Calculate total for adults and children (assuming children are 50% price)
-    const totalAmount = (baseAdultPrice * data.adults) + (baseChildPrice * data.children);
+    // Generate booking code
+    const bookingCode = `LT${Date.now()}${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
 
-    const bookingCode = `LT${Date.now()}${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
-
+    // Create the booking
     const booking = await prisma.booking.create({
       data: {
-        slotId: data.slotId,
         ...data,
         bookingCode,
         totalAmount
@@ -118,11 +181,6 @@ router.post('/', async (req, res, next) => {
           }
         }
       }
-    });
-
-    await prisma.packageSlot.update({
-      where: { id: data.slotId },
-      data: { booked: { increment: seats } }
     });
 
     res.status(201).json(booking);

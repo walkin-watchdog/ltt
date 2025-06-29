@@ -12,6 +12,21 @@ import { AdminAvailabilityModal } from '@/components/common/AdminAvailabilityMod
 import type { Product, PackageOption } from '@/types.ts';
 import { formatDate, parse } from 'date-fns';
 
+// Helper function to calculate the effective price after discount
+const calculateEffectivePrice = (basePrice: number, discountType?: string, discountValue?: number) => {
+  if (!discountType || discountType === 'none' || !discountValue) {
+    return basePrice;
+  }
+  
+  if (discountType === 'percentage') {
+    return basePrice * (1 - (discountValue / 100));
+  } else if (discountType === 'fixed') {
+    return Math.max(0, basePrice - discountValue);
+  }
+  
+  return basePrice;
+};
+
 export const ProductPreview = () => {
   const { id }    = useParams<{ id: string }>();
   const navigate  = useNavigate();
@@ -29,6 +44,7 @@ export const ProductPreview = () => {
   const [isDateOk,      setIsDateOk]      = useState<boolean | null>(null);
   const [availablePkgs, setAvailablePkgs] = useState<PackageOption[]>([]);
   const [selectedPackage, setSelectedPackage] = useState<PackageOption | null>(null);
+  const [cheapestPackage, setCheapestPackage] = useState<PackageOption | null>(null);
   const [showAvail, setShowAvail] = useState(false);
   const isMobile = useMediaQuery('(max-width:1023px)');
 
@@ -56,6 +72,35 @@ export const ProductPreview = () => {
       }
     })();
   }, [id, token]);
+  
+  // Find the cheapest package when product data loads
+  useEffect(() => {
+    if (!product || !product.packages || product.packages.length === 0) {
+      return;
+    }
+    
+    let cheapest = product.packages[0];
+    let lowestPrice = calculateEffectivePrice(
+      cheapest.basePrice,
+      cheapest.discountType,
+      cheapest.discountValue
+    );
+    
+    for (const pkg of product.packages) {
+      const effectivePrice = calculateEffectivePrice(
+        pkg.basePrice,
+        pkg.discountType,
+        pkg.discountValue
+      );
+      
+      if (effectivePrice < lowestPrice) {
+        cheapest = pkg;
+        lowestPrice = effectivePrice;
+      }
+    }
+    
+    setCheapestPackage(cheapest);
+  }, [product]);
 
   const getAvailabilityStatus = () => {
     if (!product) {
@@ -144,40 +189,72 @@ export const ProductPreview = () => {
   const checkAvailabilityDesktop = () => {
     if (isMobile || !product) return;
 
-    const isoDate = formatDate(parse(selectedDateStr, 'MM/dd/yyyy', new Date()), 'yyyy-MM-dd');
-    setCheckingAvail(true);
+    // Format the date string properly
+    try {
+      const date = parse(selectedDateStr, 'MM/dd/yyyy', new Date());
+      const isoDate = formatDate(date, 'yyyy-MM-dd');
+      const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'long' });
+    
+      setCheckingAvail(true);
 
-    (async () => {
-      try {
-        const base = import.meta.env.VITE_API_URL || '';
-        const res  = await fetch(
-          `${base}/availability/product/${product.id}?startDate=${isoDate}&endDate=${isoDate}`
-        );
-        const json = await res.json();
+      (async () => {
+        try {
+          const base = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+          const url = `${base}/availability/product/${product.id}?startDate=${isoDate}&endDate=${isoDate}`;
+          console.log('Fetching availability from:', url);
+        
+          const res = await fetch(url);
+        
+          if (!res.ok) {
+            console.error('Error fetching availability:', res.status, await res.text());
+            setIsDateOk(false);
+            setAvailablePkgs([]);
+            setCheckingAvail(false);
+            return;
+          }
+        
+          const json = await res.json();
+          console.log('Availability response:', json);
+        
+          const slot = json.availability?.find(
+            (a: any) =>
+              new Date(a.startDate) <= new Date(isoDate) &&
+              (!a.endDate || new Date(a.endDate) >= new Date(isoDate))
+          );
 
-        const slot = json.availability?.find(
-          (a: any) =>
-            new Date(a.startDate) <= new Date(isoDate) &&
-            (!a.endDate || new Date(a.endDate) >= new Date(isoDate))
-        );
-
-
-        if (!slot || slot.status !== 'AVAILABLE') {
+          if (!slot) {
+            console.log('No slot found for the selected date');
+            setIsDateOk(false);
+            setAvailablePkgs([]);
+            setCheckingAvail(false);
+            return;
+          }
+        
+          if (slot.status !== 'AVAILABLE') {
+            console.log('Slot status is not AVAILABLE:', slot.status);
+            setIsDateOk(false);
+            setAvailablePkgs([]);
+          } else {
+            // If product is available, show all packages that have time slots for this day of week
+            setIsDateOk(true);
+            const pkgsWithTimeSlots = product.packages ?? [];
+            setAvailablePkgs(pkgsWithTimeSlots);
+            console.log('Available packages:', pkgsWithTimeSlots.length);
+          }
+        } catch (error) {
+          console.error('Error in availability check:', error);
           setIsDateOk(false);
           setAvailablePkgs([]);
-        } else {
-          const free = slot.available - slot.booked;
-          const ok   = free >= adultsCount + childrenCount;
-          setIsDateOk(ok);
-          setAvailablePkgs(ok ? product.packages ?? [] : []);
+          console.log('Error, no packages available');
         }
-      } catch {
-        setIsDateOk(false);
-        setAvailablePkgs([]);
-      } finally {
         setCheckingAvail(false);
-      }
-    })();
+      })();
+    } catch (error) {
+      console.error('Error parsing date:', error);
+      setIsDateOk(false);
+      setAvailablePkgs([]);
+      setCheckingAvail(false);
+    }
   };
 
   // Handle tab click with smooth scrolling
@@ -223,7 +300,6 @@ export const ProductPreview = () => {
   }
 
   const { bgColor, border, color, icon: StatusIcon, message } = getAvailabilityStatus();
-  const hasDisc = typeof product.discountPrice === 'number';
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -379,7 +455,11 @@ export const ProductPreview = () => {
               ))
             ) : (
               <p className="text-gray-500">
-                No itinerary details available.
+                {adultsCount + childrenCount > 1 ? 's' : ''}.
+                <br />
+                <span className="text-sm text-gray-500">
+                  Try a different date or adjust participant count.
+                </span>
               </p>
             )}
           </div>
@@ -440,14 +520,29 @@ export const ProductPreview = () => {
             {/* Price */}
             <div>
               <div className="flex items-baseline space-x-2">
-                <span className="text-3xl font-bold text-[#ff914d]">
-                  ₹
-                  {(hasDisc ? product.discountPrice! : product.price).toLocaleString()}
-                </span>
-                {hasDisc && (
-                  <span className="text-lg text-gray-500 line-through">
-                    ₹{product.price.toLocaleString()}
-                  </span>
+                {cheapestPackage ? (
+                  <>
+                    <span className="text-3xl font-bold text-[#ff914d]">
+                      {cheapestPackage.currency === 'INR' ? '₹' : 
+                      cheapestPackage.currency === 'USD' ? '$' : 
+                      cheapestPackage.currency === 'EUR' ? '€' : '£'}
+                      {calculateEffectivePrice(
+                        cheapestPackage.basePrice,
+                        cheapestPackage.discountType,
+                        cheapestPackage.discountValue
+                      ).toLocaleString()}
+                    </span>
+                    {cheapestPackage && cheapestPackage.discountType !== 'none' && cheapestPackage.discountValue && cheapestPackage.discountValue > 0 && (
+                      <span className="text-lg text-gray-500 line-through">
+                        {cheapestPackage.currency === 'INR' ? '₹' : 
+                        cheapestPackage.currency === 'USD' ? '$' : 
+                        cheapestPackage.currency === 'EUR' ? '€' : '£'}
+                        {cheapestPackage.basePrice.toLocaleString()}
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <span className="text-3xl font-bold text-[#ff914d]">Price unavailable</span>
                 )}
               </div>
               <p className="text-sm text-gray-500">per person</p>
@@ -605,6 +700,12 @@ export const ProductPreview = () => {
                     <div key={pkg.id} className="border rounded-lg p-3">
                       <div className="flex justify-between">
                         <h5 className="font-medium">{pkg.name}</h5>
+                        <div className="text-[#ff914d] font-semibold">
+                          {pkg.currency === 'INR' ? '₹' : 
+                          pkg.currency === 'USD' ? '$' : 
+                          pkg.currency === 'EUR' ? '€' : '£'}
+                          {pkg.basePrice.toLocaleString()}
+                        </div>
                       </div>
                       <p className="text-sm text-gray-600">{pkg.description}</p>
                       {pkg.maxPeople && (
@@ -621,12 +722,12 @@ export const ProductPreview = () => {
             {/* Disabled CTA */}
             <button
               disabled
-              className="w-full bg-[#ff914d]/60 text-white py-3 rounded-lg cursor-not-allowed"
+              className="w-full bg-[#ff914d]/60 text-white py-3 rounded-lg cursor-not-allowed mt-4"
             >
-              Reserve Now (Preview Mode)
+              This product is not available on the selected date.
             </button>
             <p className="text-xs text-gray-500 text-center">
-              Booking actions are disabled in admin preview mode.
+              <span className="text-gray-500 text-sm">Please try another date.</span>
             </p>
           </div>
         </aside>

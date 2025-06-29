@@ -132,7 +132,7 @@ const BarUI = ({
                 table: 'border-collapse',
                 head_row: 'text-gray-400',
                 day: 'w-10 h-10 flex items-center justify-center rounded-full hover:ring-2 hover:ring-[#104c57] hover:ring-opacity-50',
-                day_selected: 'bg-[#104c57] text-white font-semibold',
+                day_selected: 'bg-[#104c57] text-white font-semibold ring-2 ring-[#104c57] ring-opacity-50',
                 day_today: 'border border-[#104c57]',
               }}
             />
@@ -176,7 +176,7 @@ const BarUI = ({
                     table: 'border-collapse w-full',
                     head_row: 'text-gray-400',
                     day: 'w-10 h-10 items-center justify-center rounded-full hover:ring-2 hover:ring-[#104c57] hover:ring-opacity-50',
-                    day_selected: 'bg-[#104c57] text-white font-semibold',
+                    day_selected: 'bg-[#104c57] text-white font-semibold ring-2 ring-[#104c57] ring-opacity-50',
                     day_today: 'border border-[#104c57]',
                   }}
                 />

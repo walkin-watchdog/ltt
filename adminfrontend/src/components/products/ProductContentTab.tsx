@@ -54,6 +54,9 @@ export const ProductContentTab = ({ formData, updateFormData, isEdit }: ProductC
   const [isLoadingCategories, setIsLoadingCategories] = useState(false);
 
   useEffect(() => {
+    if (formData.itineraries && formData.itineraries.length > 0) {
+      updateFormData({ itinerary: formData.itineraries });
+    }
     fetchDestinations();
     fetchExperienceCategories();
   }, []);
@@ -135,7 +138,8 @@ export const ProductContentTab = ({ formData, updateFormData, isEdit }: ProductC
   const saveItineraryDay = () => {
     if (!editingDay) return;
     
-    const currentItinerary = formData.itinerary || [];
+    // First check if we need to use itinerary or itineraries
+    const currentItinerary = formData.itinerary || formData.itineraries || [];
     const existingIndex = currentItinerary.findIndex((day: ItineraryDay) => day.day === editingDay.day);
     
     let updatedItinerary;
@@ -152,7 +156,7 @@ export const ProductContentTab = ({ formData, updateFormData, isEdit }: ProductC
   };
 
   const createNewDay = () => {
-    const currentItinerary = formData.itinerary || [];
+    const currentItinerary = formData.itinerary || formData.itineraries || [];
     const nextDay = currentItinerary.length > 0 ? Math.max(...currentItinerary.map((d: ItineraryDay) => d.day)) + 1 : 1;
     
     setEditingDay({
@@ -171,7 +175,7 @@ export const ProductContentTab = ({ formData, updateFormData, isEdit }: ProductC
   };
 
   const removeDay = (dayNumber: number) => {
-    const currentItinerary = formData.itinerary || [];
+    const currentItinerary = formData.itinerary || formData.itineraries || [];
     const updatedItinerary = currentItinerary.filter((day: ItineraryDay) => day.day !== dayNumber);
     updateFormData({ itinerary: updatedItinerary });
   };

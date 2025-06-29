@@ -12,6 +12,7 @@ import { ProductPreview } from './pages/ProductPreview';
 import { AbandonedCarts } from './pages/AbandonedCarts';
 import { Availability } from './pages/Availability';
 import { Bookings } from './pages/Bookings';
+import { NewsletterAdmin } from './pages/NewsletterAdmin';
 import { DestinationsAdmin } from './pages/DestinationsAdmin';
 import { ExperienceCategoriesAdmin } from './pages/ExperienceCategoriesAdmin';
 import { Requests } from './pages/Requests';
@@ -79,6 +80,13 @@ function App() {
                   <ProtectedRoute>
                     <Layout>
                       <Requests />
+                    </Layout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/newsletter" element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <NewsletterAdmin />
                     </Layout>
                   </ProtectedRoute>
                 } />

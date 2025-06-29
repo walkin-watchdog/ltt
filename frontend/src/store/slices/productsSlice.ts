@@ -19,8 +19,6 @@ interface Product {
   location: string;
   duration: string;
   capacity: number;
-  price: number;
-  discountPrice?: number;
   highlights: string[];
   inclusions: string[];
   exclusions: string[];
@@ -33,6 +31,8 @@ interface Product {
   availabilityStatus: 'AVAILABLE' | 'SOLD_OUT' | 'NOT_OPERATING';
   nextAvailableDate?: string;
   availableDates?: string[];
+  lowestPackagePrice?: number;
+  lowestDiscountedPackagePrice?: number;
 }
 
 interface ProductsFilter {

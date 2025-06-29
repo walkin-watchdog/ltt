@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { 
-  Plus, 
+  Plus,
   Search, 
   Filter, 
   Edit, 
@@ -15,8 +15,6 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import type { Productprop } from '@/types.ts';
-
-
 
 export const Products = () => {
   const [products, setProducts] = useState<Productprop[]>([]);
@@ -236,7 +234,14 @@ export const Products = () => {
                 <span className={`w-2 h-2 rounded-full ${product.isActive ? 'bg-green-500' : 'bg-red-500'}`}></span>
               </div>
               
-              <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">{product.title}</h3>
+              <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">
+                {product.title}
+                {product.discountPrice && (
+                  <span className="ml-2 inline-block bg-[#ff914d] text-white text-xs px-2 py-0.5 rounded-full">
+                    Special Offer
+                  </span>
+                )}
+              </h3>
               
               <div className="space-y-1 mb-3">
                 <div className="flex items-center text-sm text-gray-600">
@@ -255,30 +260,16 @@ export const Products = () => {
               
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  {product.discountPrice ? (
-                    <div>
-                      <span className="text-lg font-bold text-[#ff914d]">
-                        ₹{product.discountPrice.toLocaleString()}
-                      </span>
-                      <span className="text-sm text-gray-500 line-through ml-2">
-                        ₹{product.price.toLocaleString()}
-                      </span>
-                    </div>
-                  ) : (
-                    <span className="text-lg font-bold text-gray-900">
-                      ₹{product.price.toLocaleString()}
-                    </span>
-                  )}
-                </div>
-                <div className="text-sm text-gray-500">
-                  {product._count?.bookings || 0} bookings
+                  <span className="text-sm text-gray-600">
+                    {product._count?.bookings || 0} bookings
+                  </span>
                 </div>
               </div>
               
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500">
-                  {product.category}
-                </span>
+              <div className="flex items-center justify-between mt-2">
+                <div className="flex items-center">
+                  {product._count?.bookings || 0} bookings
+                </div>
                 <div className="flex items-center space-x-2">
                   <button
                     onClick={() => navigate(`/products/${product.id}/preview`)}

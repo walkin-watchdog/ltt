@@ -31,7 +31,7 @@ import { Partnership } from './pages/Partnership';
 import { Careers } from './pages/Careers';
 import { FAQ } from './pages/FAQ';
 import { BookingFlow } from './pages/BookingFlow';
-import { debounce } from '@/lib/utils';
+import { debounce } from './lib/utils';
 
 function App() {
   const [abandonedCart, setAbandonedCart] = useState<any>(null);

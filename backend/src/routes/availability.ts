@@ -18,16 +18,11 @@ const availabilitySchema = z.object({
 // Get availability for a product
 router.get('/product/:productId', async (req, res, next) => {
   try {
-    const { startDate, endDate, packageId } = req.query;
+    const { startDate, endDate } = req.query;
 
-    let where: any = {
+    const where: any = {
       productId: req.params.productId
     };
-
-    // Filter by package if specified
-    if (packageId) {
-      where.packageId = packageId;
-    }
 
     // Handle date filtering
     if (startDate && endDate) {
@@ -59,18 +54,10 @@ router.get('/product/:productId', async (req, res, next) => {
       where,
       include: {
         product: {
-          select: {
-            id: true,
-            title: true,
-            productCode: true
-          }
+          select: { id: true, title: true, productCode: true }
         },
         package: {
-          select: {
-            id: true,
-            name: true,
-            maxPeople: true
-          }
+          select: { id: true, name: true, maxPeople: true }
         }
       },
       orderBy: { startDate: 'asc' }
@@ -79,13 +66,10 @@ router.get('/product/:productId', async (req, res, next) => {
     // Calculate availability summary
     const summary = {
       total: availability.length,
-      available: availability.filter(a => a.status === 'AVAILABLE').length,
+      available: availability.filter(a => a.status === 'AVAILABLE' && (a.booked < a.available)).length,
       soldOut: availability.filter(a => a.status === 'SOLD_OUT').length,
       notOperating: availability.filter(a => a.status === 'NOT_OPERATING').length,
       nextAvailable: availability.find(a => a.status === 'AVAILABLE')?.startDate || null,
-      totalSeatsAvailable: availability
-        .filter(a => a.status === 'AVAILABLE')
-        .reduce((sum, a) => sum + (a.available || 0), 0),
       totalSeatsBooked: availability
         .reduce((sum, a) => sum + (a.booked || 0), 0)
     };
@@ -104,18 +88,16 @@ router.get('/package/:packageId/slots', async (req, res, next) => {
   try {
     const { packageId } = req.params;
     const { date } = z.object({ date: z.string() }).parse(req.query);
-    
+
     const targetDate = new Date(date);
     const dayStart = new Date(targetDate);
     dayStart.setHours(0, 0, 0, 0);
-    const dayEnd = new Date(targetDate);
+    const dayEnd = new Date(targetDate); 
     dayEnd.setHours(23, 59, 59, 999);
-
+    
     const slots = await prisma.packageSlot.findMany({
       where: {
         packageId,
-        // Note: The schema shows Time field but not date field in PackageSlot
-        // You might need to add a date field to PackageSlot or handle this differently
       },
       include: {
         adultTiers: {
@@ -143,17 +125,16 @@ router.get('/package/:packageId/slots', async (req, res, next) => {
       },
       orderBy: { Time: 'asc' }
     });
-
-    // Calculate availability for each slot
-    const slotsWithAvailability = slots.map(slot => {
+    
+    // Get booking count for each slot
+    const slotsWithBookingInfo = slots.map(slot => {
       const totalBooked = slot.bookings.reduce((sum, booking) => 
         sum + booking.adults + booking.children, 0
       );
       
       return {
         ...slot,
-        totalBooked,
-        availableSeats: Math.max(slot.available - totalBooked, 0),
+        booked: totalBooked,
         bookings: undefined // Remove bookings from response for privacy
       };
     });
@@ -161,7 +142,7 @@ router.get('/package/:packageId/slots', async (req, res, next) => {
     res.json({ 
       date, 
       packageId,
-      slots: slotsWithAvailability 
+      slots: slotsWithBookingInfo
     });
   } catch (error) {
     next(error);
@@ -191,10 +172,7 @@ router.get('/product/:productId/package-availability', async (req, res, next) =>
       },
       include: {
         slots: {
-          include: {
-            adultTiers: { where: { isActive: true } },
-            childTiers: { where: { isActive: true } }
-          }
+          include: { adultTiers: true, childTiers: true }
         },
         availabilities: {
           where: {
@@ -212,14 +190,7 @@ router.get('/product/:productId/package-availability', async (req, res, next) =>
     // Get bookings for the date
     const bookings = await prisma.booking.groupBy({
       by: ['packageId', 'status'],
-      where: {
-        productId: req.params.productId,
-        bookingDate: {
-          gte: dayStart,
-          lte: dayEnd
-        },
-        status: { in: ['CONFIRMED', 'PENDING'] }
-      },
+      where: { productId: req.params.productId, bookingDate: { gte: dayStart, lte: dayEnd }, status: { in: ['CONFIRMED', 'PENDING'] } },
       _sum: { 
         adults: true, 
         children: true 
@@ -242,7 +213,7 @@ router.get('/product/:productId/package-availability', async (req, res, next) =>
         (!avail.endDate || avail.endDate >= targetDate)
       );
 
-      const maxCapacity = availability?.available || pkg.maxPeople;
+      const maxCapacity = pkg.maxPeople;
       const totalBooked = confirmedBookings + pendingBookings;
       const seatsLeft = Math.max(maxCapacity - totalBooked, 0);
 
@@ -256,13 +227,12 @@ router.get('/product/:productId/package-availability', async (req, res, next) =>
         startDate: pkg.startDate,
         endDate: pkg.endDate,
         slots: pkg.slots,
-        availabilityStatus: availability?.status || 'AVAILABLE',
-        maxCapacity,
+        availabilityStatus: availability?.status || (totalBooked >= pkg.maxPeople ? 'SOLD_OUT' : 'AVAILABLE'),
         confirmedBookings,
         pendingBookings,
         totalBooked,
         seatsLeft,
-        isAvailable: seatsLeft > 0 && (availability?.status === 'AVAILABLE' || !availability)
+        isAvailable: seatsLeft > 0 && (availability?.status !== 'SOLD_OUT' && availability?.status !== 'NOT_OPERATING')
       };
     });
 
@@ -602,7 +572,6 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
   try {
     const updateData = z.object({
       status: z.enum(['AVAILABLE', 'SOLD_OUT', 'NOT_OPERATING']).optional(),
-      available: z.number().min(0).optional(),
       booked: z.number().min(0).optional(),
       startDate: z.string().transform(str => new Date(str)).optional(),
       endDate: z.string().nullable().transform(str => str ? new Date(str) : null).optional(),

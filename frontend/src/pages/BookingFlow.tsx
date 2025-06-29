@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { Calendar, User, CreditCard, CheckCircle, Phone, Mail, MapPin, CalendarIcon } from 'lucide-react';
-import { useAbandonedCart } from '@/hooks/useAbandonedCart';
+import { useAbandonedCart } from '../hooks/useAbandonedCart';
 import type { RootState, AppDispatch } from '@/store/store';
 import { fetchProduct } from '../store/slices/productsSlice';
 import { createBooking } from '../store/slices/bookingSlice';
@@ -13,7 +13,8 @@ interface BookingFormData {
   selectedDate: string;
   adults: number;
   children: number;
-  selectedPackage: any;
+  selectedPackage: any | null;
+  selectedSlot: any | null;
   customerName: string;
   customerEmail: string;
   customerPhone: string;
@@ -37,6 +38,7 @@ export const BookingFlow = () => {
     adults: 2,
     children: 0,
     selectedPackage: null,
+    selectedSlot: null,
     customerName: '',
     customerEmail: '',
     customerPhone: '',
@@ -49,7 +51,7 @@ export const BookingFlow = () => {
       let date = searchParams.get('date');
       const adults = searchParams.get('adults');
       const children = searchParams.get('children');
-      const slots = searchParams.get('slots');
+      const slotId = searchParams.get('slot');
       if (date) {
         const iso = formatDate(parse(date, 'MM/dd/yyyy', new Date()), 'yyyy-MM-dd');
         if (iso) {
@@ -63,26 +65,84 @@ export const BookingFlow = () => {
         ? currentProduct.packages.find(p => p.id === packageId)
         : currentProduct.packages[0];
   
-      setFormData(prev => ({
-        ...prev,
+      // Set selected package
+      const updatedFormData = {
+        ...formData,
         selectedPackage: selectedPkg,
-        selectedDate: date || prev.selectedDate,
-        adults: adults ? parseInt(adults) : prev.adults,
-        children: children ? parseInt(children) : prev.children,
-      }));
+        selectedDate: date || formData.selectedDate,
+        adults: adults ? parseInt(adults) : formData.adults,
+        children: children ? parseInt(children) : formData.children,
+      };
+      
+      // If slot was provided, set it
+      if (slotId && selectedPkg) {
+        const slot = selectedPkg.slots?.find((s: any) => s.id === slotId);
+        if (slot) {
+          updatedFormData.selectedSlot = slot;
+        }
+      }
+      
+      setFormData(updatedFormData);
     }
   }, [currentProduct, searchParams]);
 
   const calculateTotal = useCallback(() => {
-    const basePrice = formData.selectedPackage?.price || currentProduct?.discountPrice || currentProduct?.price || 0;
-    const adultPrice = basePrice * formData.adults;
-    const childPrice = basePrice * 0.5 * formData.children;
-    return adultPrice + childPrice;
+    const basePrice = formData.selectedPackage?.basePrice || 0;
+    // Apply package discount if available
+    let adultPrice = basePrice;
+    if (formData.selectedPackage?.discountType === 'percentage' && formData.selectedPackage?.discountValue) {
+      adultPrice = basePrice * (1 - (formData.selectedPackage.discountValue / 100));
+    } else if (formData.selectedPackage?.discountType === 'fixed' && formData.selectedPackage?.discountValue) {
+      adultPrice = Math.max(0, basePrice - formData.selectedPackage.discountValue);
+    }
+    
+    // If we have a selected slot with pricing tiers, use those instead
+    let totalAdultPrice = adultPrice * formData.adults;
+    let totalChildPrice = 0;
+    
+    // Check if we have slot with tiered pricing
+    if (formData.selectedSlot) {
+      // Handle adult tier pricing
+      if (formData.selectedSlot.adultTiers && formData.selectedSlot.adultTiers.length > 0) {
+        // Find applicable tier based on number of adults
+        const applicableTier = formData.selectedSlot.adultTiers.find((tier: any) => 
+          formData.adults >= tier.min && formData.adults <= tier.max
+        );
+        
+        if (applicableTier) {
+          totalAdultPrice = applicableTier.price * formData.adults;
+        }
+      }
+      
+      // Handle child tier pricing
+      if (formData.children > 0 && formData.selectedSlot.childTiers && formData.selectedSlot.childTiers.length > 0) {
+        // Find applicable tier based on number of children
+        const applicableTier = formData.selectedSlot.childTiers.find((tier: any) => 
+          formData.children >= tier.min && formData.children <= tier.max
+        );
+        
+        if (applicableTier) {
+          totalChildPrice = applicableTier.price * formData.children;
+        } else {
+          // Default fallback if no tier matches
+          totalChildPrice = (adultPrice * 0.5) * formData.children;
+        }
+      } else if (formData.children > 0) {
+        // Default child pricing if no specific tiers exist
+        totalChildPrice = (adultPrice * 0.5) * formData.children;
+      }
+    } else {
+      // Default behavior without slots
+      totalChildPrice = (adultPrice * 0.5) * formData.children;
+    }
+    
+    return totalAdultPrice + totalChildPrice;
   },
   [
     formData.adults,
     formData.children,
     formData.selectedPackage,
+    formData.selectedSlot,
     currentProduct,
   ]);
 
@@ -100,7 +160,8 @@ export const BookingFlow = () => {
     if (currentStep === 2 && emailBlurred && formData.customerEmail && currentProduct?.id) {
       saveAbandonedCart({
         productId: productId!,
-        packageId: formData.selectedPackage?.id,
+        packageId: formData.selectedPackage?.id || null,
+        slotId: formData.selectedSlot?.id || null,
         customerName: formData.customerName,
         customerEmail: formData.customerEmail,
         customerPhone: formData.customerPhone,
@@ -121,7 +182,7 @@ export const BookingFlow = () => {
     if (currentStep === 1) {
       // Validate step 1
       if (!formData.selectedDate || formData.adults < 1) {
-        alert('Please select date and number of participants');
+        alert('Please select number of people');
         return;
       }
       setCurrentStep(2);
@@ -129,13 +190,19 @@ export const BookingFlow = () => {
       
       // Validate step 2 and create booking
       if (!formData.customerName || !formData.customerEmail || !formData.customerPhone) {
-        alert('Please fill in all required fields');
+        alert('Please fill in all required customer details');
+        return;
+      }
+      
+      if (!formData.selectedPackage || !formData.selectedSlot) {
+        alert('Please select a package and time slot');
         return;
       }
 
       const bookingData = {
         productId: productId!,
         packageId: formData.selectedPackage?.id,
+        slotId: formData.selectedSlot?.id,
         customerName: formData.customerName,
         customerEmail: formData.customerEmail,
         customerPhone: formData.customerPhone,
@@ -230,7 +297,7 @@ export const BookingFlow = () => {
   }
 
   const steps: { number: number; title: string; icon: React.ComponentType<any> }[] = [
-    { number: 1, title: 'Select Date & Participants', icon: Calendar },
+    { number: 1, title: 'Number of People', icon: Calendar },
     { number: 2, title: 'Your Information', icon: User },
     { number: 3, title: 'Review & Payment', icon: CreditCard },
     { number: 4, title: 'Confirmation', icon: CheckCircle }
@@ -294,26 +361,12 @@ export const BookingFlow = () => {
               </div>
             )}
             <div className="bg-white rounded-lg shadow-sm p-6">
-              {/* Step 1: Date & Participants */}
+              {/* Step 1: People */}
               {currentStep === 1 && (
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-6">Select Date & Participants</h2>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-6">Number of People</h2>
                   
                   <div className="space-y-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Select Date *
-                      </label>
-                      <input
-                        type="date"
-                        value={formData.selectedDate}
-                        onChange={(e) => setFormData(prev => ({ ...prev, selectedDate: e.target.value }))}
-                        min={new Date().toISOString().split('T')[0]}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                        required
-                      />
-                    </div>
-
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -366,6 +419,27 @@ export const BookingFlow = () => {
                   </div>
                 </div>
               )}
+              
+              {/* Display selected time slot if any */}
+              {formData.selectedSlot && (
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Selected Time
+                  </label>
+                  <div className="text-left p-4 rounded-lg border transition-colors border-[#ff914d] bg-orange-50">
+                    <p className="font-medium text-gray-900">
+                      {Array.isArray(formData.selectedSlot.Time) && formData.selectedSlot.Time.length > 0 
+                        ? formData.selectedSlot.Time[0] 
+                        : 'Time not specified'}
+                    </p>
+                    {formData.selectedSlot.available && (
+                      <p className="text-sm text-gray-600 mt-1">
+                        {formData.selectedSlot.available - (formData.selectedSlot.booked || 0)} seats available
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
                   </div>
                 </div>
               )}
@@ -397,7 +471,9 @@ export const BookingFlow = () => {
                       <input
                         type="email"
                         value={formData.customerEmail}
-                        onChange={(e) => setFormData(prev => ({ ...prev, customerEmail: e.target.value }))}
+                        onChange={(e) => {
+                          setFormData(prev => ({ ...prev, customerEmail: e.target.value }));
+                        }}
                         onBlur={() => setEmailBlurred(true)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
                         placeholder="Enter your email address"
@@ -450,7 +526,7 @@ export const BookingFlow = () => {
                           <span>{new Date(formData.selectedDate).toLocaleDateString('en-IN')}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span>Participants:</span>
+                          <span>People:</span>
                           <span>{formData.adults} Adults{formData.children > 0 && `, ${formData.children} Children`}</span>
                         </div>
                         {formData.selectedPackage && (
@@ -459,6 +535,14 @@ export const BookingFlow = () => {
                             <span>{formData.selectedPackage.name}</span>
                           </div>
                         )}
+                        {formData.selectedPackage && (
+                        <div className="flex justify-between">
+                          <span>Time:</span>
+                          <span>{Array.isArray(formData.selectedSlot?.Time) && formData.selectedSlot?.Time.length > 0 
+                            ? formData.selectedSlot.Time[0] 
+                            : 'Not specified'}</span>
+                        </div>
+                      )}
                       </div>
                     </div>
 
@@ -562,7 +646,7 @@ export const BookingFlow = () => {
                 <img
                   src={currentProduct.images[0] || 'https://images.pexels.com/photos/2132227/pexels-photo-2132227.jpeg'}
                   alt={currentProduct.title}
-                  className="w-full h-32 object-cover rounded-lg mb-3"
+                  className="w-full h-36 object-cover rounded-lg mb-3"
                 />
                 <h4 className="font-medium text-gray-900">{currentProduct.title}</h4>
                 <div className="flex items-center text-gray-600 text-sm mt-1">
@@ -571,29 +655,38 @@ export const BookingFlow = () => {
                 </div>
               </div>
 
-              {formData.selectedDate && (
-                <div className="space-y-3 text-sm">
-                  <div className="flex justify-between">
-                    <span>Date:</span>
-                    <span>{new Date(formData.selectedDate).toLocaleDateString('en-IN')}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Adults:</span>
-                    <span>{formData.adults} × ₹{(formData.selectedPackage?.price || currentProduct.discountPrice || currentProduct.price).toLocaleString()}</span>
-                  </div>
-                  {formData.children > 0 && (
-                    <div className="flex justify-between">
-                      <span>Children:</span>
-                      <span>{formData.children} × ₹{((formData.selectedPackage?.price || currentProduct.discountPrice || currentProduct.price) * 0.5).toLocaleString()}</span>
-                    </div>
-                  )}
-                  <hr />
-                  <div className="flex justify-between font-semibold text-lg">
-                    <span>Total:</span>
-                    <span className="text-[#ff914d]">₹{calculateTotal().toLocaleString()}</span>
-                  </div>
+              <div className="mt-4 space-y-3 text-sm border-t border-gray-100 pt-4">
+                <div className="flex justify-between">
+                  <span>Date:</span>
+                  <span>{formData.selectedDate ? new Date(formData.selectedDate).toLocaleDateString('en-IN') : 'Not selected'}</span>
                 </div>
-              )}
+                <div className="flex justify-between">
+                  <span>People:</span>
+                  <span>{formData.adults} Adults{formData.children > 0 && `, ${formData.children} Children`}</span>
+                </div>
+                
+                {formData.selectedPackage && (
+                  <div className="flex justify-between">
+                    <span>Package:</span>
+                    <span>{formData.selectedPackage.name}</span>
+                  </div>
+                )}
+                
+                {formData.selectedSlot && (
+                  <div className="flex justify-between">
+                    <span>Time:</span>
+                    <span>{Array.isArray(formData.selectedSlot.Time) && formData.selectedSlot.Time.length > 0 
+                      ? formData.selectedSlot.Time[0] 
+                      : 'Not specified'}</span>
+                  </div>
+                )}
+                
+                <hr className="my-2" />
+                <div className="flex justify-between font-semibold text-lg">
+                  <span>Total:</span>
+                  <span className="text-[#ff914d]">₹{calculateTotal().toLocaleString()}</span>
+                </div>
+              </div>
 
               <div className="mt-6 text-xs text-gray-500">
                 <p>• Free cancellation up to 24 hours before the tour</p>

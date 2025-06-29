@@ -1,853 +1,963 @@
 import { useState } from 'react';
-import { Plus, Trash2, Edit, Check, X, Clock } from 'lucide-react';
-
-interface PriceTier {
-  min: number;
-  max: number;
-  price: number;
-  currency: string;
-}
-
-interface SlotConfig {
-  times: string[];
-  days: string[]; // <-- Add this line
-  adultTiers: PriceTier[];
-  childTiers: PriceTier[];
-}
-
-// ...existing code...
-
-const defaultDayOptions = [
-  'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
-];
+import { Plus, Trash, PlusCircle, MinusCircle, Clock, Save, X } from 'lucide-react';
 
 interface Package {
   id?: string;
   name: string;
   description: string;
+  basePrice: number;
+  discountType: 'none' | 'percentage' | 'fixed';
+  discountValue: number;
   currency: string;
   inclusions: string[];
-  slotConfigs: SlotConfig[];
   maxPeople: number;
   isActive: boolean;
-  startDate: string; // required
-  endDate?: string;  // optional
+  startDate: string;
+  endDate?: string;
+  slotConfigs?: any[];
 }
 
 interface SchedulePriceTabProps {
   formData: any;
   updateFormData: (updates: any) => void;
-  isEdit: boolean;
 }
 
-const defaultTimeOptions = [
-  '7:00am', '8:00am', '9:00am', '10:00am', '11:00am', '12:00pm', '1:00pm',
-  '2:00pm', '3:00pm'
-];
-
-const defaultTier = (currency: string): PriceTier => ({
-  min: 0,
-  max: 1,
-  price: 0,
-  currency,
-});
-
-const defaultSlotConfig = (currency: string): SlotConfig => ({
-  times: [],
-  days: [], // <-- Add this line
-  adultTiers: [defaultTier(currency)],
-  childTiers: [defaultTier(currency)],
-});
-
-const SlotConfigModal = ({
-  open,
-  onClose,
-  slotConfigs,
-  setSlotConfigs,
-  currency,
-}: {
-  open: boolean;
-  onClose: () => void;
-  slotConfigs: SlotConfig[];
-  setSlotConfigs: (slots: SlotConfig[]) => void;
-  currency: string;
+export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({ 
+  formData, 
+  updateFormData,
 }) => {
-  const [localSlots, setLocalSlots] = useState<SlotConfig[]>(slotConfigs.length ? slotConfigs : [defaultSlotConfig(currency)]);
-  const [customTimes, setCustomTimes] = useState<string[]>([]);
-  const [newTime, setNewTime] = useState('');
-
-  // Combine default and custom times, unique
-  const allTimes = Array.from(new Set([...defaultTimeOptions, ...customTimes])).sort((a, b) => {
-    // Optional: sort by time if you want, else just alphabetical
-    return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
-  });
-
-  const updateSlot = (idx: number, updates: Partial<SlotConfig>) => {
-    setLocalSlots(slots =>
-      slots.map((s, i) => (i === idx ? { ...s, ...updates } : s))
-    );
-  };
-
-
-  const updateTier = (
-    slotIdx: number,
-    type: 'adultTiers' | 'childTiers',
-    tierIdx: number,
-    updates: Partial<PriceTier>
-  ) => {
-    setLocalSlots(slots =>
-      slots.map((s, i) =>
-        i === slotIdx
-          ? {
-              ...s,
-              [type]: s[type].map((t, ti) =>
-                ti === tierIdx ? { ...t, ...updates } : t
-              ),
-            }
-          : s
-      )
-    );
-  };
-
-  const addTier = (slotIdx: number, type: 'adultTiers' | 'childTiers') => {
-    setLocalSlots(slots =>
-      slots.map((s, i) =>
-        i === slotIdx
-          ? {
-              ...s,
-              [type]: [...s[type], defaultTier(currency)],
-            }
-          : s
-      )
-    );
-  };
-
-  const removeTier = (slotIdx: number, type: 'adultTiers' | 'childTiers', tierIdx: number) => {
-    setLocalSlots(slots =>
-      slots.map((s, i) =>
-        i === slotIdx
-          ? {
-              ...s,
-              [type]: s[type].filter((_, ti) => ti !== tierIdx),
-            }
-          : s
-      )
-    );
-  };
-
-  const addSlot = () => setLocalSlots(slots => [...slots, defaultSlotConfig(currency)]);
-  const removeSlot = (idx: number) => setLocalSlots(slots => slots.filter((_, i) => i !== idx));
-
-  // Toggle time selection for a slot
-// Toggle time selection for a slot
-const toggleArrayValue = (arr: string[], value: string) =>
-  arr.includes(value) ? arr.filter(v => v !== value) : [...arr, value];
-
-const selectAllDays = (idx: number) => {
-  updateSlot(idx, { days: [...defaultDayOptions] });
-};
-const deselectAllDays = (idx: number) => {
-  updateSlot(idx, { days: [] });
-};
-// Select all times for a slot
-const selectAllTimes = (idx: number) => {
-  updateSlot(idx, { times: [...allTimes] });
-};
-
-// Deselect all times for a slot
-const deselectAllTimes = (idx: number) => {
-  updateSlot(idx, { times: [] });
-};
-
-const handleAddTime = () => {
-  const time = newTime.trim();
-  if (time && !allTimes.includes(time)) {
-    setCustomTimes([...customTimes, time]);
-    setNewTime('');
-  }
-};
-
-  if (!open) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
-      <div className="bg-white rounded-lg p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-        <h3 className="text-lg font-semibold mb-4 flex items-center">
-          <Clock className="mr-2" /> Configure Time Slots & Pricing
-        </h3>
-        {localSlots.map((slot, idx) => (
-          <div key={idx} className="border rounded-lg p-4 mb-4">
-            {/* Times Multi-select */}
-            <div className="mb-2">
-              <label className="block text-xs font-medium text-gray-700 mb-1">
-                Add the times when these prices apply
-              </label>
-              <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  checked={slot.times.length === defaultTimeOptions.length}
-                  onChange={e =>
-                    e.target.checked ? selectAllTimes(idx) : deselectAllTimes(idx)
-                  }
-                  className="mr-2"
-                  id={`select-all-times-${idx}`}
-                />
-                <label htmlFor={`select-all-times-${idx}`} className="text-xs font-medium text-gray-700">
-                  Select all
-                </label>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {defaultTimeOptions.map(time => (
-                  <button
-                    key={time}
-                    type="button"
-                    className={`px-3 py-1 rounded border ${slot.times.includes(time) ? 'bg-[#ff914d] text-white' : 'bg-white text-gray-700'}`}
-                    onClick={() => updateSlot(idx, { times: toggleArrayValue(slot.times, time) })}
-                  >
-                    {time}
-                  </button>
-                ))}
-              </div>
-              
-                {/* Add custom time input */}
-                <div className="flex gap-2 mt-2">
-                <input
-                  type="text"
-                  value={newTime}
-                  onChange={e => setNewTime(e.target.value)}
-                  placeholder="Add custom time (e.g. 4:30pm)"
-                  className="px-2 py-1 border rounded"
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') handleAddTime();
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={handleAddTime}
-                  className="px-3 py-1 bg-[#ff914d] text-white rounded"
-                >
-                  Add
-                </button>
-              </div>
-            </div>
-            <div className="mb-2">
-  <label className="block text-xs font-medium text-gray-700 mb-1">
-    Select days when these prices apply
-  </label>
-  <div className="flex items-center mb-2">
-    <input
-      type="checkbox"
-      checked={slot.days.length === defaultDayOptions.length}
-      onChange={e =>
-        e.target.checked ? selectAllDays(idx) : deselectAllDays(idx)
-      }
-      className="mr-2"
-      id={`select-all-days-${idx}`}
-    />
-    <label htmlFor={`select-all-days-${idx}`} className="text-xs font-medium text-gray-700">
-      Select all
-    </label>
-  </div>
-  <div className="flex flex-wrap gap-2">
-    {defaultDayOptions.map(day => (
-      <button
-        key={day}
-        type="button"
-        className={`px-3 py-1 rounded border ${slot.days.includes(day) ? 'bg-[#ff914d] text-white' : 'bg-white text-gray-700'}`}
-        onClick={() => updateSlot(idx, { days: toggleArrayValue(slot.days, day) })}
-      >
-        {day}
-      </button>
-    ))}
-  </div>
-</div>
-            {/* Adult Tiers */}
-            <div className="mb-2">
-              <div className="font-semibold text-gray-800 mb-1">Adult Pricing Tiers</div>
-              {slot.adultTiers.map((tier, ti) => (
-                <div key={ti} className="flex gap-2 items-center mb-1">
-                  <span className="text-xs">Min</span>
-                  <input
-                    type="number"
-                    min={0}
-                    value={tier.min}
-                    onChange={e => updateTier(idx, 'adultTiers', ti, { min: parseInt(e.target.value) })}
-                    className="w-14 px-1 py-0.5 border rounded"
-                  />
-                  <span className="text-xs">- Max</span>
-                  <input
-                    type="number"
-                    min={tier.min}
-                    value={tier.max}
-                    onChange={e => updateTier(idx, 'adultTiers', ti, { max: parseInt(e.target.value) })}
-                    className="w-14 px-1 py-0.5 border rounded"
-                  />
-                  <span className="text-xs">Price</span>
-                  <input
-                    type="number"
-                    min={0}
-                    value={tier.price}
-                    onChange={e => updateTier(idx, 'adultTiers', ti, { price: parseFloat(e.target.value) })}
-                    className="w-20 px-1 py-0.5 border rounded"
-                  />
-                  <span className="text-xs">{tier.currency}</span>
-                  <button
-                    type="button"
-                    onClick={() => removeTier(idx, 'adultTiers', ti)}
-                    className="text-red-400 hover:text-red-700"
-                    title="Remove Tier"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={() => addTier(idx, 'adultTiers')}
-                className="text-xs text-[#ff914d] hover:underline mt-1"
-              >
-                + Add another tier
-              </button>
-            </div>
-            {/* Child Tiers */}
-            <div>
-              <div className="font-semibold text-gray-800 mb-1">Child Pricing Tiers</div>
-              {slot.childTiers.map((tier, ti) => (
-                <div key={ti} className="flex gap-2 items-center mb-1">
-                  <span className="text-xs">Min</span>
-                  <input
-                    type="number"
-                    min={0}
-                    value={tier.min}
-                    onChange={e => updateTier(idx, 'childTiers', ti, { min: parseInt(e.target.value) })}
-                    className="w-14 px-1 py-0.5 border rounded"
-                  />
-                  <span className="text-xs">- Max</span>
-                  <input
-                    type="number"
-                    min={tier.min}
-                    value={tier.max}
-                    onChange={e => updateTier(idx, 'childTiers', ti, { max: parseInt(e.target.value) })}
-                    className="w-14 px-1 py-0.5 border rounded"
-                  />
-                  <span className="text-xs">Price</span>
-                  <input
-                    type="number"
-                    min={0}
-                    value={tier.price}
-                    onChange={e => updateTier(idx, 'childTiers', ti, { price: parseFloat(e.target.value) })}
-                    className="w-20 px-1 py-0.5 border rounded"
-                  />
-                  <span className="text-xs">{tier.currency}</span>
-                  <button
-                    type="button"
-                    onClick={() => removeTier(idx, 'childTiers', ti)}
-                    className="text-red-400 hover:text-red-700"
-                    title="Remove Tier"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={() => addTier(idx, 'childTiers')}
-                className="text-xs text-[#ff914d] hover:underline mt-1"
-              >
-                + Add another tier
-              </button>
-            </div>
-            <button
-              type="button"
-              onClick={() => removeSlot(idx)}
-              className="mt-2 text-red-500 hover:text-red-700"
-              title="Remove Slot"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
-          </div>
-        ))}
-        <button
-          type="button"
-          onClick={addSlot}
-          className="mt-2 px-3 py-1 bg-[#ff914d] text-white rounded hover:bg-[#e8823d]"
-        >
-          + Add another slot
-        </button>
-        <div className="flex justify-end gap-2 mt-4">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 bg-gray-200 rounded"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setSlotConfigs(localSlots);
-              onClose();
-            }}
-            className="px-4 py-2 bg-[#ff914d] text-white rounded"
-          >
-            Save
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-
-export const SchedulePriceTab = ({ formData, updateFormData }: SchedulePriceTabProps) => {
-  const [packages, setPackages] = useState<Package[]>(formData.packages || []);
-  const [editingPackage, setEditingPackage] = useState<number | null>(null);
-  const [showSlotConfig, setShowSlotConfig] = useState(false);
-  const [slotConfigIndex, setSlotConfigIndex] = useState<number | null>(null);
-
-  const [newPackage, setNewPackage] = useState<Package>({
+  const [newInclusion, setNewInclusion] = useState('');
+  const [isAddingPackage, setIsAddingPackage] = useState(false);
+  const [isEditingPackage, setIsEditingPackage] = useState(false);
+  const [editingPackageIndex, setEditingPackageIndex] = useState<number | null>(null);
+  const [packageFormData, setPackageFormData] = useState<Package>({
     name: '',
     description: '',
+    basePrice: 0,
+    discountType: 'none',
+    discountValue: 0,
     currency: 'INR',
     inclusions: [],
-    slotConfigs: [],
-    maxPeople: 1,
+    maxPeople: 10,
     isActive: true,
-    startDate: '',
-    endDate: '',
+    startDate: new Date().toISOString().split('T')[0],
+    endDate: ''
   });
-
-  const currencies = [
-    { code: 'INR', symbol: '₹', name: 'Indian Rupee' },
-    { code: 'USD', symbol: '$', name: 'US Dollar' },
-    { code: 'EUR', symbol: '€', name: 'Euro' },
-    { code: 'GBP', symbol: '£', name: 'British Pound' },
+  const [isAddingSlot, setIsAddingSlot] = useState(false);
+  const [editingPackageId, setEditingPackageId] = useState<string | null>(null);
+  const [slotFormData, setSlotFormData] = useState({
+    times: [''],
+    days: [],
+    adultTiers: [{ min: 1, max: 10, price: 0, currency: 'INR' }],
+    childTiers: [{ min: 1, max: 10, price: 0, currency: 'INR' }]
+  });
+  
+  // Days of the week for slot selection
+  const daysOfWeek = [
+    'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
   ];
 
-  const addPackage = () => {
-    if (newPackage.name && newPackage.description && newPackage.startDate) {
-      const updatedPackages = [...packages, { ...newPackage }];
-      setPackages(updatedPackages);
-      updateFormData({ packages: updatedPackages });
-      setNewPackage({
-        name: '',
-        description: '',
-        currency: 'INR',
-        inclusions: [],
-        slotConfigs: [],
-        maxPeople: 1,
-        isActive: true,
-        startDate: '',
-        endDate: '',
-      });
+  const handlePackageChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    // Convert numeric fields to numbers
+    if (['basePrice', 'discountValue', 'maxPeople'].includes(name)) {
+      setPackageFormData(prev => ({
+        ...prev,
+        [name]: name === 'discountValue' && value === '' ? 0 : Number(value)
+      }));
+    } else {
+      setPackageFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
     }
   };
 
-  const updatePackage = (index: number, updates: Partial<Package>) => {
-    const updatedPackages = packages.map((pkg, i) =>
-      i === index ? { ...pkg, ...updates } : pkg
-    );
-    setPackages(updatedPackages);
-    updateFormData({ packages: updatedPackages });
+  const handlePackageToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, checked } = e.target;
+    setPackageFormData(prev => ({
+      ...prev,
+      [name]: checked
+    }));
   };
 
-  const removePackage = (index: number) => {
-    const updatedPackages = packages.filter((_, i) => i !== index);
-    setPackages(updatedPackages);
-    updateFormData({ packages: updatedPackages });
+  const handleAddInclusion = () => {
+    if (newInclusion.trim()) {
+      setPackageFormData(prev => ({
+        ...prev,
+        inclusions: [...prev.inclusions, newInclusion.trim()]
+      }));
+      setNewInclusion('');
+    }
   };
 
-  const addInclusionToPackage = (packageIndex: number, inclusion: string) => {
-    if (inclusion.trim()) {
-      const updatedPackages = packages.map((pkg, i) =>
-        i === packageIndex
-          ? { ...pkg, inclusions: [...pkg.inclusions, inclusion.trim()] }
-          : pkg
-      );
-      setPackages(updatedPackages);
+  const handleRemoveInclusion = (index: number) => {
+    setPackageFormData(prev => ({
+      ...prev,
+      inclusions: prev.inclusions.filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleAddPackage = () => {
+    setIsAddingPackage(true);
+    setPackageFormData({
+      name: '',
+      description: '',
+      basePrice: 0,
+      discountType: 'none',
+      discountValue: 0,
+      currency: 'INR',
+      inclusions: [],
+      maxPeople: 10,
+      isActive: true,
+      startDate: new Date().toISOString().split('T')[0],
+      endDate: '',
+      slotConfigs: []
+    });
+  };
+
+  const handleEditPackage = (packageData: Package, index: number) => {
+    setIsEditingPackage(true);
+    setEditingPackageIndex(index);
+    setPackageFormData({
+      ...packageData,
+      startDate: packageData.startDate ? packageData.startDate.split('T')[0] : new Date().toISOString().split('T')[0],
+      endDate: packageData.endDate ? packageData.endDate.split('T')[0] : ''
+    });
+  };
+
+  const handleSavePackage = () => {
+    const updatedPackages = formData.packages ? [...formData.packages] : [];
+    
+    const packageToSave = {
+      ...packageFormData,
+      basePrice: Number(packageFormData.basePrice),
+      discountValue: Number(packageFormData.discountValue || 0),
+      maxPeople: Number(packageFormData.maxPeople)
+    };
+    
+    if (isEditingPackage && editingPackageIndex !== null) {
+      // Update existing package
+      updatedPackages[editingPackageIndex] = {
+        ...updatedPackages[editingPackageIndex],
+        ...packageToSave
+      };
+    } else {
+      // Add new package
+      updatedPackages.push(packageToSave);
+    }
+    
+    updateFormData({ packages: updatedPackages });
+    setIsAddingPackage(false);
+    setIsEditingPackage(false);
+    setEditingPackageIndex(null);
+    setPackageFormData({
+      name: '',
+      description: '',
+      basePrice: 0,
+      discountType: 'none',
+      discountValue: 0,
+      currency: 'INR',
+      inclusions: [],
+      maxPeople: 10,
+      isActive: true,
+      startDate: new Date().toISOString().split('T')[0],
+      endDate: ''
+    });
+  };
+
+  const handleRemovePackage = (index: number) => {
+    if (window.confirm('Are you sure you want to remove this package?')) {
+      const updatedPackages = formData.packages.filter((_: any, i: number) => i !== index);
       updateFormData({ packages: updatedPackages });
     }
   };
 
-  const removeInclusionFromPackage = (packageIndex: number, inclusionIndex: number) => {
-    const updatedPackages = packages.map((pkg, i) =>
-      i === packageIndex
-        ? { ...pkg, inclusions: pkg.inclusions.filter((_, ii) => ii !== inclusionIndex) }
-        : pkg
-    );
-    setPackages(updatedPackages);
-    updateFormData({ packages: updatedPackages });
+  const handleAddSlot = (packageId: string) => {
+    setIsAddingSlot(true);
+    setEditingPackageId(packageId);
+    setSlotFormData({
+      times: [''],
+      days: [],
+      adultTiers: [{ min: 1, max: 10, price: 0, currency: 'INR' }],
+      childTiers: [{ min: 1, max: 10, price: 0, currency: 'INR' }]
+    });
   };
 
-  const PackageInclusionsInput = ({ packageIndex, inclusions }: { packageIndex: number; inclusions: string[] }) => {
-    const [inputValue, setInputValue] = useState('');
-    return (
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Inclusions</label>
-        <div className="space-y-2">
-          <div className="flex">
-            <input
-              type="text"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              placeholder="Add inclusion"
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-              onKeyPress={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  addInclusionToPackage(packageIndex, inputValue);
-                  setInputValue('');
-                }
-              }}
-            />
-            <button
-              type="button"
-              onClick={() => {
-                addInclusionToPackage(packageIndex, inputValue);
-                setInputValue('');
-              }}
-              className="px-4 py-2 bg-[#ff914d] text-white rounded-r-md hover:bg-[#e8823d] transition-colors"
-            >
-              <Plus className="h-4 w-4" />
-            </button>
-          </div>
-          <div className="space-y-1">
-            {inclusions.map((inclusion, index) => (
-              <div key={index} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-md">
-                <span className="text-sm">{inclusion}</span>
-                <button
-                  type="button"
-                  onClick={() => removeInclusionFromPackage(packageIndex, index)}
-                  className="text-red-500 hover:text-red-700"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
+  const handleSlotChange = (e: React.ChangeEvent<HTMLInputElement>, field: string, index: number) => {
+    const { value } = e.target;
+    
+    if (field === 'times') {
+      const updatedTimes = [...slotFormData.times];
+      updatedTimes[index] = value;
+      setSlotFormData(prev => ({
+        ...prev,
+        times: updatedTimes
+      }));
+    }
+  };
+
+  const handleTierChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+    tierType: 'adultTiers' | 'childTiers',
+    tierIndex: number,
+    field: 'min' | 'max' | 'price' | 'currency'
+  ) => {
+    const { value } = e.target;
+    const updatedTiers = [...slotFormData[tierType]];
+    
+    if (field === 'min' || field === 'max' || field === 'price') {
+      updatedTiers[tierIndex][field] = Number(value);
+    } else {
+      updatedTiers[tierIndex][field] = value;
+    }
+    
+    setSlotFormData(prev => ({
+      ...prev,
+      [tierType]: updatedTiers
+    }));
+  };
+
+  const handleAddTier = (tierType: 'adultTiers' | 'childTiers') => {
+    setSlotFormData(prev => ({
+      ...prev,
+      [tierType]: [...prev[tierType], { min: 1, max: 10, price: 0, currency: 'INR' }]
+    }));
+  };
+
+  const handleRemoveTier = (tierType: 'adultTiers' | 'childTiers', index: number) => {
+    setSlotFormData(prev => ({
+      ...prev,
+      [tierType]: prev[tierType].filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleAddTimeSlot = () => {
+    setSlotFormData(prev => ({
+      ...prev,
+      times: [...prev.times, '']
+    }));
+  };
+
+  const handleRemoveTimeSlot = (index: number) => {
+    setSlotFormData(prev => ({
+      ...prev,
+      times: prev.times.filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleDayToggle = (day: string) => {
+    setSlotFormData(prev => {
+      const isSelected = prev.days.includes(day);
+      return {
+        ...prev,
+        days: isSelected 
+          ? prev.days.filter(d => d !== day) 
+          : [...prev.days, day]
+      };
+    });
+  };
+
+  const handleSaveSlot = () => {
+    if (slotFormData.times.some(time => !time.trim()) || slotFormData.days.length === 0) {
+      alert('Please fill in all time slots and select at least one day');
+      return;
+    }
+    
+    const updatedPackages = formData.packages.map((pkg: any) => {
+      if (pkg.id === editingPackageId) {
+        const updatedSlotConfigs = pkg.slotConfigs ? [...pkg.slotConfigs] : [];
+        updatedSlotConfigs.push(slotFormData);
+        
+        return {
+          ...pkg,
+          slotConfigs: updatedSlotConfigs
+        };
+      }
+      return pkg;
+    });
+    
+    updateFormData({ packages: updatedPackages });
+    setIsAddingSlot(false);
+    setEditingPackageId(null);
+    setSlotFormData({
+      times: [''],
+      days: [],
+      adultTiers: [{ min: 1, max: 10, price: 0, currency: 'INR' }],
+      childTiers: [{ min: 1, max: 10, price: 0, currency: 'INR' }]
+    });
+  };
+
+  const handleRemoveSlot = (packageIndex: number, slotIndex: number) => {
+    if (window.confirm('Are you sure you want to remove this slot?')) {
+      const updatedPackages = [...formData.packages];
+      const updatedSlotConfigs = [...updatedPackages[packageIndex].slotConfigs];
+      
+      updatedSlotConfigs.splice(slotIndex, 1);
+      updatedPackages[packageIndex] = {
+        ...updatedPackages[packageIndex],
+        slotConfigs: updatedSlotConfigs
+      };
+      
+      updateFormData({ packages: updatedPackages });
+    }
+  };
+
+  // Calculate effective price after discount
+  const calculateEffectivePrice = (basePrice: number, discountType: string, discountValue: number) => {
+    if (discountType === 'percentage') {
+      return basePrice * (1 - (discountValue / 100));
+    } else if (discountType === 'fixed') {
+      return Math.max(0, basePrice - discountValue);
+    }
+    return basePrice;
   };
 
   return (
     <div className="space-y-8">
-      {/* Base Pricing */}
-      <div className="bg-gray-50 p-6 rounded-lg">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Base Product Pricing</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Base Price (₹) *
-            </label>
-            <input
-              type="number"
-              min="0"
-              value={formData.price}
-              onChange={(e) => updateFormData({ price: parseFloat(e.target.value) })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Discount Price (₹)
-            </label>
-            <input
-              type="number"
-              min="0"
-              value={formData.discountPrice || ''}
-              onChange={(e) => updateFormData({ discountPrice: e.target.value ? parseFloat(e.target.value) : undefined })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Package Management */}
-      <div>
+      {/* Packages Section */}
+      <div className="bg-white p-6 rounded-lg border border-gray-200">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold text-gray-900">Package Options*</h3>
-          <span className="text-sm text-gray-500">{packages.length} packages configured</span>
+          <h3 className="text-lg font-semibold text-gray-900">Package Options</h3>
+          <button
+            type="button"
+            onClick={handleAddPackage}
+            className="flex items-center text-[#ff914d] hover:text-[#e8823d] transition-colors"
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Add Package
+          </button>
         </div>
 
-        {/* Existing Packages */}
-        <div className="space-y-4 mb-6">
-          {packages.map((pkg, index) => (
-            <div key={index} className="bg-white border border-gray-200 rounded-lg p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h4 className="text-md font-semibold text-gray-900">{pkg.name}</h4>
-                <div className="flex items-center space-x-2">
-                  <button
-                    type="button"
-                    onClick={() => setEditingPackage(editingPackage === index ? null : index)}
-                    className="p-2 text-gray-400 hover:text-[#ff914d] transition-colors"
-                  >
-                    <Edit className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => removePackage(index)}
-                    className="p-2 text-gray-400 hover:text-red-600 transition-colors"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+        {/* Package List */}
+        {formData.packages && formData.packages.length > 0 ? (
+          <div className="space-y-4">
+            {formData.packages.map((pkg: Package, index: number) => (
+              <div key={index} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h4 className="font-semibold text-gray-900">{pkg.name}</h4>
+                    <p className="text-sm text-gray-600">{pkg.description}</p>
+                    <div className="mt-2 space-x-2">
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        {pkg.currency} {pkg.basePrice.toLocaleString()}
+                      </span>
+                      {pkg.discountType !== 'none' && pkg.discountValue > 0 && (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          {pkg.discountType === 'percentage' ? `${pkg.discountValue}% off` : `${pkg.currency} ${pkg.discountValue} off`}
+                        </span>
+                      )}
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                        Max: {pkg.maxPeople} people
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      type="button"
+                      onClick={() => handleEditPackage(pkg, index)}
+                      className="p-1 text-blue-600 hover:text-blue-800 transition-colors"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleRemovePackage(index)}
+                      className="p-1 text-red-600 hover:text-red-800 transition-colors"
+                    >
+                      <Trash className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Slot Configurations */}
+                <div className="mt-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <h5 className="text-sm font-medium text-gray-700">Time Slots</h5>
+                    <button
+                      type="button"
+                      onClick={() => handleAddSlot(pkg.id!)}
+                      className="text-xs flex items-center text-blue-600 hover:text-blue-800"
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Add Slot
+                    </button>
+                  </div>
+                  
+                  {pkg.slotConfigs && pkg.slotConfigs.length > 0 ? (
+                    <div className="space-y-2">
+                      {pkg.slotConfigs.map((slot: any, slotIndex: number) => (
+                        <div key={slotIndex} className="bg-gray-50 p-3 rounded-md flex justify-between items-center">
+                          <div>
+                            <div className="flex items-center">
+                              <Clock className="h-3 w-3 text-gray-500 mr-1" />
+                              <span className="text-sm font-medium">
+                                {slot.times.join(', ')}
+                              </span>
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              Days: {slot.days.join(', ')}
+                            </div>
+                            {slot.adultTiers && slot.adultTiers.length > 0 && (
+                              <div className="text-xs text-gray-500">
+                                Adult: {slot.adultTiers.map((tier: any) => (
+                                  `${tier.min}-${tier.max}: ${tier.currency} ${tier.price}`
+                                )).join(', ')}
+                              </div>
+                            )}
+                            {slot.childTiers && slot.childTiers.length > 0 && (
+                              <div className="text-xs text-gray-500">
+                                Child: {slot.childTiers.map((tier: any) => (
+                                  `${tier.min}-${tier.max}: ${tier.currency} ${tier.price}`
+                                )).join(', ')}
+                              </div>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveSlot(index, slotIndex)}
+                            className="text-red-600 hover:text-red-800"
+                          >
+                            <Trash className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-sm text-gray-500 italic">No time slots configured</div>
+                  )}
                 </div>
               </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8 text-gray-500">
+            No packages configured. Click "Add Package" to create a package option.
+          </div>
+        )}
+      </div>
 
-              {editingPackage === index ? (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Package Name</label>
-                      <input
-                        type="text"
-                        value={pkg.name}
-                        onChange={(e) => updatePackage(index, { name: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Max People</label>
-                      <input
-                        type="number"
-                        min="1"
-                        value={pkg.maxPeople}
-                        onChange={(e) => updatePackage(index, { maxPeople: parseInt(e.target.value) })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Currency</label>
-                      <select
-                        value={pkg.currency}
-                        onChange={(e) => updatePackage(index, { currency: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                      >
-                        {currencies.map(currency => (
-                          <option key={currency.code} value={currency.code}>
-                            {currency.symbol} {currency.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Start Date*</label>
-        <input
-          type="date"
-          value={pkg.startDate}
-          onChange={e => updatePackage(index, { startDate: e.target.value })}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md"
-          required
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">End Date (optional)</label>
-        <input
-          type="date"
-          value={pkg.endDate || ''}
-          onChange={e => updatePackage(index, { endDate: e.target.value })}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md"
-        />
-      </div>
+      {/* Add/Edit Package Modal */}
+      {(isAddingPackage || isEditingPackage) && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg max-h-[90vh] overflow-y-auto w-full max-w-2xl">
+            <div className="flex justify-between items-center border-b border-gray-200 p-4">
+              <h3 className="text-lg font-semibold text-gray-900">
+                {isEditingPackage ? 'Edit Package' : 'Add Package'}
+              </h3>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAddingPackage(false);
+                  setIsEditingPackage(false);
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              {/* Package Form */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Package Name *
+                  </label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={packageFormData.name}
+                    onChange={handlePackageChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+                    placeholder="e.g., Standard Package"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Max People *
+                  </label>
+                  <input
+                    type="number"
+                    name="maxPeople"
+                    min={1}
+                    value={packageFormData.maxPeople}
+                    onChange={handlePackageChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+                    required
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Description *
+                </label>
+                <textarea
+                  name="description"
+                  value={packageFormData.description}
+                  onChange={handlePackageChange}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+                  placeholder="Describe what's included in this package"
+                  required
+                />
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Base Price *
+                  </label>
+                  <div className="flex">
+                    <select
+                      name="currency"
+                      value={packageFormData.currency}
+                      onChange={handlePackageChange}
+                      className="px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+                    >
+                      <option value="INR">₹</option>
+                      <option value="USD">$</option>
+                      <option value="EUR">€</option>
+                      <option value="GBP">£</option>
+                    </select>
+                    <input
+                      type="number"
+                      name="basePrice"
+                      min={0}
+                      value={packageFormData.basePrice}
+                      onChange={handlePackageChange}
+                      className="w-full px-3 py-2 border-y border-r border-gray-300 rounded-r-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+                      required
+                    />
                   </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Discount Type
+                  </label>
+                  <select
+                    name="discountType"
+                    value={packageFormData.discountType}
+                    onChange={handlePackageChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+                  >
+                    <option value="none">No Discount</option>
+                    <option value="percentage">Percentage</option>
+                    <option value="fixed">Fixed Amount</option>
+                  </select>
+                </div>
+                
+                {packageFormData.discountType !== 'none' && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-                    <textarea
-                      rows={3}
-                      value={pkg.description}
-                      onChange={(e) => updatePackage(index, { description: e.target.value })}
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Discount Value
+                    </label>
+                    <input
+                      type="number"
+                      name="discountValue"
+                      min={0}
+                      max={packageFormData.discountType === 'percentage' ? 100 : undefined}
+                      value={packageFormData.discountValue}
+                      onChange={handlePackageChange}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
                     />
                   </div>
-                  <PackageInclusionsInput packageIndex={index} inclusions={pkg.inclusions} />
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Time Slots & Pricing*
-                    </label>
-                    <button
-                      type="button"
-                      className="px-4 py-2 bg-[#ff914d] text-white rounded-md hover:bg-[#e8823d] transition-colors"
-                      onClick={() => {
-                        setSlotConfigIndex(index);
-                        setShowSlotConfig(true);
-                      }}
-                    >
-                      Configure Time Slots & Pricing
-                    </button>
-                    {pkg.slotConfigs && pkg.slotConfigs.length > 0 && (
-                      <div className="mt-2 text-xs text-gray-600">
-                        {pkg.slotConfigs.length} slot(s) configured
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex justify-end">
-                    <button
-                      type="button"
-                      onClick={() => setEditingPackage(null)}
-                      className="flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
-                    >
-                      <Check className="h-4 w-4 mr-2" />
-                      Save Changes
-                    </button>
-                  </div>
-                  {/* SlotConfigModal for editing */}
-                  {showSlotConfig && slotConfigIndex === index && (
-                    <SlotConfigModal
-                      open={showSlotConfig}
-                      onClose={() => setShowSlotConfig(false)}
-                      slotConfigs={packages[index].slotConfigs}
-                      setSlotConfigs={slotConfigs => {
-                        updatePackage(index, { slotConfigs });
-                        setShowSlotConfig(false);
-                      }}
-                      currency={pkg.currency}
-                    />
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <p className="text-sm text-gray-600">{pkg.description}</p>
-                  <span className="text-sm text-gray-500">Max {pkg.maxPeople} people</span>
-                  {pkg.inclusions.length > 0 && (
-                    <div>
-                      <span className="text-sm font-medium text-gray-700">Includes: </span>
-                      <span className="text-sm text-gray-600">{pkg.inclusions.join(', ')}</span>
-                    </div>
-                  )}
-                  {pkg.slotConfigs && pkg.slotConfigs.length > 0 && (
-                    <div className="mt-2 text-xs text-gray-600">
-                      {pkg.slotConfigs.length} slot(s) configured
-                    </div>
-                  )}
+                )}
+              </div>
+              
+              {/* Effective Price Display */}
+              {packageFormData.discountType !== 'none' && packageFormData.discountValue > 0 && (
+                <div className="bg-green-50 border border-green-200 rounded-md p-3">
+                  <p className="text-sm text-green-800">
+                    <span className="font-medium">Effective Price: </span>
+                    {packageFormData.currency === 'INR' ? '₹' : 
+                     packageFormData.currency === 'USD' ? '$' : 
+                     packageFormData.currency === 'EUR' ? '€' : '£'}
+                    {calculateEffectivePrice(
+                      packageFormData.basePrice, 
+                      packageFormData.discountType, 
+                      packageFormData.discountValue
+                    ).toLocaleString()}
+                    <span className="text-gray-500 ml-2 line-through">
+                      {packageFormData.currency === 'INR' ? '₹' : 
+                       packageFormData.currency === 'USD' ? '$' : 
+                       packageFormData.currency === 'EUR' ? '€' : '£'}
+                      {packageFormData.basePrice.toLocaleString()}
+                    </span>
+                  </p>
                 </div>
               )}
-            </div>
-          ))}
-        </div>
-
-        {/* Add New Package */}
-        <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-6">
-          <h4 className="text-md font-semibold text-gray-900 mb-4">Add New Package</h4>
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Start Date *
+                  </label>
+                  <input
+                    type="date"
+                    name="startDate"
+                    value={packageFormData.startDate}
+                    onChange={handlePackageChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    End Date
+                  </label>
+                  <input
+                    type="date"
+                    name="endDate"
+                    value={packageFormData.endDate || ''}
+                    min={packageFormData.startDate}
+                    onChange={handlePackageChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Leave empty for no end date</p>
+                </div>
+              </div>
+              
+              <div>
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    name="isActive"
+                    checked={packageFormData.isActive}
+                    onChange={handlePackageToggle}
+                    className="h-4 w-4 text-[#ff914d] focus:ring-[#ff914d] border-gray-300 rounded"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">Active (available for booking)</span>
+                </label>
+              </div>
+              
+              {/* Inclusions */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Package Type*
+                  Inclusions
                 </label>
-                <input
-                  type="text"
-                  value={newPackage.name}
-                  onChange={(e) => setNewPackage({ ...newPackage, name: e.target.value })}
-                  placeholder="Enter package type"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Max People*</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={newPackage.maxPeople}
-                  onChange={(e) => setNewPackage({ ...newPackage, maxPeople: parseInt(e.target.value) })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Currency</label>
-                <select
-                  value={newPackage.currency}
-                  onChange={(e) => setNewPackage({ ...newPackage, currency: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                >
-                  {currencies.map(currency => (
-                    <option key={currency.code} value={currency.code}>
-                      {currency.symbol} {currency.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-    <label className="block text-sm font-medium text-gray-700 mb-2">Start Date*</label>
-    <input
-      type="date"
-      value={newPackage.startDate}
-      onChange={e => setNewPackage({ ...newPackage, startDate: e.target.value })}
-      className="w-full px-3 py-2 border border-gray-300 rounded-md"
-      required
-    />
-  </div>
-  <div>
-    <label className="block text-sm font-medium text-gray-700 mb-2">End Date (optional)</label>
-    <input
-      type="date"
-      value={newPackage.endDate || ''}
-      onChange={e => setNewPackage({ ...newPackage, endDate: e.target.value })}
-      className="w-full px-3 py-2 border border-gray-300 rounded-md"
-    />
-  </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Description*</label>
-              <textarea
-                rows={3}
-                value={newPackage.description}
-                onChange={(e) => setNewPackage({ ...newPackage, description: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                placeholder="Describe what's included in this package"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Time Slots & Pricing*
-              </label>
-              <button
-                type="button"
-                className="px-4 py-2 bg-[#ff914d] text-white rounded-md hover:bg-[#e8823d] transition-colors"
-                onClick={() => {
-                  setSlotConfigIndex(-1);
-                  setShowSlotConfig(true);
-                }}
-              >
-                Configure Time Slots & Pricing
-              </button>
-              {newPackage.slotConfigs && newPackage.slotConfigs.length > 0 && (
-                <div className="mt-2 text-xs text-gray-600">
-                  {newPackage.slotConfigs.length} slot(s) configured
+                <div className="flex mb-2">
+                  <input
+                    type="text"
+                    value={newInclusion}
+                    onChange={(e) => setNewInclusion(e.target.value)}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+                    placeholder="e.g., Hotel pickup, Lunch, Guide"
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddInclusion();
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddInclusion}
+                    className="px-4 py-2 bg-[#ff914d] text-white rounded-r-md hover:bg-[#e8823d] transition-colors"
+                  >
+                    <Plus className="h-5 w-5" />
+                  </button>
                 </div>
-              )}
+                {packageFormData.inclusions.length > 0 ? (
+                  <div className="space-y-2">
+                    {packageFormData.inclusions.map((inclusion, index) => (
+                      <div key={index} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-md">
+                        <span className="text-sm text-gray-700">{inclusion}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveInclusion(index)}
+                          className="text-gray-400 hover:text-red-600"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500 italic">No inclusions added</p>
+                )}
+              </div>
+              
+              {/* Save Button */}
+              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsAddingPackage(false);
+                    setIsEditingPackage(false);
+                  }}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSavePackage}
+                  className="px-4 py-2 bg-[#ff914d] text-white rounded-md hover:bg-[#e8823d] transition-colors flex items-center"
+                  disabled={!packageFormData.name || !packageFormData.description || packageFormData.basePrice <= 0}
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  {isEditingPackage ? 'Update Package' : 'Add Package'}
+                </button>
+              </div>
             </div>
-            <PackageInclusionsInput packageIndex={-1} inclusions={newPackage.inclusions} />
-            <div className="flex justify-end">
-              <button
-                type="button"
-                onClick={addPackage}
-                disabled={!newPackage.name || !newPackage.description}
-                className="flex items-center px-4 py-2 bg-[#ff914d] text-white rounded-md hover:bg-[#e8823d] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Package
-              </button>
-            </div>
-            {/* SlotConfigModal for new package */}
-            {showSlotConfig && slotConfigIndex === -1 && (
-              <SlotConfigModal
-                open={showSlotConfig}
-                onClose={() => setShowSlotConfig(false)}
-                slotConfigs={newPackage.slotConfigs}
-                setSlotConfigs={slotConfigs => {
-                  setNewPackage(np => ({ ...np, slotConfigs }));
-                  setShowSlotConfig(false);
-                }}
-                currency={newPackage.currency}
-              />
-            )}
           </div>
         </div>
-      </div>
+      )}
+
+      {/* Add/Edit Slot Modal */}
+      {isAddingSlot && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg max-h-[90vh] overflow-y-auto w-full max-w-2xl">
+            <div className="flex justify-between items-center border-b border-gray-200 p-4">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Add Time Slot
+              </h3>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAddingSlot(false);
+                  setEditingPackageId(null);
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              {/* Time Slots */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Time Slots *
+                </label>
+                <div className="space-y-3">
+                  {slotFormData.times.map((time, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={time}
+                        onChange={(e) => handleSlotChange(e, 'times', index)}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+                        placeholder="e.g., 9:00 AM - 12:00 PM"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveTimeSlot(index)}
+                        disabled={slotFormData.times.length <= 1}
+                        className="p-2 text-red-600 hover:text-red-800 disabled:text-gray-400 disabled:cursor-not-allowed"
+                      >
+                        <MinusCircle className="h-5 w-5" />
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={handleAddTimeSlot}
+                    className="flex items-center text-blue-600 hover:text-blue-800 text-sm"
+                  >
+                    <PlusCircle className="h-4 w-4 mr-1" />
+                    Add Another Time Slot
+                  </button>
+                </div>
+              </div>
+              
+              {/* Days of Week */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Days Available *
+                </label>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {daysOfWeek.map(day => (
+                    <label key={day} className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={slotFormData.days.includes(day)}
+                        onChange={() => handleDayToggle(day)}
+                        className="h-4 w-4 text-[#ff914d] focus:ring-[#ff914d] border-gray-300 rounded"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">{day}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Adult Pricing Tiers */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-sm font-medium text-gray-700">
+                    Adult Pricing Tiers *
+                  </label>
+                </div>
+                <div className="space-y-3">
+                  {slotFormData.adultTiers.map((tier, index) => (
+                    <div key={index} className="flex items-center gap-2 p-3 rounded-md bg-blue-50">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Min</label>
+                        <input
+                          type="number"
+                          min={1}
+                          value={tier.min}
+                          onChange={(e) => handleTierChange(e, 'adultTiers', index, 'min')}
+                          className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Max</label>
+                        <input
+                          type="number"
+                          min={tier.min}
+                          value={tier.max}
+                          onChange={(e) => handleTierChange(e, 'adultTiers', index, 'max')}
+                          className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-sm"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Price</label>
+                        <div className="flex">
+                          <select
+                            value={tier.currency}
+                            onChange={(e) => handleTierChange(e, 'adultTiers', index, 'currency')}
+                            className="px-2 py-1 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-sm"
+                          >
+                            <option value="INR">₹</option>
+                            <option value="USD">$</option>
+                            <option value="EUR">€</option>
+                            <option value="GBP">£</option>
+                          </select>
+                          <input
+                            type="number"
+                            min={0}
+                            value={tier.price}
+                            onChange={(e) => handleTierChange(e, 'adultTiers', index, 'price')}
+                            className="w-full px-2 py-1 border-y border-r border-gray-300 rounded-r-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-sm"
+                          />
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveTier('adultTiers', index)}
+                        disabled={slotFormData.adultTiers.length <= 1}
+                        className="p-2 text-red-600 hover:text-red-800 disabled:text-gray-400 disabled:cursor-not-allowed self-end"
+                      >
+                        <MinusCircle className="h-5 w-5" />
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => handleAddTier('adultTiers')}
+                    className="flex items-center text-blue-600 hover:text-blue-800 text-xs"
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Add Tier
+                  </button>
+                </div>
+              </div>
+              
+              {/* Child Pricing Tiers */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-sm font-medium text-gray-700">
+                    Child Pricing Tiers *
+                  </label>
+                </div>
+                <div className="space-y-3">
+                  {slotFormData.childTiers.map((tier, index) => (
+                    <div key={index} className="flex items-center gap-2 p-3 rounded-md bg-green-50">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Min</label>
+                        <input
+                          type="number"
+                          min={1}
+                          value={tier.min}
+                          onChange={(e) => handleTierChange(e, 'childTiers', index, 'min')}
+                          className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Max</label>
+                        <input
+                          type="number"
+                          min={tier.min}
+                          value={tier.max}
+                          onChange={(e) => handleTierChange(e, 'childTiers', index, 'max')}
+                          className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-sm"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Price</label>
+                        <div className="flex">
+                          <select
+                            value={tier.currency}
+                            onChange={(e) => handleTierChange(e, 'childTiers', index, 'currency')}
+                            className="px-2 py-1 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-sm"
+                          >
+                            <option value="INR">₹</option>
+                            <option value="USD">$</option>
+                            <option value="EUR">€</option>
+                            <option value="GBP">£</option>
+                          </select>
+                          <input
+                            type="number"
+                            min={0}
+                            value={tier.price}
+                            onChange={(e) => handleTierChange(e, 'childTiers', index, 'price')}
+                            className="w-full px-2 py-1 border-y border-r border-gray-300 rounded-r-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-sm"
+                          />
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveTier('childTiers', index)}
+                        disabled={slotFormData.childTiers.length <= 1}
+                        className="p-2 text-red-600 hover:text-red-800 disabled:text-gray-400 disabled:cursor-not-allowed self-end"
+                      >
+                        <MinusCircle className="h-5 w-5" />
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => handleAddTier('childTiers')}
+                    className="flex items-center text-blue-600 hover:text-blue-800 text-xs"
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Add Tier
+                  </button>
+                </div>
+              </div>
+              
+              {/* Save Button */}
+              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsAddingSlot(false);
+                    setEditingPackageId(null);
+                  }}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveSlot}
+                  className="px-4 py-2 bg-[#ff914d] text-white rounded-md hover:bg-[#e8823d] transition-colors flex items-center"
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  Save Slot Configuration
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

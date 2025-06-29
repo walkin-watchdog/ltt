@@ -4,6 +4,7 @@ import {
   Package, 
   MapPin,
   Tag,
+  Mail,
   Calendar, 
   BookOpen, 
   MessageSquare,
@@ -21,6 +22,7 @@ const navigation = [
   { name: 'Bookings', href: '/bookings', icon: BookOpen },
   { name: 'Requests', href: '/requests', icon: MessageSquare },
   { name: 'Abandoned Carts', href: '/abandoned-carts', icon: ShoppingCart },
+  { name: 'Newsletter', href: '/newsletter', icon: Mail },
 ];
 
 export const Sidebar = () => {

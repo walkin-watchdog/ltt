@@ -16,10 +16,15 @@ export const SpecialOffers = () => {
   }, [dispatch]);
 
   // Filter products that have discount prices
-  const discountedProducts = products.filter(product => product.discountPrice);
+  const discountedProducts = products.filter(product => 
+    product.lowestDiscountedPackagePrice && 
+    product.lowestPackagePrice && 
+    product.lowestDiscountedPackagePrice < product.lowestPackagePrice
+  );
 
-  const calculateDiscount = (originalPrice: number, discountPrice: number) => {
-    return Math.round(((originalPrice - discountPrice) / originalPrice) * 100);
+  const calculateDiscount = (originalPrice?: number, discountedPrice?: number) => {
+    if (!originalPrice || !discountedPrice) return 0;
+    return Math.round(((originalPrice - discountedPrice) / originalPrice) * 100);
   };
 
   const getAvailabilityBadge = (product: any) => {
@@ -195,7 +200,7 @@ export const SpecialOffers = () => {
                     <div className="absolute top-4 right-4 bg-[#ff914d] text-white px-3 py-2 rounded-lg font-bold">
                       <div className="flex items-center">
                         <Percent className="h-4 w-4 mr-1" />
-                        {calculateDiscount(product.price, product.discountPrice!)}% OFF
+                        {calculateDiscount(product.lowestPackagePrice, product.lowestDiscountedPackagePrice)}% OFF
                       </div>
                     </div>
                     <div className="absolute top-12 right-4 bg-red-500 text-white px-2 py-1 rounded text-xs font-semibold">
@@ -246,12 +251,13 @@ export const SpecialOffers = () => {
                     {/* Pricing with prominent savings */}
                     <div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-lg p-4 mb-4">
                       <div className="text-center">
-                        <div className="text-sm text-gray-600 mb-1">Was: ₹{product.price.toLocaleString()}</div>
+                        <div className="text-sm text-gray-600 mb-1">Was: ₹{product.lowestPackagePrice?.toLocaleString()}</div>
                         <div className="text-3xl font-bold text-[#ff914d] mb-1">
-                          ₹{product.discountPrice!.toLocaleString()}
+                          ₹{product.lowestDiscountedPackagePrice!.toLocaleString()}
                         </div>
                         <div className="text-sm font-semibold text-green-600">
-                          You Save: ₹{(product.price - product.discountPrice!).toLocaleString()}
+                          You Save: ₹{(product.lowestPackagePrice && product.lowestDiscountedPackagePrice) ? 
+                            (product.lowestPackagePrice - product.lowestDiscountedPackagePrice).toLocaleString() : '0'}
                         </div>
                       </div>
                     </div>

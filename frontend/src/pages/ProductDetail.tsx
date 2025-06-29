@@ -15,8 +15,8 @@ import {
   AlertCircle,
   CheckCircle
 } from 'lucide-react';
-import { AvailabilityModal } from '@/components/common/AvailabilityModal';
-import { AvailabilityBar }   from '@/components/common/AvailabilityBar';
+import { AvailabilityModal } from '../components/common/AvailabilityModal';
+import { AvailabilityBar }   from '../components/common/AvailabilityBar';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { toast } from 'react-hot-toast';   
 import type { RootState, AppDispatch } from '@/store/store';
@@ -24,6 +24,21 @@ import { fetchProduct } from '../store/slices/productsSlice';
 import { SEOHead } from '../components/seo/SEOHead';
 import { ReviewsWidget } from '../components/reviews/ReviewsWidget';
 import { formatDate, parse } from 'date-fns';
+
+// Helper function to calculate the effective price after discount
+const calculateEffectivePrice = (basePrice: number, discountType?: string, discountValue?: number) => {
+  if (!discountType || discountType === 'none' || !discountValue) {
+    return basePrice;
+  }
+  
+  if (discountType === 'percentage') {
+    return basePrice * (1 - (discountValue / 100));
+  } else if (discountType === 'fixed') {
+    return Math.max(0, basePrice - discountValue);
+  }
+  
+  return basePrice;
+};
 
 export const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -36,7 +51,10 @@ export const ProductDetail = () => {
   const [showAvail, setShowAvail] = useState(false);
   const [checkingAvail, setCheckingAvail] = useState(false);
   const [isDateOk, setIsDateOk] = useState<boolean | null>(null);
-  const [availablePkgs, setAvailablePkgs] = useState<any[]>([]);
+  const [availablePackages, setAvailablePackages] = useState<any[]>([]);
+  const [slotsForPackage, setSlotsForPackage] = useState<any[]>([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null);
   const isMobile = useMediaQuery('(max-width:1023px)');
   const todayStr = new Date().toLocaleDateString('en-US');
   const [selectedDateStr, setSelectedDateStr] = useState(todayStr);
@@ -45,7 +63,8 @@ export const ProductDetail = () => {
   const { email } = useSelector((state: RootState) => state.auth);
   const [abandonedCart, setAbandonedCart] = useState<any>(null);
   const [showRecoveryPrompt, setShowRecoveryPrompt] = useState(false);
-  const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [cheapestPackage, setCheapestPackage] = useState<any>(null);
+  
   const handleBarChange = ({
     date,
     adults,
@@ -58,25 +77,43 @@ export const ProductDetail = () => {
     setSelectedSlotId(null);
     setSelectedSlot(null);
     setIsDateOk(null);
-    setAvailablePkgs([]);
+    setAvailablePackages([]);
   };
 
   const handlePackageSelect = (pkgId: string) => {
     const pkg = currentProduct?.packages?.find((p: any) => p.id === pkgId);
     if (!pkg) return;
+
     setSelectedPackage(pkg);
     setSelectedSlotId(null);
     setSelectedSlot(null);
+    setSelectedTimeSlot(null);
+
     if (isMobile) {
+      // For mobile, change to slot selection step
+      setStep('slot');
       setIsDateOk(true);
-      setShowAvail(false);
     }
   };
 
   const handleSlotSelect = (slotId: string) => {
-    setSelectedSlotId(slotId);
+    if (!slotId) return;
+
     const slot = selectedPackage?.slots?.find((s: any) => s.id === slotId);
+
+    setSelectedSlotId(slotId);
     setSelectedSlot(slot || null);
+
+    // Set default time slot (first one) if available
+    if (slot && Array.isArray(slot.Time) && slot.Time.length > 0) {
+      setSelectedTimeSlot(slot.Time[0]);
+    } else {
+      setSelectedTimeSlot(null);
+    }
+    
+    if (isMobile) {
+      setShowAvail(false);
+    }
   };
 
   const navigate = useNavigate();
@@ -92,6 +129,106 @@ export const ProductDetail = () => {
       checkForAbandonedCart();
     }
   }, [id, email]);
+  
+  // Find the cheapest package when product data loads
+  useEffect(() => {
+    if (!currentProduct || !currentProduct.packages || currentProduct.packages.length === 0) {
+      return;
+    }
+    
+    let cheapest = currentProduct.packages[0];
+    let lowestPrice = calculateEffectivePrice(
+      cheapest.basePrice,
+      cheapest.discountType,
+      cheapest.discountValue
+    );
+    
+    for (const pkg of currentProduct.packages) {
+      const effectivePrice = calculateEffectivePrice(
+        pkg.basePrice,
+        pkg.discountType,
+        pkg.discountValue
+      );
+      
+      if (effectivePrice < lowestPrice) {
+        cheapest = pkg;
+        lowestPrice = effectivePrice;
+      }
+    }
+    
+    setCheapestPackage(cheapest);
+  }, [currentProduct]);
+  
+  // Find the cheapest package when product data loads
+  useEffect(() => {
+    if (!currentProduct || !currentProduct.packages || currentProduct.packages.length === 0) {
+      return;
+    }
+    
+    let cheapest = currentProduct.packages[0];
+    let lowestPrice = calculateEffectivePrice(
+      cheapest.basePrice,
+      cheapest.discountType,
+      cheapest.discountValue
+    );
+    
+    for (const pkg of currentProduct.packages) {
+      const effectivePrice = calculateEffectivePrice(
+        pkg.basePrice,
+        pkg.discountType,
+        pkg.discountValue
+      );
+      
+      if (effectivePrice < lowestPrice) {
+        cheapest = pkg;
+        lowestPrice = effectivePrice;
+      }
+    }
+    
+    setCheapestPackage(cheapest);
+  }, [currentProduct]);
+  
+  // Fetch available slots when a package is selected
+  useEffect(() => {
+    if (!selectedPackage || !selectedDateStr) return;
+    
+    const fetchSlots = async () => {
+      setSlotsLoading(true);
+      try {
+        const iso = formatDate(parse(selectedDateStr, 'MM/dd/yyyy', new Date()), 'yyyy-MM-dd');
+        const dayOfWeek = parse(selectedDateStr, 'MM/dd/yyyy', new Date()).toLocaleDateString('en-US', { weekday: 'long' });
+        const base = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+        const res = await fetch(`${base}/availability/package/${selectedPackage.id}/slots?date=${iso}`);
+        
+        if (res.ok) {
+          const data = await res.json();
+          if (data.slots && Array.isArray(data.slots)) {
+            // Filter slots based on day of week
+            const filteredSlots = data.slots.filter(slot => 
+              Array.isArray(slot.days) && slot.days.includes(dayOfWeek)
+            );
+            setSlotsForPackage(filteredSlots);
+            // Reset selected time slot when slots change
+            setSelectedSlot(null);
+            setSelectedSlotId(null);
+            setSelectedTimeSlot(null);
+          } else {
+            setSlotsForPackage([]);
+          }
+        } else {
+          console.error('Failed to fetch slots:', await res.text());
+          setSlotsForPackage([]);
+        }
+      } catch (error) {
+        console.error('Error fetching slots:', error);
+        setSlotsForPackage([]);
+      } finally {
+        setSlotsLoading(false);
+      }
+    };
+    
+    fetchSlots();
+  }, [selectedPackage, selectedDateStr]);
   
   const checkForAbandonedCart = async () => {
     try {
@@ -252,7 +389,7 @@ export const ProductDetail = () => {
 
     offers: {
       "@type": "Offer",
-      price: currentProduct.discountPrice || currentProduct.price,
+      price: currentProduct.lowestDiscountedPackagePrice || currentProduct.lowestPackagePrice || 0,
       priceCurrency: "INR",
       availability: "https://schema.org/InStock"
     },
@@ -360,7 +497,7 @@ export const ProductDetail = () => {
         
         {/* Thumbnail Grid */}
         {currentProduct.images.length > 1 && (
-          <div className="grid grid-cols-4 gap-2 mt-4">
+          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 mt-4">
             {currentProduct.images.slice(0, 4).map((image, index) => (
               <button
                 key={index}
@@ -613,22 +750,51 @@ export const ProductDetail = () => {
             <div className="mb-6">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-gray-600">Price per person</span>
-                {currentProduct.discountPrice && (
+                {cheapestPackage && cheapestPackage.discountType !== 'none' && cheapestPackage.discountValue > 0 && (
                   <span className="bg-[#ff914d] text-white px-2 py-1 rounded text-xs font-semibold">
-                    Save ₹{(currentProduct.price - currentProduct.discountPrice).toLocaleString()}
+                    {cheapestPackage.discountType === 'percentage' ? 
+                      `${cheapestPackage.discountValue}% OFF` : 
+                      `Save ${cheapestPackage.currency === 'INR' ? '₹' : 
+                            cheapestPackage.currency === 'USD' ? '$' : 
+                            cheapestPackage.currency === 'EUR' ? '€' : '£'}${cheapestPackage.discountValue.toLocaleString()}`
+                    }
                   </span>
                 )}
               </div>
               <div className="flex items-baseline">
-                <span className="text-3xl font-bold text-[#ff914d]">
-                  ₹{(currentProduct.discountPrice || currentProduct.price).toLocaleString()}
-                </span>
-                {currentProduct.discountPrice && (
-                  <span className="text-lg text-gray-500 line-through ml-2">
-                    ₹{currentProduct.price.toLocaleString()}
-                  </span>
+                {cheapestPackage ? (
+                  <>
+                    <span className="text-3xl font-bold text-[#ff914d]">
+                      {cheapestPackage.currency === 'INR' ? '₹' : 
+                       cheapestPackage.currency === 'USD' ? '$' : 
+                       cheapestPackage.currency === 'EUR' ? '€' : '£'}
+                      {calculateEffectivePrice(
+                        cheapestPackage.basePrice,
+                        cheapestPackage.discountType,
+                        cheapestPackage.discountValue
+                      ).toLocaleString()}
+                    </span>
+                    {cheapestPackage && cheapestPackage.discountType !== 'none' && cheapestPackage.discountValue > 0 && (
+                      <span className="text-lg text-gray-500 line-through ml-2">
+                        {cheapestPackage.currency === 'INR' ? '₹' : 
+                         cheapestPackage.currency === 'USD' ? '$' : 
+                         cheapestPackage.currency === 'EUR' ? '€' : '£'}
+                        {cheapestPackage.basePrice.toLocaleString()}
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <span className="text-3xl font-bold text-[#ff914d]">Contact for pricing</span>
                 )}
+                <span className="text-sm text-gray-500 ml-2">
+                  per person
+                </span>
               </div>
+              {cheapestPackage && cheapestPackage.discountType === 'percentage' && cheapestPackage.discountValue > 0 && (
+                <span className="text-sm bg-green-100 text-green-800 px-2 py-1 rounded-full inline-block mt-2">
+                  {cheapestPackage.discountValue}% OFF
+                </span>
+              )}
             </div>
 
             {/* check-availability */}
@@ -652,18 +818,31 @@ export const ProductDetail = () => {
                     const slot = json.availability?.find(
                       (a: any) =>
                         new Date(a.startDate) <= new Date(iso) &&
-                        (!a.endDate || new Date(a.endDate) >= new Date(iso)),
+                        (!a.endDate || new Date(a.endDate) >= new Date(iso))
                     );
-                    if (!slot || slot.status !== 'AVAILABLE') {
-                      setIsDateOk(false); setAvailablePkgs([]);
-                    } else {
-                      const free = slot.available - slot.booked;
-                      const ok   = free >= adultsCount + childrenCount;
-                      setIsDateOk(ok);
-                      setAvailablePkgs(ok ? (currentProduct.packages ?? []) : []);
+                    
+                    if (!slot) {
+                      console.error('No availability found for the selected date');
+                      setIsDateOk(false);
+                      setAvailablePackages([]);
+                      return;
                     }
-                  } catch { setIsDateOk(false); setAvailablePkgs([]); }
-                  finally { setCheckingAvail(false); }
+                    
+                    if (slot.status !== 'AVAILABLE') {
+                      setIsDateOk(false);
+                      setAvailablePackages([]);
+                    } else {
+                      // If product is available, show all packages regardless of capacity
+                      setIsDateOk(true);
+                      setAvailablePackages(currentProduct.packages ?? []);
+                    }
+                  } catch (error) { 
+                    console.error('Error checking availability:', error);
+                    setIsDateOk(false); 
+                    setAvailablePackages([]);
+                  } finally { 
+                    setCheckingAvail(false); 
+                  }
                 })();
               }}
             />
@@ -673,137 +852,202 @@ export const ProductDetail = () => {
               <p className="text-center text-gray-500 my-4">Checking availability…</p>
             )}
 
-            {!isMobile && isDateOk === false && !checkingAvail && (
+            {!isMobile && isDateOk === false && !checkingAvail && !slotsLoading && (
               <p className="text-center text-red-600 my-4">
-                Not enough spots for {adultsCount + childrenCount} participant
-                {adultsCount + childrenCount > 1 && 's'}.
+                No time slots available for this date.
+                <br />
+                <span className="text-sm text-gray-500">Please try selecting another date.</span>
               </p>
             )}
 
-            {!isMobile && isDateOk && availablePkgs.length > 0 && (
-              <div className="space-y-2 mb-4">
-                {availablePkgs.map(pkg => (
-                  <button
-                    key={pkg.id}
-                    onClick={() => handlePackageSelect(pkg.id)}
-                    className={`w-full flex items-center justify-between px-4 py-3 border rounded-lg ${
-                      selectedPackage?.id === pkg.id
-                        ? 'border-[#ff914d] bg-orange-50'
-                        : 'border-gray-200 hover:border-[#ff914d]'
-                    }`}
-                  >
-                    <span className="text-left">
-                      <p className="font-medium text-gray-900">{pkg.name}</p>
-                      {pkg.description && (
-                        <p className="text-sm text-gray-600">{pkg.description}</p>
-                      )}
-                    </span>
-                    <div className="flex flex-col text-right">
-                      {pkg.seatsLeft !== undefined && (
-                        <span className="text-xs text-gray-600">
-                          {pkg.seatsLeft} left
-                        </span>
-                      )}
+            {/* Package Selection */}
+            {!isMobile && isDateOk && availablePackages.length > 0 && (
+              <div className="mb-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-3">Select Package</h3>
+                <div className="space-y-3">
+                  {availablePackages.map(pkg => (
+                    <div
+                      key={pkg.id}
+                      onClick={() => handlePackageSelect(pkg.id)}
+                      className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
+                        selectedPackage?.id === pkg.id
+                          ? 'border-[#ff914d] bg-orange-50'
+                          : 'border-gray-200 hover:border-[#ff914d]'
+                      }`}
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <h4 className="font-semibold text-gray-900">{pkg.name}</h4>
+                        {selectedPackage?.id === pkg.id && (
+                          <div className="bg-[#ff914d] text-white rounded-full h-5 w-5 flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-600">{pkg.description}</p>
+                      
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {pkg.inclusions?.slice(0, 3).map((inc: string, idx: number) => (
+                          <span key={idx} className="inline-block bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded">
+                            {inc}
+                          </span>
+                        ))}
+                        {pkg.inclusions?.length > 3 && (
+                          <span className="inline-block bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded">
+                            +{pkg.inclusions.length - 3} more
+                          </span>
+                        )}
+                      </div>
+                      
+                      <div className="mt-3 flex justify-between items-center">
+                        <div className="font-bold text-[#ff914d]">
+                          ₹{calculateEffectivePrice(
+                            pkg.basePrice,
+                            pkg.discountType,
+                            pkg.discountValue
+                          ).toLocaleString()}
+                          <span className="text-sm text-gray-500 font-normal"> /person</span>
+                        </div>
+                        <button
+                          className="text-[#104c57] font-medium text-sm hover:text-[#ff914d]"
+                          onClick={() => handlePackageSelect(pkg.id)}
+                        >
+                          Select
+                        </button>
+                      </div>
                     </div>
-                  </button>
-                ))}
+                  ))}
+                </div>
               </div>
             )}
 
-            {/* Slot selection dropdown */}
-            {selectedPackage && selectedPackage.slots && selectedPackage.slots.length > 0 && (
-  <div className="mb-4">
-    <label className="block text-sm font-medium text-gray-700 mb-2">
-      Select Time Slot *
-    </label>
-    <select
-      value={selectedSlotId || ''}
-      onChange={e => handleSlotSelect(e.target.value)}
-      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-      required
-    >
-      <option value="" disabled>Select a slot</option>
-      {selectedPackage.slots.map((slot: any) => (
-        <option key={slot.id} value={slot.id}>
-          {slot.Time.join(', ')}
-        </option>
-      ))}
-    </select>
-    {/* Time selection dropdown */}
-    {selectedSlot && (
-      <div className="mt-2">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Select Time *
-        </label>
-        <select
-          value={selectedTime || ''}
-          onChange={e => setSelectedTime(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-          required
-        >
-          <option value="" disabled>Select a time</option>
-          {selectedSlot.Time.map((time: string, idx: number) => (
-            <option key={idx} value={time}>{time}</option>
-          ))}
-        </select>
-        {/* Slot config details */}
-        <div className="flex items-center justify-between mt-2">
-          <span className="font-medium text-gray-800">
-            {selectedSlot.Time.join(', ')}
-          </span>
-          <span className="text-xs text-gray-500">
-            {selectedSlot.available - selectedSlot.booked} seats left
-          </span>
-        </div>
-        <div className="mt-1 text-sm text-gray-700">
-          <div>
-            <span className="font-semibold">Adult Tiers:</span>
-            {selectedSlot.adultTiers.length > 0 ? (
-              <ul>
-                {selectedSlot.adultTiers.map((tier: any) => (
-                  <li key={tier.id}>
-                    {tier.min}-{tier.max} @ ₹{tier.price} {tier.currency}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <span> N/A</span>
+            {/* Time Slot Selection */}
+            {!isMobile && selectedPackage && (
+              <div className="mb-4">
+                <h3 className="text-lg font-medium text-gray-900 mb-3">Select Time</h3>
+                
+                {slotsLoading ? (
+                  <div className="flex justify-center py-4">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#ff914d]"></div>
+                  </div>
+                ) : slotsForPackage.length === 0 ? (
+                  <p className="text-center text-red-600 py-2">
+                    No time slots available for the selected date.
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {slotsForPackage.map((slot) => {
+                      const availableSeats = slot.available - (slot.booked || 0);
+                      const isDisabled = availableSeats < (adultsCount + childrenCount);
+                      
+                      return (
+                        <div 
+                          key={slot.id}
+                          onClick={() => !isDisabled && handleSlotSelect(slot.id)}
+                          className={`border rounded-lg p-3 text-center cursor-pointer transition-colors ${
+                            false ? 'border-gray-200 bg-gray-50 cursor-not-allowed' :
+                            selectedSlotId === slot.id ? 'border-[#ff914d] bg-orange-50' : 
+                            'border-gray-200 hover:border-[#ff914d]'
+                          }`}
+                        >
+                          <div className="font-medium">
+                            {Array.isArray(slot.Time) && slot.Time.length > 0 ? slot.Time[0] : 'No time specified'}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             )}
-          </div>
-          <div>
-            <span className="font-semibold">Child Tiers:</span>
-            {selectedSlot.childTiers.length > 0 ? (
-              <ul>
-                {selectedSlot.childTiers.map((tier: any) => (
-                  <li key={tier.id}>
-                    {tier.min}-{tier.max} @ ₹{tier.price} {tier.currency}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <span> N/A</span>
+            
+            {!isMobile && selectedSlot && selectedSlot.Time && selectedSlot.Time.length > 1 && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Choose Specific Time
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {selectedSlot.Time.map((time: string, index: number) => (
+                    <div
+                      key={index}
+                      className={`
+                      border rounded-lg py-2 px-3 text-center cursor-pointer
+                      ${selectedTimeSlot === time ? 'border-[#ff914d] bg-orange-50' : 'border-gray-200 hover:border-[#ff914d]'}
+                    `}
+                      onClick={() => setSelectedTimeSlot(time)}
+                    >
+                      {time}
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
-          </div>
-        </div>
-      </div>
-    )}
-  </div>
-)}
-            {selectedPackage && isDateOk && selectedSlotId && (
-              <Link
-                to={
-                  `/book/${currentProduct.id}` +
-                  `?package=${selectedPackage.id}` +
-                  `&slot=${selectedSlotId}` +
-                  `&date=${encodeURIComponent(selectedDateStr)}` +
-                  `&adults=${adultsCount}` +
-                  `&children=${childrenCount}`
-                }
-                className="w-full py-3 px-4 rounded-lg font-semibold transition-colors text-center block bg-[#ff914d] text-white hover:bg-[#e8823d] mb-4"
-              >
+
+            {/* Pricing info for selected package/slot */}
+            {!isMobile && selectedPackage && selectedSlot && (
+              <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-gray-700">Adults:</span>
+                  <span className="text-sm font-medium">
+                    {adultsCount} × ₹
+                    {selectedSlot.adultTiers && selectedSlot.adultTiers.length > 0 
+                      ? selectedSlot.adultTiers[0].price.toLocaleString()
+                      : calculateEffectivePrice(
+                          selectedPackage.basePrice,
+                          selectedPackage.discountType,
+                          selectedPackage.discountValue
+                        ).toLocaleString()
+                    }
+                  </span>
+                </div>
+                
+                {childrenCount > 0 && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-700">Children:</span>
+                  <span className="text-sm font-medium">
+                    {childrenCount} × ₹
+                    {selectedSlot.childTiers && selectedSlot.childTiers.length > 0 
+                      ? selectedSlot.childTiers[0].price.toLocaleString()
+                      : (calculateEffectivePrice(
+                          selectedPackage.basePrice,
+                          selectedPackage.discountType,
+                          selectedPackage.discountValue
+                        ) * 0.5).toLocaleString()
+                    }
+                  </span>
+                </div>
+                )}
+                
+                <div className="mt-3 pt-2 border-t border-gray-200 flex justify-between items-center">
+                  <span className="font-medium">Total:</span>
+                  <span className="font-bold text-[#ff914d]">
+                    ₹{(adultsCount * (selectedSlot.adultTiers?.[0]?.price || selectedPackage.basePrice) + 
+                       childrenCount * (selectedSlot.childTiers?.[0]?.price || (selectedPackage.basePrice * 0.5))).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            )}
+          
+          {/* Book Now Button */}
+          {selectedPackage && isDateOk && selectedSlot && (
+            <Link
+              to={
+                `/book/${currentProduct.id}` +
+                `?package=${selectedPackage.id}` +
+                `&slot=${selectedSlot.id}` +
+                `&date=${encodeURIComponent(selectedDateStr)}` +
+                `&adults=${adultsCount}` +
+                `&children=${childrenCount}`
+              }
+              className="w-full py-4 px-4 rounded-lg font-semibold transition-colors text-center block bg-[#ff914d] text-white hover:bg-[#e8823d] mb-4"
+            >
+              <span className="flex items-center justify-center">
+                <Calendar className="h-5 w-5 mr-2" />
                 Reserve Now
-              </Link>
-            )}
+              </span>
+            </Link>
+          )}
 
             {/* share dropdown */}
             <div className="relative mt-4">
@@ -846,6 +1090,11 @@ export const ProductDetail = () => {
       {showAvail && isMobile && (
         <AvailabilityModal
           open={showAvail}
+          onClose={() => {
+            setShowAvail(false);
+            setSelectedPackage(null);
+            setSelectedSlotId(null);
+          }}
           productId={currentProduct.id}
           packages={currentProduct.packages ?? []}
           selectedPackage={selectedPackage}
@@ -853,7 +1102,6 @@ export const ProductDetail = () => {
           initialAdults={adultsCount}
           initialChildren={childrenCount}
           onPackageSelect={handlePackageSelect}
-          onClose={() => setShowAvail(false)}
         />
       )}
     </div>

@@ -10,12 +10,22 @@ export interface PackageOption {
   id: string;
   name: string;
   description: string;
-  price: number;
-  childPrice?: number;
+  basePrice: number;
   currency: string;
+  discountType?: 'none' | 'percentage' | 'fixed';
+  discountValue?: number;
+  effectivePrice?: number;
   inclusions: string[];
   maxPeople?: number;
   timeSlots?: string[];
+}
+
+export interface Newsletter {
+  id: string;
+  email: string;
+  name: string | null;
+  isActive: boolean;
+  createdAt: string;
 }
 
 export interface Review {
@@ -36,8 +46,6 @@ export interface Product {
   location: string;
   duration: string;
   capacity: number;
-  price: number;
-  discountPrice?: number;
   highlights: string[];
   inclusions: string[];
   exclusions: string[];
@@ -171,8 +179,6 @@ export interface ProductFormData {
   location: string;
   duration: string;
   capacity: number;
-  price: number;
-  discountPrice?: number;
   
   // Content
   images: string[];
@@ -213,8 +219,6 @@ export interface Productprop {
   location: string;
   duration: string;
   capacity: number;
-  price: number;
-  discountPrice?: number;
   images: string[];
   isActive: boolean;
   createdAt: string;

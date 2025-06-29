@@ -38,8 +38,6 @@ export const ProductForm = () => {
     category: '',
     location: '',
     duration: '',
-    capacity: 1,
-    price: 0,
     images: [],
     highlights: [],
     inclusions: [],
@@ -63,6 +61,37 @@ export const ProductForm = () => {
     }
   }, [id, isEdit]);
 
+  // Transform slots data to slotConfigs format for the form
+  const transformProductDataForForm = (product: any) => {
+    if (product && product.packages) {
+      const transformedPackages = product.packages.map((pkg: any) => {
+        // Only transform if slots exist and slotConfigs doesn't
+        if (pkg.slots && Array.isArray(pkg.slots) && !pkg.slotConfigs) {
+          const slotConfigs = pkg.slots.map((slot: any) => {
+            return {
+              times: slot.Time || [], // Time array from slot
+              days: slot.days || [],
+              adultTiers: slot.adultTiers || [],
+              childTiers: slot.childTiers || []
+            };
+          });
+          
+          return {
+            ...pkg,
+            slotConfigs: slotConfigs
+          };
+        }
+        return pkg;
+      });
+      
+      return {
+        ...product,
+        packages: transformedPackages
+      };
+    }
+    return product;
+  };
+
   const fetchProduct = async () => {
     setIsLoading(true);
     try {
@@ -74,20 +103,26 @@ export const ProductForm = () => {
       
       if (response.ok) {
         const product = await response.json();
-        const startDate = product.availabilityStartDate?.split('T')[0] || '';
-        const endDate   = product.availabilityEndDate   ? product.availabilityEndDate.split('T')[0] : undefined;
+        // Transform the product data to include slotConfigs based on slots data
+        const transformedProduct = transformProductDataForForm(product);
+        
+        const startDate = transformedProduct.availabilityStartDate?.split('T')[0] || '';
+        const endDate   = transformedProduct.availabilityEndDate   ? transformedProduct.availabilityEndDate.split('T')[0] : undefined;
 
         const blockedDates = (product.blockedDates || []).map((b: any) => ({
           id:     b.id,
           date:   b.date.split('T')[0],
           reason: b.reason
         }));
-        setFormData({
-          ...product,
+        
+        const formattedData = {
+          ...transformedProduct,
           availabilityStartDate: startDate,
           availabilityEndDate:   endDate   || undefined,
           blockedDates
-        });
+        };
+        
+        setFormData(formattedData);
       }
     } catch (error) {
       console.error('Error fetching product:', error);
@@ -102,7 +137,7 @@ export const ProductForm = () => {
 
     // Validate form data
     if (!formData.title || !formData.productCode || !formData.description || !formData.category || 
-        !formData.location || !formData.duration || !formData.price) {
+        !formData.location || !formData.duration) {
       toast({ message: "Please fill out all required fields in the Product Content tab", type: "error" });
       setActiveTab('content');
       setIsSaving(false);

@@ -83,7 +83,7 @@ export const AdminAvailabilityBar = ({
                 caption: 'text-center font-semibold mb-4',
                 head_row: 'text-gray-400',
                 day: 'w-10 h-10 flex items-center justify-center rounded-full hover:ring-2 hover:ring-[#104c57] hover:ring-opacity-50',
-                day_selected: 'bg-[#104c57] text-white font-semibold',
+                day_selected: 'bg-[#104c57] text-white font-semibold ring-2 ring-[#104c57] ring-opacity-50',
                 day_today: 'border border-[#104c57]',
               }}
             />
@@ -96,8 +96,8 @@ export const AdminAvailabilityBar = ({
             <Sheet.Backdrop onTap={() => setShowDatepicker(false)} />
             <Sheet.Container>
               <Sheet.Header className="flex justify-end p-4">
-                <button onClick={() => setShowDatepicker(false)} className="bg-gray-200 rounded-full p-2 h-8 w-8">
-                  ✕
+                <button onClick={() => setShowDatepicker(false)} className="bg-gray-200 rounded-full p-2 h-8 w-8 flex items-center justify-center text-gray-600 hover:text-gray-800">
+                  x
                 </button>
               </Sheet.Header>
               <Sheet.Content>
@@ -116,9 +116,11 @@ export const AdminAvailabilityBar = ({
                   classNames={{
                     month: 'w-full',
                     nav: 'flex w-full',
+                    caption: 'text-center font-semibold mb-4',
+                    table: 'border-collapse w-full',
                     head_row: 'text-gray-400',
                     day: 'w-10 h-10 flex items-center justify-center rounded-full hover:ring-2 hover:ring-[#104c57] hover:ring-opacity-50',
-                    day_selected: 'bg-[#104c57] text-white font-semibold',
+                    day_selected: 'bg-[#104c57] text-white font-semibold ring-2 ring-[#104c57] ring-opacity-50',
                     day_today: 'border border-[#104c57]',
                   }}
                 />

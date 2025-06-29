@@ -44,8 +44,6 @@ router.get('/:slug', async (req, res, next) => {
             id: true,
             title: true,
             images: true,
-            price: true,
-            discountPrice: true,
             type: true,
             location: true,
             duration: true,

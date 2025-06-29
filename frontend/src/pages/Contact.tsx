@@ -55,8 +55,25 @@ export const Contact = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          {/* Contact Information */}
+          {/* Maps Section */}
           <div>
+            <h2 className="text-3xl font-bold text-[#104c57] mb-8 text-center">Find Us</h2>
+            <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+              <iframe
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3506.2233913121413!2d77.20902361508081!3d28.54340688245398!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x390ce26d1b1b1b1b%3A0x1b1b1b1b1b1b1b1b!2sNew%20Delhi%2C%20Delhi!5e0!3m2!1sen!2sin!4v1234567890"
+                width="100%"
+                height="400"
+                style={{ border: 0 }}
+                allowFullScreen={true}
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                title="Luxé TimeTravel Location"
+              ></iframe>
+            </div>
+          </div>
+        
+          {/* Contact Information */}
+          <div className="ml-40">
             <h2 className="text-3xl font-bold text-[#104c57] mb-8">Get in Touch</h2>
             
             <div className="space-y-6 mb-8">
@@ -126,24 +143,7 @@ export const Contact = () => {
               </div>
             </div>
           </div>
-          {/* Maps Section */}
-          <div>
-            <h2 className="text-3xl font-bold text-[#104c57] mb-8 text-center">Find Us</h2>
-            <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-              <iframe
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3506.2233913121413!2d77.20902361508081!3d28.54340688245398!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x390ce26d1b1b1b1b%3A0x1b1b1b1b1b1b1b1b!2sNew%20Delhi%2C%20Delhi!5e0!3m2!1sen!2sin!4v1234567890"
-                width="100%"
-                height="400"
-                style={{ border: 0 }}
-                allowFullScreen={true}
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-                title="Luxé TimeTravel Location"
-              ></iframe>
-            </div>
-          </div>
         </div>
-
         {/* Quick Contact Methods */}
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h3 className="font-semibold text-gray-900 mb-4">Quick Contact</h3>

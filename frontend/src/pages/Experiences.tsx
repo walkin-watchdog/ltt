@@ -160,7 +160,7 @@ export const Experiences = () => {
                         alt={product.title}
                         className="w-full h-full object-cover"
                       />
-                      {product.discountPrice && (
+                      {product.lowestDiscountedPackagePrice && (
                         <div className="absolute top-4 left-4 bg-[#ff914d] text-white px-3 py-1 rounded-full text-sm font-semibold">
                           Special Offer
                         </div>
@@ -188,18 +188,18 @@ export const Experiences = () => {
                       </p>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center">
-                          {product.discountPrice ? (
+                          {product.lowestDiscountedPackagePrice ? (
                             <>
                               <span className="text-2xl font-bold text-[#ff914d]">
-                                ₹{product.discountPrice.toLocaleString()}
+                                ₹{product.lowestDiscountedPackagePrice.toLocaleString()}
                               </span>
                               <span className="text-lg text-gray-500 line-through ml-2">
-                                ₹{product.price.toLocaleString()}
+                                ₹{product.lowestPackagePrice?.toLocaleString()}
                               </span>
                             </>
                           ) : (
                             <span className="text-2xl font-bold text-[#104c57]">
-                              ₹{product.price.toLocaleString()}
+                              ₹{product.lowestPackagePrice ? product.lowestPackagePrice.toLocaleString() : 'Contact us'}
                             </span>
                           )}
                         </div>

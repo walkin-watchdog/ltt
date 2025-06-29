@@ -153,7 +153,7 @@ router.get('/dashboard', authenticate, authorize(['ADMIN', 'EDITOR', 'VIEWER']),
         id: { in: topProductIds },
         isActive: true 
       },
-      select: { id: true, title: true, price: true }
+      select: { id: true, title: true }
     });
 
     const topProducts = topProductsData.map(booking => {
@@ -161,7 +161,6 @@ router.get('/dashboard', authenticate, authorize(['ADMIN', 'EDITOR', 'VIEWER']),
       return {
         id: product?.id,
         title: product?.title,
-        price: product?.price,
         total_bookings: booking._count.id,
         total_revenue: booking._sum.totalAmount || 0
       };

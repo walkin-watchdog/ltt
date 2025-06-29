@@ -40,8 +40,6 @@ model Product {
   location    String
   duration    String
   capacity    Int
-  price       Float
-  discountPrice Float?
   highlights  String[]
   inclusions  String[]
   exclusions  String[]
@@ -96,6 +94,9 @@ model Package {
   productId   String
   name        String
   description String
+  basePrice   Float
+  discountType String? @default("none") // "none", "percentage", "fixed"
+  discountValue Float? @default(0)  // percentage or fixed amount
   currency    String @default("INR")
   inclusions  String[]
   maxPeople   Int
@@ -116,7 +117,6 @@ model PackageSlot {
   id        String   @id @default(cuid())
   packageId String
   Time      String[]
-  available Int      @default(0)
   booked    Int      @default(0)
   days      String[]
   
@@ -136,6 +136,8 @@ model SlotAdultTier {
   min    Int
   max    Int
   price  Float
+  discountType String? @default("none") // "none", "percentage", "fixed"
+  discountValue Float? @default(0)  // percentage or fixed amount
   currency String
   isActive Boolean @default(true)
   
@@ -150,6 +152,8 @@ model SlotChildTier {
   min    Int
   max    Int
   price  Float
+  discountType String? @default("none") // "none", "percentage", "fixed"
+  discountValue Float? @default(0)  // percentage or fixed amount
   currency String
   isActive Boolean @default(true)
   
@@ -161,10 +165,9 @@ model SlotChildTier {
 model Availability {
   id        String            @id @default(cuid())
   productId String
-  endDate   DateTime?
   startDate  DateTime         @default(now())
+  endDate   DateTime?
   status    AvailabilityStatus
-  available Int               @default(0)
   booked    Int               @default(0)
   packageId String?           /// new optional FK to support per-package tallies
 

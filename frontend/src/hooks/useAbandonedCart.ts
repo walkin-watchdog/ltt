@@ -1,11 +1,12 @@
 import { useEffect, useState, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import type { RootState } from '@/store/store';
-import { debounce } from '@/lib/utils';
+import { debounce } from '../lib/utils';
 
 interface AbandonedCartData {
   productId: string;
   packageId?: string;
+  slotId?: string;
   customerName: string;
   customerEmail: string;
   customerPhone: string;
@@ -36,7 +37,8 @@ export const useAbandonedCart = (productId?: string) => {
       const body = {
         email       : data.customerEmail,
         productId   : data.productId,
-        packageId   : data.packageId,
+        packageId   : data.packageId || null,
+        slotId      : data.slotId || null,
         customerData: {
           customerName : data.customerName,
           customerEmail: data.customerEmail,
@@ -54,7 +56,7 @@ export const useAbandonedCart = (productId?: string) => {
         body   : JSON.stringify(body)
       });
     } catch (err) {
-      console.error('Error posting abandoned cart:', err);
+      console.error('Error saving abandoned cart:', err);
     }
   };
 
