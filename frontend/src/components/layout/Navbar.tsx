@@ -245,6 +245,7 @@ export const Navbar = () => {
               
               <Link to="/offers" className="block px-3 py-2 text-gray-700">Special Offers</Link>
               <Link to="/about" className="block px-3 py-2 text-gray-700">About</Link>
+              <Link to="/contact" className="block px-3 py-2 text-gray-700">Contact Us</Link>
               <Link to="/blog" className="block px-3 py-2 text-gray-700">Blog</Link>
               <Link to="https://quaintspaces.in/" className="block px-3 py-2 text-gray-700">Luxé Stays</Link>
               <Link to="/plan-your-trip" className="block px-3 py-2 text-[#104c57] font-medium">Plan My Trip</Link>

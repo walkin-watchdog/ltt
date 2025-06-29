@@ -76,8 +76,8 @@ export const ExperienceCategory = () => {
               alt={categoryData.name}
               className="w-full h-full object-cover"
             />
-            <div className="absolute inset-0 bg-black bg-opacity-30"></div>
-            <div className="relative z-10 flex items-center justify-center h-full">
+            <div className="absolute inset-0"></div>
+            <div className="relative z-10 flex bg-black items-center justify-center h-full">
               <div className="text-center text-white max-w-4xl mx-auto px-4">
                 <h1 className="text-4xl md:text-5xl font-bold mb-4">
                   {categoryData.name}
