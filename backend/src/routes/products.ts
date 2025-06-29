@@ -39,6 +39,7 @@ const productSchema = z.object({
     endDate: z.string().optional().nullable(),
     slotConfigs: z.array(z.object({
       times: z.array(z.string()),
+      days: z.array(z.string()),
       adultTiers: z.array(z.object({
         min: z.number(),
         max: z.number(),
@@ -293,7 +294,8 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
               const createdSlot = await tx.packageSlot.create({
                 data: {
                   packageId: createdPackage.id,
-                  Time: slotConfig.times
+                  Time: slotConfig.times,
+                  days: slotConfig.days,
                 }
               });
 
@@ -461,7 +463,8 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
               const createdSlot = await tx.packageSlot.create({
                 data: {
                   packageId: createdPackage.id,
-                  Time: slotConfig.times
+                  Time: slotConfig.times,
+                  days: slotConfig.days,
                 }
               });
 

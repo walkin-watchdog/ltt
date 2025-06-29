@@ -9,10 +9,17 @@ interface PriceTier {
 }
 
 interface SlotConfig {
-  times: string[]; // array of times
+  times: string[];
+  days: string[]; // <-- Add this line
   adultTiers: PriceTier[];
   childTiers: PriceTier[];
 }
+
+// ...existing code...
+
+const defaultDayOptions = [
+  'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
+];
 
 interface Package {
   id?: string;
@@ -47,6 +54,7 @@ const defaultTier = (currency: string): PriceTier => ({
 
 const defaultSlotConfig = (currency: string): SlotConfig => ({
   times: [],
+  days: [], // <-- Add this line
   adultTiers: [defaultTier(currency)],
   childTiers: [defaultTier(currency)],
 });
@@ -135,6 +143,12 @@ const SlotConfigModal = ({
 const toggleArrayValue = (arr: string[], value: string) =>
   arr.includes(value) ? arr.filter(v => v !== value) : [...arr, value];
 
+const selectAllDays = (idx: number) => {
+  updateSlot(idx, { days: [...defaultDayOptions] });
+};
+const deselectAllDays = (idx: number) => {
+  updateSlot(idx, { days: [] });
+};
 // Select all times for a slot
 const selectAllTimes = (idx: number) => {
   updateSlot(idx, { times: [...allTimes] });
@@ -194,6 +208,7 @@ const handleAddTime = () => {
                   </button>
                 ))}
               </div>
+              
                 {/* Add custom time input */}
                 <div className="flex gap-2 mt-2">
                 <input
@@ -215,6 +230,37 @@ const handleAddTime = () => {
                 </button>
               </div>
             </div>
+            <div className="mb-2">
+  <label className="block text-xs font-medium text-gray-700 mb-1">
+    Select days when these prices apply
+  </label>
+  <div className="flex items-center mb-2">
+    <input
+      type="checkbox"
+      checked={slot.days.length === defaultDayOptions.length}
+      onChange={e =>
+        e.target.checked ? selectAllDays(idx) : deselectAllDays(idx)
+      }
+      className="mr-2"
+      id={`select-all-days-${idx}`}
+    />
+    <label htmlFor={`select-all-days-${idx}`} className="text-xs font-medium text-gray-700">
+      Select all
+    </label>
+  </div>
+  <div className="flex flex-wrap gap-2">
+    {defaultDayOptions.map(day => (
+      <button
+        key={day}
+        type="button"
+        className={`px-3 py-1 rounded border ${slot.days.includes(day) ? 'bg-[#ff914d] text-white' : 'bg-white text-gray-700'}`}
+        onClick={() => updateSlot(idx, { days: toggleArrayValue(slot.days, day) })}
+      >
+        {day}
+      </button>
+    ))}
+  </div>
+</div>
             {/* Adult Tiers */}
             <div className="mb-2">
               <div className="font-semibold text-gray-800 mb-1">Adult Pricing Tiers</div>

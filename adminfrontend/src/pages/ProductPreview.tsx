@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, MapPin, Clock, Users, Star, Camera,
@@ -31,6 +31,12 @@ export const ProductPreview = () => {
   const [selectedPackage, setSelectedPackage] = useState<PackageOption | null>(null);
   const [showAvail, setShowAvail] = useState(false);
   const isMobile = useMediaQuery('(max-width:1023px)');
+
+  // Refs for scroll navigation
+  const overviewRef = useRef<HTMLDivElement>(null);
+  const itineraryRef = useRef<HTMLDivElement>(null);
+  const inclusionsRef = useRef<HTMLDivElement>(null);
+  const policiesRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -174,6 +180,26 @@ export const ProductPreview = () => {
     })();
   };
 
+  // Handle tab click with smooth scrolling
+  const handleTabClick = (tab: 'overview' | 'itinerary' | 'inclusions' | 'policies') => {
+    setActiveTab(tab);
+    
+    const refs = {
+      overview: overviewRef,
+      itinerary: itineraryRef,
+      inclusions: inclusionsRef,
+      policies: policiesRef,
+    };
+
+    const targetRef = refs[tab];
+    if (targetRef.current) {
+      targetRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -276,15 +302,14 @@ export const ProductPreview = () => {
             )}
           </div>
 
-          {/* Tabbed content */}
-          <div className="bg-white rounded-lg shadow-sm">
-            {/* Tab headers */}
+          {/* Navigation tabs - sticky */}
+          <div className="bg-white rounded-lg shadow-sm sticky top-6 z-10">
             <nav className="border-b flex space-x-8 px-6">
               {(['overview', 'itinerary', 'inclusions', 'policies'] as const).map((t) => (
                 <button
                   key={t}
-                  onClick={() => setActiveTab(t)}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                  onClick={() => handleTabClick(t)}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                     activeTab === t
                       ? 'border-[#ff914d] text-[#ff914d]'
                       : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -299,118 +324,112 @@ export const ProductPreview = () => {
                 </button>
               ))}
             </nav>
+          </div>
 
-            {/* Tab panels */}
-            <div className="p-6">
-              {/* Overview */}
-              {activeTab === 'overview' && (
-                <div className="space-y-6">
-                  {/* about */}
-                  <div>
-                    <h3 className="text-lg font-semibold mb-3">
-                      About this {product.type.toLowerCase()}
-                    </h3>
-                    <p className="text-gray-600 leading-relaxed">
-                      {product.description}
-                    </p>
-                  </div>
+          {/* Content sections */}
+          {/* Overview */}
+          <div ref={overviewRef} className="bg-white rounded-lg shadow-sm p-6 scroll-mt-20">
+            <div className="space-y-6">
+              {/* about */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">
+                  About this {product.type.toLowerCase()}
+                </h3>
+                <p className="text-gray-600 leading-relaxed">
+                  {product.description}
+                </p>
+              </div>
 
-                  {/* highlights */}
-                  {product.highlights?.length ? (
-                    <div>
-                      <h3 className="text-lg font-semibold mb-3">Highlights</h3>
-                      <ul className="space-y-2">
-                        {product.highlights.map((hl, i) => (
-                          <li key={i} className="flex items-start">
-                            <Star className="h-5 w-5 text-[#ff914d] mr-3" />
-                            <span className="text-gray-600">{hl}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : null}
-                </div>
-              )}
-
-              {/* Itinerary */}
-              {activeTab === 'itinerary' && (
+              {/* highlights */}
+              {product.highlights?.length ? (
                 <div>
-                  <h3 className="text-lg font-semibold mb-4">Itinerary</h3>
-                  {product.itineraries?.length ? (
-                    product.itineraries.map(item => (
-                      <div
-                        key={item.day}
-                        className="border-l-4 border-[#ff914d] pl-4 mb-4"
-                      >
-                        <h4 className="font-medium">{`Day ${item.day}: ${item.title}`}</h4>
-                        <p className="text-gray-600">{item.description}</p>
-                        {item.activities?.length ? (
-                          <ul className="list-disc list-inside text-gray-600 text-sm space-y-1 mt-2">
-                            {item.activities.map((act, i) => (
-                              <li key={i}>{act}</li>
-                            ))}
-                          </ul>
-                        ) : null}
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-gray-500">
-                      No itinerary details available.
-                    </p>
-                  )}
+                  <h3 className="text-lg font-semibold mb-3">Highlights</h3>
+                  <ul className="space-y-2">
+                    {product.highlights.map((hl, i) => (
+                      <li key={i} className="flex items-start">
+                        <Star className="h-5 w-5 text-[#ff914d] mr-3" />
+                        <span className="text-gray-600">{hl}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-              )}
+              ) : null}
+            </div>
+          </div>
 
-              {/* Inclusions / Exclusions */}
-              {activeTab === 'inclusions' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* inclusions */}
-                  <div>
-                    <h3 className="text-lg font-semibold text-green-600 mb-3">
-                      What's Included
-                    </h3>
-                    <ul className="space-y-2">
-                      {product.inclusions?.map((inc, i) => (
-                        <li key={i} className="flex items-start">
-                          <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                          <span className="text-gray-600">{inc}</span>
-                        </li>
+          {/* Itinerary */}
+          <div ref={itineraryRef} className="bg-white rounded-lg shadow-sm p-6 scroll-mt-20">
+            <h3 className="text-lg font-semibold mb-4">Itinerary</h3>
+            {product.itineraries?.length ? (
+              product.itineraries.map(item => (
+                <div
+                  key={item.day}
+                  className="border-l-4 border-[#ff914d] pl-4 mb-4"
+                >
+                  <h4 className="font-medium">{`Day ${item.day}: ${item.title}`}</h4>
+                  <p className="text-gray-600">{item.description}</p>
+                  {item.activities?.length ? (
+                    <ul className="list-disc list-inside text-gray-600 text-sm space-y-1 mt-2">
+                      {item.activities.map((act, i) => (
+                        <li key={i}>{act}</li>
                       ))}
                     </ul>
-                  </div>
-                  {/* exclusions */}
-                  {product.exclusions?.length ? (
-                    <div>
-                      <h3 className="text-lg font-semibold text-red-600 mb-3">
-                        What's Not Included
-                      </h3>
-                      <ul className="space-y-2">
-                        {product.exclusions.map((exc, i) => (
-                          <li key={i} className="flex items-start">
-                            <XCircle className="h-5 w-5 text-red-500 mr-3" />
-                            <span className="text-gray-600">{exc}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
                   ) : null}
                 </div>
-              )}
+              ))
+            ) : (
+              <p className="text-gray-500">
+                No itinerary details available.
+              </p>
+            )}
+          </div>
 
-              {/* Policies */}
-              {activeTab === 'policies' && (
+          {/* Inclusions / Exclusions */}
+          <div ref={inclusionsRef} className="bg-white rounded-lg shadow-sm p-6 scroll-mt-20">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* inclusions */}
+              <div>
+                <h3 className="text-lg font-semibold text-green-600 mb-3">
+                  What's Included
+                </h3>
+                <ul className="space-y-2">
+                  {product.inclusions?.map((inc, i) => (
+                    <li key={i} className="flex items-start">
+                      <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
+                      <span className="text-gray-600">{inc}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              {/* exclusions */}
+              {product.exclusions?.length ? (
                 <div>
-                  <h3 className="text-lg font-semibold mb-4">
-                    Cancellation Policy
+                  <h3 className="text-lg font-semibold text-red-600 mb-3">
+                    What's Not Included
                   </h3>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <p className="text-gray-600">
-                      {product.cancellationPolicy ||
-                        'No specific policy provided.'}
-                    </p>
-                  </div>
+                  <ul className="space-y-2">
+                    {product.exclusions.map((exc, i) => (
+                      <li key={i} className="flex items-start">
+                        <XCircle className="h-5 w-5 text-red-500 mr-3" />
+                        <span className="text-gray-600">{exc}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-              )}
+              ) : null}
+            </div>
+          </div>
+
+          {/* Policies */}
+          <div ref={policiesRef} className="bg-white rounded-lg shadow-sm p-6 scroll-mt-20">
+            <h3 className="text-lg font-semibold mb-4">
+              Cancellation Policy
+            </h3>
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <p className="text-gray-600">
+                {product.cancellationPolicy ||
+                  'No specific policy provided.'}
+              </p>
             </div>
           </div>
         </section>
@@ -479,12 +498,6 @@ export const ProductPreview = () => {
                             <p className="text-sm text-gray-600">
                               {pkg.description}
                             </p>
-                          )}
-                        </span>
-                        <span className="font-bold text-[#ff914d]">
-                          ₹{pkg.price.toLocaleString()}
-                          {pkg.childPrice !== undefined && (
-                            <> / ₹{pkg.childPrice.toLocaleString()}</>
                           )}
                         </span>
                       </button>
@@ -592,12 +605,6 @@ export const ProductPreview = () => {
                     <div key={pkg.id} className="border rounded-lg p-3">
                       <div className="flex justify-between">
                         <h5 className="font-medium">{pkg.name}</h5>
-                        <span className="text-[#ff914d] font-semibold">
-                          {pkg.currency === 'INR' ? '₹' : pkg.currency}{pkg.price.toLocaleString()}
-                          {pkg.childPrice !== undefined && (
-                            <> / {pkg.currency === 'INR' ? '₹' : pkg.currency}{pkg.childPrice.toLocaleString()}</>
-                          )}
-                        </span>
                       </div>
                       <p className="text-sm text-gray-600">{pkg.description}</p>
                       {pkg.maxPeople && (
@@ -631,12 +638,12 @@ export const ProductPreview = () => {
           open={showAvail}
           productId={product.id}
           packages={product.packages ?? []}
-          selectedPackageId={selectedPackage?.id}
-          onSlotSelect={() => setShowAvail(false)}
+          selectedPackage={selectedPackage ?? undefined}
           onClose={() => setShowAvail(false)}
           initialDate={selectedDateStr}
           initialAdults={adultsCount}
           initialChildren={childrenCount}
+          onPackageSelect={handlePackageSelect}
         />
       )}
     </div>

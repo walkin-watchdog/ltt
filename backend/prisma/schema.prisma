@@ -118,6 +118,7 @@ model PackageSlot {
   Time      String[]
   available Int      @default(0)
   booked    Int      @default(0)
+  days      String[]
   
   package   Package  @relation(fields: [packageId], references: [id], onDelete: Cascade)
   bookings  Booking[]

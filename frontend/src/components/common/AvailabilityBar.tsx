@@ -131,9 +131,9 @@ const BarUI = ({
                 caption: 'text-center font-semibold mb-4',
                 table: 'border-collapse',
                 head_row: 'text-gray-400',
-                day: 'w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-200',
-                day_selected: 'bg-[#ff914d] text-white',
-                day_today: 'border border-[#ff914d]',
+                day: 'w-10 h-10 flex items-center justify-center rounded-full hover:ring-2 hover:ring-[#104c57] hover:ring-opacity-50',
+                day_selected: 'bg-[#104c57] text-white font-semibold',
+                day_today: 'border border-[#104c57]',
               }}
             />
           </div>
@@ -175,9 +175,9 @@ const BarUI = ({
                     caption: 'text-center font-semibold mb-4',
                     table: 'border-collapse w-full',
                     head_row: 'text-gray-400',
-                    day: 'w-10 h-10 items-center justify-center rounded-full hover:bg-gray-200',
-                    day_selected: 'bg-[#ff914d] text-white',
-                    day_today: 'border border-[#ff914d]',
+                    day: 'w-10 h-10 items-center justify-center rounded-full hover:ring-2 hover:ring-[#104c57] hover:ring-opacity-50',
+                    day_selected: 'bg-[#104c57] text-white font-semibold',
+                    day_today: 'border border-[#104c57]',
                   }}
                 />
               </Sheet.Content>
