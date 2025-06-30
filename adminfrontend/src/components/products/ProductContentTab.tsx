@@ -24,23 +24,29 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
-  const [newItem, setNewItem] = useState<{ 
-    highlight: string; 
-    inclusion: string; 
-    exclusion: string; 
-    tag: string; 
+  // ...existing code...
+  const [newItem, setNewItem] = useState<{
+    highlight: string;
+    inclusion: string;
+    inclusionText?: string;
+    exclusion: string;
+    exclusionText?: string;
+    tag: string;
     pickupLocation: string;
     guide: string;
     language: string;
   }>({
     highlight: '',
     inclusion: '',
+    inclusionText: '',
     exclusion: '',
+    exclusionText: '',
     tag: '',
     pickupLocation: '',
     guide: '',
     language: '',
   });
+  // ...existing code...
   const { token } = useAuth();
   // const toast = useToast();
   const [showItineraryBuilder, setShowItineraryBuilder] = useState(false);
@@ -52,6 +58,15 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
   const [experienceCategories, setExperienceCategories] = useState<any[]>([]);
   const [isLoadingDestinations, setIsLoadingDestinations] = useState(false);
   const [isLoadingCategories, setIsLoadingCategories] = useState(false);
+  const [pickupOption, setPickupOption] = useState(formData.pickupOption || '');
+
+  const healthRestrictionOptions = [
+    "Not recommended for travelers with back problems",
+    "Not recommended for pregnant travelers",
+    "Not recommended for travelers with heart problems or other serious medical conditions"
+  ];
+  const [customHealthRestrictions, setCustomHealthRestrictions] = useState<string[]>([]);
+  const [newCustomHealthRestriction, setNewCustomHealthRestriction] = useState('');
 
   useEffect(() => {
     if (formData.itineraries && formData.itineraries.length > 0) {
@@ -137,11 +152,11 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
 
   const saveItineraryDay = () => {
     if (!editingDay) return;
-    
+
     // First check if we need to use itinerary or itineraries
     const currentItinerary = formData.itinerary || formData.itineraries || [];
     const existingIndex = currentItinerary.findIndex((day: ItineraryDay) => day.day === editingDay.day);
-    
+
     let updatedItinerary;
     if (existingIndex >= 0) {
       updatedItinerary = [...currentItinerary];
@@ -149,7 +164,7 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
     } else {
       updatedItinerary = [...currentItinerary, editingDay].sort((a, b) => a.day - b.day);
     }
-    
+
     updateFormData({ itinerary: updatedItinerary });
     setEditingDay(null);
     setShowItineraryBuilder(false);
@@ -158,7 +173,7 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
   const createNewDay = () => {
     const currentItinerary = formData.itinerary || formData.itineraries || [];
     const nextDay = currentItinerary.length > 0 ? Math.max(...currentItinerary.map((d: ItineraryDay) => d.day)) + 1 : 1;
-    
+
     setEditingDay({
       day: nextDay,
       title: '',
@@ -182,7 +197,7 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
 
   const ArrayInput = ({ label, field, placeholder }: { label: string; field: string; placeholder: string }) => {
     const [inputValue, setInputValue] = useState('');
-    
+
     return (
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
@@ -238,7 +253,7 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/destinations`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         setDestinations(data);
@@ -256,7 +271,7 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/experience-categories`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         setExperienceCategories(data);
@@ -270,20 +285,20 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
-    
+
     const files = Array.from(e.target.files);
     setIsUploading(true);
     setUploadProgress(0);
-    
+
     try {
       const uploadFormData = new FormData();
       files.forEach(file => {
         uploadFormData.append('images', file);
       });
-      
+
       const response = await axios.post(
         `${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/uploads/products`,
-        uploadFormData, 
+        uploadFormData,
         {
           headers: {
             'Content-Type': 'multipart/form-data',
@@ -295,7 +310,7 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
           }
         }
       );
-      
+
       if (response.data && response.data.images) {
         const newImages = response.data.images.map((img: any) => img.url);
         updateFormData({ images: [...(formData.images || []), ...newImages] });
@@ -309,23 +324,23 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
       }
     }
   };
-  
+
   const removeImage = (index: number) => {
-    updateFormData({ 
-      images: formData.images.filter((_: any, i: number) => i !== index) 
+    updateFormData({
+      images: formData.images.filter((_: any, i: number) => i !== index)
     });
   };
 
   const addItem = (field: string, value: string) => {
     if (!value.trim()) return;
-    
+
     updateFormData({
       [field]: [...formData[field], value.trim()]
     });
-    
+
     setNewItem(prev => ({ ...prev, [field]: '' }));
   };
-  
+
   const removeItem = (field: string, index: number) => {
     updateFormData({
       [field]: formData[field].filter((_: any, i: number) => i !== index)
@@ -333,17 +348,17 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
   };
 
   const handleDestinationSelect = (destination: any) => {
-    updateFormData({ 
+    updateFormData({
       location: destination.name,
-      destinationId: destination.id 
+      destinationId: destination.id
     });
     setIsDestinationModalOpen(false);
   };
 
   const handleCategorySelect = (category: any) => {
-    updateFormData({ 
+    updateFormData({
       category: category.name,
-      experienceCategoryId: category.id 
+      experienceCategoryId: category.id
     });
     setIsCategoryModalOpen(false);
   };
@@ -353,7 +368,7 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
       {/* Images */}
       <div className="bg-gray-50 rounded-lg p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Images</h3>
-        
+
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-6">
           {formData.images.map((image: string, index: number) => (
             <div key={index} className="relative group">
@@ -370,7 +385,7 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
               </button>
             </div>
           ))}
-          
+
           <div className="h-32 flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 cursor-pointer transition-colors">
             <input
               type="file"
@@ -390,18 +405,18 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                 <>
                   <div className="mb-2 relative w-10 h-10">
                     <svg className="w-10 h-10 animate-spin" viewBox="0 0 24 24">
-                      <circle 
-                        className="opacity-25" 
-                        cx="12" 
-                        cy="12" 
-                        r="10" 
-                        stroke="currentColor" 
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
                         strokeWidth="4"
                         fill="none"
                       />
-                      <path 
-                        className="opacity-75" 
-                        fill="currentColor" 
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
                         d={`M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z`}
                       />
                     </svg>
@@ -485,7 +500,7 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
             <div className="flex">
               <select
                 value={formData.location}
-                onChange={(e) => updateFormData({ 
+                onChange={(e) => updateFormData({
                   location: e.target.value,
                   destinationId: destinations.find(d => d.name === e.target.value)?.id || null
                 })}
@@ -516,7 +531,7 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
             <div className="flex">
               <select
                 value={formData.category}
-                onChange={(e) => updateFormData({ 
+                onChange={(e) => updateFormData({
                   category: e.target.value,
                   experienceCategoryId: experienceCategories.find(c => c.name === e.target.value)?.id || null
                 })}
@@ -599,7 +614,7 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                 {formData.highlights.map((highlight: string, index: number) => (
                   <li key={index} className="flex justify-between items-center p-3 hover:bg-gray-50">
                     <span className="text-gray-700">{highlight}</span>
-                    <button 
+                    <button
                       onClick={() => removeItem('highlights', index)}
                       className="text-red-500 hover:text-red-700 transition-colors"
                     >
@@ -619,28 +634,58 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
         <div className="bg-gray-50 rounded-lg p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Inclusions</h3>
           <div className="space-y-4">
-            <div className="flex">
-              <input
-                type="text"
+            <div className="flex mb-2">
+              <select
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
                 value={newItem.inclusion}
-                onChange={(e) => setNewItem({ ...newItem, inclusion: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                placeholder="Add an inclusion"
-              />
-              <button
-                type="button"
-                onClick={() => addItem('inclusions', newItem.inclusion)}
-                className="px-3 py-2 bg-[#ff914d] text-white rounded-r-md hover:bg-[#e8823d] transition-colors"
+                onChange={e => {
+                  const value = e.target.value;
+                  if (value && value !== 'Other') {
+                    addItem('inclusions', value);
+                    setNewItem(prev => ({ ...prev, inclusion: '' }));
+                  } else {
+                    setNewItem(prev => ({ ...prev, inclusion: value }));
+                  }
+                }}
               >
-                <Plus className="h-5 w-5" />
-              </button>
+                <option value="">Add from predefined...</option>
+                <option value="Food and drink">Food and drink</option>
+                <option value="Excess charges">Excess charges</option>
+                <option value="Transportation amenities">Transportation amenities</option>
+                <option value="Fees">Fees</option>
+                <option value="Use of Equipment">Use of Equipment</option>
+                <option value="Other">Other</option>
+              </select>
+              {newItem.inclusion === 'Other' && (
+                <>
+                  <input
+                    type="text"
+                    value={newItem.inclusionText || ''}
+                    onChange={e => setNewItem(prev => ({ ...prev, inclusionText: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent ml-2"
+                    placeholder="Add a custom inclusion"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (newItem.inclusionText?.trim()) {
+                        addItem('inclusions', newItem.inclusionText);
+                        setNewItem(prev => ({ ...prev, inclusion: '', inclusionText: '' }));
+                      }
+                    }}
+                    className="px-3 py-2 bg-[#ff914d] text-white rounded-r-md hover:bg-[#e8823d] transition-colors ml-2"
+                  >
+                    <Plus className="h-5 w-5" />
+                  </button>
+                </>
+              )}
             </div>
             <div className="border border-gray-200 rounded-md max-h-64 overflow-y-auto">
               <ul className="divide-y divide-gray-200">
                 {formData.inclusions.map((inclusion: string, index: number) => (
                   <li key={index} className="flex justify-between items-center p-3 hover:bg-gray-50">
                     <span className="text-gray-700">{inclusion}</span>
-                    <button 
+                    <button
                       onClick={() => removeItem('inclusions', index)}
                       className="text-red-500 hover:text-red-700 transition-colors"
                     >
@@ -660,28 +705,58 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
         <div className="bg-gray-50 rounded-lg p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Exclusions</h3>
           <div className="space-y-4">
-            <div className="flex">
-              <input
-                type="text"
+            <div className="flex mb-2">
+              <select
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
                 value={newItem.exclusion}
-                onChange={(e) => setNewItem({ ...newItem, exclusion: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                placeholder="Add an exclusion"
-              />
-              <button
-                type="button"
-                onClick={() => addItem('exclusions', newItem.exclusion)}
-                className="px-3 py-2 bg-[#ff914d] text-white rounded-r-md hover:bg-[#e8823d] transition-colors"
+                onChange={e => {
+                  const value = e.target.value;
+                  if (value && value !== 'Other') {
+                    addItem('exclusions', value);
+                    setNewItem(prev => ({ ...prev, exclusion: '' }));
+                  } else {
+                    setNewItem(prev => ({ ...prev, exclusion: value }));
+                  }
+                }}
               >
-                <Plus className="h-5 w-5" />
-              </button>
+                <option value="">Add from predefined...</option>
+                <option value="Food and drink">Food and drink</option>
+                <option value="Excess charges">Excess charges</option>
+                <option value="Transportation amenities">Transportation amenities</option>
+                <option value="Fees">Fees</option>
+                <option value="Use of Equipment">Use of Equipment</option>
+                <option value="Other">Other</option>
+              </select>
+              {newItem.exclusion === 'Other' && (
+                <>
+                  <input
+                    type="text"
+                    value={newItem.exclusionText || ''}
+                    onChange={e => setNewItem(prev => ({ ...prev, exclusionText: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent ml-2"
+                    placeholder="Add a custom exclusion"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (newItem.exclusionText?.trim()) {
+                        addItem('exclusions', newItem.exclusionText);
+                        setNewItem(prev => ({ ...prev, exclusion: '', exclusionText: '' }));
+                      }
+                    }}
+                    className="px-3 py-2 bg-[#ff914d] text-white rounded-r-md hover:bg-[#e8823d] transition-colors ml-2"
+                  >
+                    <Plus className="h-5 w-5" />
+                  </button>
+                </>
+              )}
             </div>
             <div className="border border-gray-200 rounded-md max-h-64 overflow-y-auto">
               <ul className="divide-y divide-gray-200">
                 {formData.exclusions.map((exclusion: string, index: number) => (
                   <li key={index} className="flex justify-between items-center p-3 hover:bg-gray-50">
                     <span className="text-gray-700">{exclusion}</span>
-                    <button 
+                    <button
                       onClick={() => removeItem('exclusions', index)}
                       className="text-red-500 hover:text-red-700 transition-colors"
                     >
@@ -718,7 +793,8 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
               </button>
             </div>
             <div>
-              <div className="flex flex-wrap gap-2 mt-2">
+            <div className="border border-gray-200 rounded-md max-h-32 overflow-y-auto">
+            <ul className="divide-y divide-gray-200">
                 {formData.tags.map((tag: string, index: number) => (
                   <div
                     key={index}
@@ -734,8 +810,9 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                   </div>
                 ))}
                 {formData.tags.length === 0 && (
-                  <p className="text-gray-500 text-sm">No tags added</p>
+                  <li className="p-3 text-gray-500 text-center">No Tags added</li>
                 )}
+                </ul>
               </div>
             </div>
           </div>
@@ -762,7 +839,8 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
               </button>
             </div>
             <div>
-              <div className="flex flex-wrap gap-2 mt-2">
+            <div className="border border-gray-200 rounded-md max-h-32 overflow-y-auto">
+            <ul className="divide-y divide-gray-200">
                 {formData.languages.map((language: string, index: number) => (
                   <div
                     key={index}
@@ -778,8 +856,9 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                   </div>
                 ))}
                 {formData.languages.length === 0 && (
-                  <p className="text-gray-500 text-sm">No languages added</p>
+                  <li className="p-3 text-gray-500 text-center">No Languages added</li>
                 )}
+                </ul>
               </div>
             </div>
           </div>
@@ -810,7 +889,7 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                 {formData.guides.map((guide: string, index: number) => (
                   <li key={index} className="flex justify-between items-center p-3 hover:bg-gray-50">
                     <span className="text-gray-700">{guide}</span>
-                    <button 
+                    <button
                       onClick={() => removeItem('guides', index)}
                       className="text-red-500 hover:text-red-700 transition-colors"
                     >
@@ -826,7 +905,7 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
           </div>
         </div>
       </div>
-      
+
       {/* Tour Details */}
       <div className="bg-gray-50 rounded-lg p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Additional Details</h3>
@@ -864,30 +943,141 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Health Restrictions
-            </label>
-            <textarea
-              rows={3}
-              value={formData.healthRestrictions || ''}
-              onChange={(e) => updateFormData({ healthRestrictions: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-              placeholder="Any health restrictions or requirements..."
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Meeting Point
-            </label>
-            <textarea
-              rows={3}
-              value={formData.meetingPoint || ''}
-              onChange={(e) => updateFormData({ meetingPoint: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-              placeholder="Describe the meeting point..."
-            />
+            <div className="bg-white rounded-lg p-4 border border-gray-200">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Health restrictions
+              </label>
+              <span className="block text-sm text-gray-500 mb-3">Check all that apply</span>
+              <div className="space-y-3 mb-4">
+                {healthRestrictionOptions.map(option => (
+                  <label key={option} className="flex items-center space-x-3">
+                    <input
+                      type="checkbox"
+                      checked={Array.isArray(formData.healthRestrictions) && formData.healthRestrictions.includes(option)}
+                      onChange={e => {
+                        let updated: string[] = Array.isArray(formData.healthRestrictions) ? [...formData.healthRestrictions] : [];
+                        if (e.target.checked) {
+                          updated.push(option);
+                        } else {
+                          updated = updated.filter(item => item !== option);
+                        }
+                        updateFormData({ healthRestrictions: updated });
+                      }}
+                      className="h-4 w-4 border-gray-300 rounded focus:ring-[#ff914d] accent-[#ff914d]"
+                    />
+                    <span className="text-gray-700">{option}</span>
+                  </label>
+                ))}
+                {customHealthRestrictions.map((custom, idx) => (
+                  <label key={custom} className="flex items-center space-x-3">
+                    <input
+                      type="checkbox"
+                      checked={Array.isArray(formData.healthRestrictions) && formData.healthRestrictions.includes(custom)}
+                      onChange={e => {
+                        let updated: string[] = Array.isArray(formData.healthRestrictions) ? [...formData.healthRestrictions] : [];
+                        if (e.target.checked) {
+                          updated.push(custom);
+                        } else {
+                          updated = updated.filter(item => item !== custom);
+                        }
+                        updateFormData({ healthRestrictions: updated });
+                      }}
+                      className="h-4 w-4 border-gray-300 rounded focus:ring-[#ff914d] accent-[#ff914d]"
+                    />
+                    <span className="text-gray-700">{custom}</span>
+                    <button
+                      type="button"
+                      className="ml-2 text-red-500 hover:text-red-700"
+                      onClick={() => {
+                        setCustomHealthRestrictions(customHealthRestrictions.filter((_, i) => i !== idx));
+                        if (Array.isArray(formData.healthRestrictions) && formData.healthRestrictions.includes(custom)) {
+                          updateFormData({
+                            healthRestrictions: formData.healthRestrictions.filter((item: string) => item !== custom)
+                          });
+                        }
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </label>
+                ))}
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  className="text-[#ff914d] hover:underline font-medium"
+                  onClick={() => {
+                    if (newCustomHealthRestriction.trim()) {
+                      setCustomHealthRestrictions([...customHealthRestrictions, newCustomHealthRestriction.trim()]);
+                      setNewCustomHealthRestriction('');
+                    }
+                  }}
+                >
+                  + Add another
+                </button>
+                <input
+                  type="text"
+                  value={newCustomHealthRestriction}
+                  onChange={e => setNewCustomHealthRestriction(e.target.value)}
+                  placeholder="Custom restriction"
+                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && newCustomHealthRestriction.trim()) {
+                      setCustomHealthRestrictions([...customHealthRestrictions, newCustomHealthRestriction.trim()]);
+                      setNewCustomHealthRestriction('');
+                    }
+                  }}
+                />
+              </div>
+            </div>
           </div>
         </div>
+      </div>
+      <div className="bg-gray-50 rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Pickup Options</h3>
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Pickup Option *
+          </label>
+          <select
+            value={pickupOption}
+            onChange={e => {
+              setPickupOption(e.target.value);
+              updateFormData({ pickupOption: e.target.value });
+              if (e.target.value === 'We pick up all travelers') {
+                updateFormData({ meetingPoint: '' });
+              }
+            }}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+            required
+          >
+            <option value="">Select pickup option</option>
+            <option value="We pick up all travelers">We pick up all travelers</option>
+            <option value="We can pick up travelers or meet them at a meeting point">
+              We can pick up travelers or meet them at a meeting point
+            </option>
+            <option value="No, we meet all travelers at a meeting point">
+              No, we meet all travelers at a meeting point
+            </option>
+          </select>
+        </div>
+
+        {(pickupOption === 'We can pick up travelers or meet them at a meeting point' ||
+          pickupOption === 'No, we meet all travelers at a meeting point') && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Meeting Point *
+              </label>
+              <textarea
+                rows={3}
+                value={formData.meetingPoint || ''}
+                onChange={e => updateFormData({ meetingPoint: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+                placeholder="Describe the meeting point..."
+                required
+              />
+            </div>
+          )}
       </div>
 
       {/* Pickup Locations */}
@@ -915,7 +1105,7 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
               {formData.pickupLocations.map((location: string, index: number) => (
                 <li key={index} className="flex justify-between items-center p-3 hover:bg-gray-50">
                   <span className="text-gray-700">{location}</span>
-                  <button 
+                  <button
                     onClick={() => removeItem('pickupLocations', index)}
                     className="text-red-500 hover:text-red-700 transition-colors"
                   >
@@ -930,7 +1120,7 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
           </div>
         </div>
       </div>
-      
+
       {formData.type === 'TOUR' && (
         <div>
           <div className="flex items-center justify-between mb-4">
@@ -1164,7 +1354,7 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
 
       {/* Destination Modal */}
       {isDestinationModalOpen && (
-        <DestinationModal 
+        <DestinationModal
           isOpen={isDestinationModalOpen}
           onClose={() => setIsDestinationModalOpen(false)}
           onSelect={handleDestinationSelect}
