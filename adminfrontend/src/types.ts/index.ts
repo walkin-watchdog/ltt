@@ -211,6 +211,7 @@ export interface ProductFormData {
 }
 
 export interface Productprop {
+  discountPrice: any;
   id: string;
   title: string;
   productCode: string;

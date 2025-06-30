@@ -169,11 +169,12 @@ model Availability {
   endDate   DateTime?
   status    AvailabilityStatus
   booked    Int               @default(0)
+  available Int
   packageId String?           /// new optional FK to support per-package tallies
 
   package Package? @relation("PackageAvailability", fields: [packageId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-
+  @@unique([productId, packageId, startDate])
   @@map("availabilities")
 }
 

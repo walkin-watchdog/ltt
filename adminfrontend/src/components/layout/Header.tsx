@@ -1,4 +1,4 @@
-import { Bell, Search } from 'lucide-react';
+import {  Search } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 export const Header = () => {
@@ -21,10 +21,10 @@ export const Header = () => {
         </div>
 
         <div className="flex items-center space-x-4">
-          <button className="relative p-2 text-gray-400 hover:text-gray-600 transition-colors">
+          {/* <button className="relative p-2 text-gray-400 hover:text-gray-600 transition-colors">
             <Bell className="h-6 w-6" />
             <span className="absolute top-0 right-0 h-2 w-2 bg-red-500 rounded-full"></span>
-          </button>
+          </button> */}
           
           <div className="flex items-center space-x-3">
             <div className="text-right">

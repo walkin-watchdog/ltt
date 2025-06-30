@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { 
@@ -24,6 +24,7 @@ import { fetchProduct } from '../store/slices/productsSlice';
 import { SEOHead } from '../components/seo/SEOHead';
 import { ReviewsWidget } from '../components/reviews/ReviewsWidget';
 import { formatDate, parse } from 'date-fns';
+import { setStep } from '@/store/slices/bookingSlice';
 
 // Helper function to calculate the effective price after discount
 const calculateEffectivePrice = (basePrice: number, discountType?: string, discountValue?: number) => {
@@ -64,7 +65,30 @@ export const ProductDetail = () => {
   const [abandonedCart, setAbandonedCart] = useState<any>(null);
   const [showRecoveryPrompt, setShowRecoveryPrompt] = useState(false);
   const [cheapestPackage, setCheapestPackage] = useState<any>(null);
-  
+  const [activeTab, setActiveTab] = useState<'overview' | 'itinerary' | 'inclusions' | 'policies'>('overview');
+  const overviewRef = useRef<HTMLDivElement>(null);
+  const itineraryRef = useRef<HTMLDivElement>(null);
+  const inclusionsRef = useRef<HTMLDivElement>(null);
+  const policiesRef = useRef<HTMLDivElement>(null);
+
+  const handleTabClick = (tab: 'overview' | 'itinerary' | 'inclusions' | 'policies') => {
+    setActiveTab(tab);
+    const refs = {
+      overview: overviewRef,
+      itinerary: itineraryRef,
+      inclusions: inclusionsRef,
+      policies: policiesRef,
+    };
+    const targetRef = refs[tab];
+    if (targetRef.current) {
+      targetRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    }
+  };
+
+
   const handleBarChange = ({
     date,
     adults,
@@ -204,7 +228,7 @@ export const ProductDetail = () => {
           const data = await res.json();
           if (data.slots && Array.isArray(data.slots)) {
             // Filter slots based on day of week
-            const filteredSlots = data.slots.filter(slot => 
+            const filteredSlots = data.slots.filter((slot: { days: string | string[]; }) => 
               Array.isArray(slot.days) && slot.days.includes(dayOfWeek)
             );
             setSlotsForPackage(filteredSlots);
@@ -428,7 +452,7 @@ export const ProductDetail = () => {
         image={currentProduct.images[0]}
         structuredData={structuredData}
       />
-
+  
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Abandoned Cart Recovery Prompt */}
         {showRecoveryPrompt && (
@@ -514,10 +538,34 @@ export const ProductDetail = () => {
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 ml-5 mr-5 lg:ml-10 lg:mr-10">
         <div className="lg:col-span-2">
+          {/* Tabbed Navigation Bar */}
+          <div className="bg-white rounded-lg shadow-sm mb-8">
+            <nav className="border-b flex space-x-8 px-6">
+              {(['overview', 'itinerary', 'inclusions', 'policies'] as const).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => handleTabClick(t)}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                    activeTab === t
+                      ? 'border-[#ff914d] text-[#ff914d]'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  {{
+                    overview: 'Overview',
+                    itinerary: 'Itinerary',
+                    inclusions: "What's Included",
+                    policies: 'Policies',
+                  }[t]}
+                </button>
+              ))}
+            </nav>
+          </div>
           {/* Main Content */}
           <div className="relative mb-8">  
-            {/* Product Info */}
-            <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
+            {/* Overview */}
+            <div ref={overviewRef} className="bg-white rounded-lg shadow-sm p-6 mb-8 scroll-mt-20">
+              {/* Product Info */}
               <div className="flex items-center justify-between mb-4">
                 <span className="bg-[#104c57] text-white px-3 py-1 rounded-full text-sm font-medium">
                   {currentProduct.type}
@@ -535,7 +583,7 @@ export const ProductDetail = () => {
                   </button>
                 </div>
               </div>
-
+  
               <h1 className="text-3xl font-bold text-gray-900 mb-4">{currentProduct.title}</h1>
               
               {/* Availability Status */}
@@ -591,11 +639,11 @@ export const ProductDetail = () => {
                   <span>Up to {currentProduct.capacity} people</span>
                 </div>
               </div>
-
+  
               <p className="text-gray-700 text-lg leading-relaxed mb-6">
                 {currentProduct.description}
               </p>
-
+  
               {/* Tags */}
               <div className="flex flex-wrap gap-2 mb-6">
                 {currentProduct.tags.map((tag, index) => (
@@ -608,60 +656,13 @@ export const ProductDetail = () => {
                 ))}
               </div>
             </div>
-
-            {/* Highlights */}
-            {currentProduct.highlights.length > 0 && (
-              <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Highlights</h2>
-                <ul className="space-y-2">
-                  {currentProduct.highlights.map((highlight, index) => (
-                    <li key={index} className="flex items-start">
-                      <Check className="h-5 w-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
-                      <span className="text-gray-700">{highlight}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {/* Inclusions & Exclusions */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-              {currentProduct.inclusions.length > 0 && (
-                <div className="bg-white rounded-lg shadow-sm p-6">
-                  <h2 className="text-xl font-bold text-gray-900 mb-4">Included</h2>
-                  <ul className="space-y-2">
-                    {currentProduct.inclusions.map((inclusion, index) => (
-                      <li key={index} className="flex items-start">
-                        <Check className="h-4 w-4 text-green-500 mr-3 mt-1 flex-shrink-0" />
-                        <span className="text-gray-700 text-sm">{inclusion}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {currentProduct.exclusions.length > 0 && (
-                <div className="bg-white rounded-lg shadow-sm p-6">
-                  <h2 className="text-xl font-bold text-gray-900 mb-4">Not Included</h2>
-                  <ul className="space-y-2">
-                    {currentProduct.exclusions.map((exclusion, index) => (
-                      <li key={index} className="flex items-start">
-                        <X className="h-4 w-4 text-red-500 mr-3 mt-1 flex-shrink-0" />
-                        <span className="text-gray-700 text-sm">{exclusion}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-
-            {/* Itinerary (for Tours) */}
+  
+            {/* Itinerary */}
             {currentProduct.type === 'TOUR' &&
             currentProduct.itineraries &&
             currentProduct.itineraries.length > 0 && (
-              <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
+              <div ref={itineraryRef} className="bg-white rounded-lg shadow-sm p-6 mb-8 scroll-mt-20">
                 <h2 className="text-xl font-bold text-gray-900 mb-4">Itinerary</h2>
-
                 <div className="space-y-8">
                   {currentProduct.itineraries.map((day: any) => (
                     <section
@@ -675,7 +676,7 @@ export const ProductDetail = () => {
                         </h3>
                         <p className="text-gray-700 mt-1">{day.description}</p>
                       </header>
-
+  
                       {/* Activities */}
                       {day.activities && day.activities.length > 0 && (
                         <div>
@@ -689,7 +690,7 @@ export const ProductDetail = () => {
                           </ul>
                         </div>
                       )}
-
+  
                       {/* Images */}
                       {day.images && day.images.length > 0 && (
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
@@ -708,7 +709,48 @@ export const ProductDetail = () => {
                 </div>
               </div>
             )}
-
+  
+            {/* Inclusions & Exclusions */}
+            <div ref={inclusionsRef} className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 scroll-mt-20">
+              {currentProduct.inclusions.length > 0 && (
+                <div className="bg-white rounded-lg shadow-sm p-6">
+                  <h2 className="text-xl font-bold text-gray-900 mb-4">Included</h2>
+                  <ul className="space-y-2">
+                    {currentProduct.inclusions.map((inclusion, index) => (
+                      <li key={index} className="flex items-start">
+                        <Check className="h-4 w-4 text-green-500 mr-3 mt-1 flex-shrink-0" />
+                        <span className="text-gray-700 text-sm">{inclusion}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+  
+              {currentProduct.exclusions.length > 0 && (
+                <div className="bg-white rounded-lg shadow-sm p-6">
+                  <h2 className="text-xl font-bold text-gray-900 mb-4">Not Included</h2>
+                  <ul className="space-y-2">
+                    {currentProduct.exclusions.map((exclusion, index) => (
+                      <li key={index} className="flex items-start">
+                        <X className="h-4 w-4 text-red-500 mr-3 mt-1 flex-shrink-0" />
+                        <span className="text-gray-700 text-sm">{exclusion}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+  
+            {/* Policies */}
+            <div ref={policiesRef} className="bg-white rounded-lg shadow-sm p-6 mb-8 scroll-mt-20">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Cancellation Policy</h2>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-gray-600">
+                  {currentProduct.cancellationPolicy || 'No specific policy provided.'}
+                </p>
+              </div>
+            </div>
+  
             {/* Reviews */}
             {currentProduct.reviews && currentProduct.reviews.length > 0 && (
               <div className="bg-white rounded-lg shadow-sm p-6">
@@ -735,7 +777,7 @@ export const ProductDetail = () => {
                 </div>
               </div>
             )}
-
+  
             {/* External Reviews Widget */}
             <ReviewsWidget 
               googlePlaceId={import.meta.env.VITE_GOOGLE_REVIEWS_PLACE_ID}
@@ -796,7 +838,7 @@ export const ProductDetail = () => {
                 </span>
               )}
             </div>
-
+  
             {/* check-availability */}
             <AvailabilityBar
               selectedDate={selectedDateStr}
@@ -805,7 +847,7 @@ export const ProductDetail = () => {
               onChange={handleBarChange}
               onCheck={() => {
                 if (isMobile) { setShowAvail(true); return; }
-
+  
                 const iso = formatDate(parse(selectedDateStr, 'MM/dd/yyyy', new Date()), 'yyyy-MM-dd');
                 (async () => {
                   setCheckingAvail(true);
@@ -846,12 +888,12 @@ export const ProductDetail = () => {
                 })();
               }}
             />
-
+  
             {/* Booking Button */}
             {!isMobile && checkingAvail && (
               <p className="text-center text-gray-500 my-4">Checking availability…</p>
             )}
-
+  
             {!isMobile && isDateOk === false && !checkingAvail && !slotsLoading && (
               <p className="text-center text-red-600 my-4">
                 No time slots available for this date.
@@ -859,7 +901,7 @@ export const ProductDetail = () => {
                 <span className="text-sm text-gray-500">Please try selecting another date.</span>
               </p>
             )}
-
+  
             {/* Package Selection */}
             {!isMobile && isDateOk && availablePackages.length > 0 && (
               <div className="mb-6">
@@ -921,7 +963,7 @@ export const ProductDetail = () => {
                 </div>
               </div>
             )}
-
+  
             {/* Time Slot Selection */}
             {!isMobile && selectedPackage && (
               <div className="mb-4">
@@ -983,7 +1025,7 @@ export const ProductDetail = () => {
                 </div>
               </div>
             )}
-
+  
             {/* Pricing info for selected package/slot */}
             {!isMobile && selectedPackage && selectedSlot && (
               <div className="mb-4 p-4 bg-gray-50 rounded-lg">
@@ -1048,7 +1090,7 @@ export const ProductDetail = () => {
               </span>
             </Link>
           )}
-
+  
             {/* share dropdown */}
             <div className="relative mt-4">
               <button
@@ -1063,13 +1105,13 @@ export const ProductDetail = () => {
                 Copy Link
               </button>
             </div>
-
+  
             <div className="mt-4 text-center">
               <p className="text-sm text-gray-600">
                 Free cancellation up to 24 hours before
               </p>
             </div>
-
+  
             {/* Contact */}
             <div className="mt-6 pt-6 border-t border-gray-200">
               <h3 className="font-semibold text-gray-900 mb-3">Need Help?</h3>

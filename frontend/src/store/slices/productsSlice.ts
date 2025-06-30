@@ -9,6 +9,7 @@ interface ItineraryDay {
 }
 
 interface Product {
+  cancellationPolicy: string;
   id: string;
   title: string;
   productCode: string;

@@ -158,7 +158,7 @@ export const AvailabilityModal = ({
                 
                 if (data && data.slots && Array.isArray(data.slots)) {
                   // Filter slots based on day of week
-                  const filteredSlots = data.slots.filter(slot => 
+                  const filteredSlots = data.slots.filter((slot: { days: string | string[]; }) => 
                     Array.isArray(slot.days) && slot.days.includes(dayOfWeek)
                   );
                   setSlots(filteredSlots);

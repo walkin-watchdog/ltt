@@ -80,6 +80,8 @@ const productSchema = z.object({
   availabilityStartDate: z.string().transform(str => new Date(str)),
   availabilityEndDate: z.string().transform(str => new Date(str)).optional(),
   blockedDates: z.array(z.object({date: z.string(), reason: z.string().optional()})).optional(),
+  destinationId: z.string().nullable(),
+  experienceCategoryId: z.string().nullable(), 
 });
 
 // Get all products (public)
@@ -320,6 +322,7 @@ router.get('/:id', async (req, res, next) => {
 router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, next) => {
   try {
     const data = productSchema.parse(req.body);
+    console.log('Creating product with data:', data);
     const { blockedDates = [], itinerary = [], packages = [], ...rest } = data;
 
     const slug = rest.title.toLowerCase().replace(/\s+/g, '-')
@@ -348,6 +351,27 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
           })
         }
       });
+
+      if (createdProduct.destinationId) {
+        await tx.destination.update({
+          where: { id: createdProduct.destinationId },
+          data: {
+            products: {
+              connect: { id: createdProduct.id }
+            }
+          }
+        });
+      }
+      if (createdProduct.experienceCategoryId) {
+        await tx.experienceCategory.update({
+          where: { id: createdProduct.experienceCategoryId },
+          data: {
+            products: {
+              connect: { id: createdProduct.id }
+            }
+          }
+        });
+      }
 
       // Create packages separately if they exist
       if (packages.length > 0) {
@@ -408,6 +432,8 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
         }
       }
 
+    
+
       // Return the product with all related data
       return await tx.product.findUniqueOrThrow({
         where: { id: createdProduct.id },
@@ -462,6 +488,8 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
         });
       }
     }
+
+    
 
     res.status(201).json(product);
   } catch (error) {

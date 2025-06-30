@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { X, Upload, Plus, Image as ImageIcon, PlusCircle, Calendar } from 'lucide-react';
-import { useToast } from '@/components/ui/toaster';
+// import { useToast } from '@/components/ui/toaster';
 import axios from 'axios';
 import { useAuth } from '../../contexts/AuthContext';
 import { DestinationModal } from './DestinationModal';
@@ -20,7 +20,7 @@ interface ProductContentTabProps {
   isEdit: boolean;
 }
 
-export const ProductContentTab = ({ formData, updateFormData, isEdit }: ProductContentTabProps) => {
+export const ProductContentTab = ({ formData, updateFormData }: ProductContentTabProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
@@ -42,7 +42,7 @@ export const ProductContentTab = ({ formData, updateFormData, isEdit }: ProductC
     language: '',
   });
   const { token } = useAuth();
-  const toast = useToast();
+  // const toast = useToast();
   const [showItineraryBuilder, setShowItineraryBuilder] = useState(false);
   const [editingDay, setEditingDay] = useState<ItineraryDay | null>(null);
   const [newActivity, setNewActivity] = useState('');

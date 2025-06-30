@@ -53,6 +53,7 @@ export const ProductForm = () => {
     availabilityStartDate: today,
     availabilityEndDate: undefined,
     blockedDates: [],
+    capacity: 0
   });
 
   useEffect(() => {
@@ -60,6 +61,56 @@ export const ProductForm = () => {
       fetchProduct();
     }
   }, [id, isEdit]);
+  const tabValidations: Record<string, (formData: any) => string[]> = {
+    content: (formData) => {
+      const missing: string[] = [];
+      if (!formData.title) missing.push('Title');
+      if (!formData.productCode) missing.push('Product Code');
+      if (!formData.description) missing.push('Description');
+      if (!formData.type) missing.push('Type');
+      if (!formData.location) missing.push('Location');
+      if (!formData.category) missing.push('Category');
+      if (!formData.duration) missing.push('Duration');
+      if (!formData.capacity || formData.capacity < 1) missing.push('Max Capacity');
+      // Optionally require at least one image
+      if (!formData.images || formData.images.length === 0) missing.push('At least one Image');
+      return missing;
+    },
+    schedule: (formData) => {
+      const missing: string[] = [];
+      if (!formData.packages || formData.packages.length === 0) missing.push('At least one Package');
+      // Add more checks as needed
+      return missing;
+    },
+    booking: (formData) => {
+      const missing: string[] = [];
+      if (!formData.cancellationPolicy) missing.push('Cancellation Policy');
+      // Add more checks as needed
+      return missing;
+    },
+    offers: () => [],
+    availability: () => [],
+  };
+
+  const handleTabChange = (nextTab: string) => {
+    // Only validate when moving forward
+    const currentIndex = tabs.findIndex(tab => tab.id === activeTab);
+    const nextIndex = tabs.findIndex(tab => tab.id === nextTab);
+    if (nextIndex > currentIndex) {
+      const validate = tabValidations[activeTab];
+      if (validate) {
+        const missingFields = validate(formData);
+        if (missingFields.length > 0) {
+          toast({
+            message: `Please fill out: ${missingFields.join(', ')}`,
+            type: 'error'
+          });
+          return; // Block tab change
+        }
+      }
+    }
+    setActiveTab(nextTab);
+  };
 
   // Transform slots data to slotConfigs format for the form
   const transformProductDataForForm = (product: any) => {
@@ -150,7 +201,6 @@ export const ProductForm = () => {
       setIsSaving(false);
       return;
     }
-    console.log('Form Data:', formData);
 
     if (!formData.cancellationPolicy) {
       toast({ message: "Cancellation policy is required in the Booking Details tab", type: "error" });
@@ -158,6 +208,7 @@ export const ProductForm = () => {
       setIsSaving(false);
       return;
     }
+    console.log('Submitting form data:', formData);
 
     try {
       const url = isEdit 
@@ -265,11 +316,15 @@ export const ProductForm = () => {
             </span>
           </div>
           {isEdit && (
-            <button className="flex items-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
-              <Eye className="h-4 w-4 mr-2" />
-              Preview
-            </button>
-          )}
+  <button
+    className="flex items-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+    onClick={() => navigate(`/products/${id}/preview`)}
+    type="button"
+  >
+    <Eye className="h-4 w-4 mr-2" />
+    Preview
+  </button>
+)}
           <button
             onClick={handleSubmit}
             disabled={isSaving}
@@ -288,7 +343,7 @@ export const ProductForm = () => {
             {tabs.map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => handleTabChange(tab.id)}
                 className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                   activeTab === tab.id
                     ? 'border-[#ff914d] text-[#ff914d]'

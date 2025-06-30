@@ -193,7 +193,7 @@ export const ProductPreview = () => {
     try {
       const date = parse(selectedDateStr, 'MM/dd/yyyy', new Date());
       const isoDate = formatDate(date, 'yyyy-MM-dd');
-      const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'long' });
+      // const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'long' });
     
       setCheckingAvail(true);
 
@@ -379,7 +379,7 @@ export const ProductPreview = () => {
           </div>
 
           {/* Navigation tabs - sticky */}
-          <div className="bg-white rounded-lg shadow-sm sticky top-6 z-10">
+          <div className="bg-white rounded-lg shadow-sm top-6 z-10">
             <nav className="border-b flex space-x-8 px-6">
               {(['overview', 'itinerary', 'inclusions', 'policies'] as const).map((t) => (
                 <button

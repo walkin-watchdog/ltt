@@ -45,7 +45,12 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
   });
   const [isAddingSlot, setIsAddingSlot] = useState(false);
   const [editingPackageId, setEditingPackageId] = useState<string | null>(null);
-  const [slotFormData, setSlotFormData] = useState({
+  const [slotFormData, setSlotFormData] = useState<{
+    times: string[];
+    days: string[];
+    adultTiers: { min: number; max: number; price: number; currency: string }[];
+    childTiers: { min: number; max: number; price: number; currency: string }[];
+  }>({
     times: [''],
     days: [],
     adultTiers: [{ min: 1, max: 10, price: 0, currency: 'INR' }],
