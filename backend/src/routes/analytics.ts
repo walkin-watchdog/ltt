@@ -117,25 +117,25 @@ router.get('/dashboard', authenticate, authorize(['ADMIN', 'EDITOR', 'VIEWER']),
     const productIds = revenueByCategory.map(item => item.productId);
     const products = await prisma.product.findMany({
       where: { id: { in: productIds } },
-      select: { id: true, category: true }
+      select: { id: true }
     });
 
     // Group revenue by category
-    const categoryRevenue = revenueByCategory.reduce((acc: any, booking) => {
-      const product = products.find(p => p.id === booking.productId);
-      const category = product?.category || 'Unknown';
+    // const categoryRevenue = revenueByCategory.reduce((acc: any, booking) => {
+    //   const product = products.find(p => p.id === booking.productId);
+    //   const category = product?.category || 'Unknown';
       
-      if (!acc[category]) {
-        acc[category] = { category, bookings: 0, revenue: 0 };
-      }
+    //   if (!acc[category]) {
+    //     acc[category] = { category, bookings: 0, revenue: 0 };
+    //   }
       
-      acc[category].bookings += booking._count.id;
-      acc[category].revenue += booking._sum.totalAmount || 0;
+    //   acc[category].bookings += booking._count.id;
+    //   acc[category].revenue += booking._sum.totalAmount || 0;
       
-      return acc;
-    }, {});
+    //   return acc;
+    // }, {});
 
-    const formattedRevenueByCategory = Object.values(categoryRevenue);
+    // const formattedRevenueByCategory = Object.values(categoryRevenue);
 
     // Top performing products
     const topProductsData = await prisma.booking.groupBy({
@@ -204,7 +204,7 @@ router.get('/dashboard', authenticate, authorize(['ADMIN', 'EDITOR', 'VIEWER']),
         }
       },
       bookingTrends: formattedBookingTrends,
-      revenueByCategory: formattedRevenueByCategory,
+      // revenueByCategory: formattedRevenueByCategory,
       topProducts
     });
   } catch (error) {

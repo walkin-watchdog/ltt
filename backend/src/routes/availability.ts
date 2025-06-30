@@ -11,13 +11,13 @@ const availabilitySchema = z.object({
   startDate: z.string().transform(str => new Date(str)),
   endDate: z.string().transform(str => new Date(str)).optional().nullable(),
   status: z.enum(['AVAILABLE', 'SOLD_OUT', 'NOT_OPERATING']),
-  available: z.number().min(0).optional(),
   booked: z.number().min(0).optional()
 });
 
 // Get availability for a product
 router.get('/product/:productId', async (req, res, next) => {
   try {
+    console.log("Fetching availability for product:", req.params.productId);
     const { startDate, endDate } = req.query;
 
     const where: any = {
@@ -28,18 +28,34 @@ router.get('/product/:productId', async (req, res, next) => {
     if (startDate && endDate) {
       const from = new Date(startDate as string);
       const to = new Date(endDate as string);
-
       where.AND = [
         { startDate: { lte: to } },
-        { endDate:   { gte: to } }
+        {
+          OR: [
+            { endDate: null },
+            { endDate: { gte: from } }
+          ]
+        }
+      ];
+    } else if (startDate) {
+      const date = new Date(startDate as string);
+      where.AND = [
+        { startDate: { lte: date } },
+        {
+          OR: [
+            { endDate: null },
+            { endDate: { gte: date } }
+          ]
+        }
       ];
     } else {
       const today = new Date();
       where.AND = [
+        { startDate: { lte: today } },
         {
           OR: [
-            { startDate: { lte: today }, endDate: null },
-            { startDate: { lte: today }, endDate: { gte: today } }
+            { endDate: null },
+            { endDate: { gte: today } }
           ]
         }
       ];

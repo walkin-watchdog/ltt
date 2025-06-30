@@ -7,17 +7,20 @@ import useMediaQuery from '@mui/material/useMediaQuery';
 import { Sheet } from 'react-modal-sheet'; 
 import clsx from 'clsx';
 import { CheckCircle } from 'lucide-react';
+import { formatDate } from 'date-fns'; // Removed 'parse' as it's not used
 
 interface Props {
   productId: string;
-  packages: any[];
+  packages: any[]; // Consider using a more specific type if possible
   open: boolean;
   onClose: () => void;
-  onPackageSelect: (pkgId: string) => void;
+  // This prop's name might be misleading if it's used for slotId later
+  // Consider renaming to onFinalSelection or having separate onPackageSelect and onSlotSelect
+  onPackageSelect: (pkgOrSlotId: string) => void; 
   initialDate?: string;
   initialAdults?: number;
   initialChildren?: number;
-  selectedPackage?: {
+  selectedPackageFromProp?: { // Renamed to avoid confusion with internal state
     id: string;
     inclusions?: string[];
     timeSlots?: string[];
@@ -32,7 +35,7 @@ export const AdminAvailabilityModal = ({
   initialDate,
   initialAdults,
   initialChildren,
-  selectedPackage
+  selectedPackageFromProp // Using the renamed prop
 }: Props) => {
   const [date, setDate] = useState<Date | null>(initialDate ? new Date(initialDate) : null);
   const [adults, setAdults] = useState(initialAdults ?? 2);
@@ -44,11 +47,14 @@ export const AdminAvailabilityModal = ({
   const [showDatepicker, setShowDatepicker] = useState(false);
   const [showTravellers, setShowTravellers] = useState(false);
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
-  const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
-  const [step, setStep] = useState<'package'|'slot'>(selectedPackage ? 'slot' : 'package');
+  // Internal state for selected package ID
+  const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null); 
+  const [step, setStep] = useState<'package'|'slot'>(
+    selectedPackageFromProp ? 'slot' : 'package'
+  ); // Initialize step based on prop
   const [slotsLoading, setSlotsLoading] = useState(false);
   const isMobile = useMediaQuery('(max-width:1023px)');
-  const datestr = new Date().toLocaleDateString('en-US');
+  const datestr = date ? formatDate(date, 'yyyy-MM-dd') : ''; // Ensure datestr is always defined if date is present
 
   useEffect(() => {
     setDate(initialDate ? new Date(initialDate) : null);
@@ -62,11 +68,11 @@ export const AdminAvailabilityModal = ({
     setChildren(initialChildren ?? 0);
   }, [initialChildren]);
   
-  // Reset modal state when opened or when selected package changes
+  // Reset modal state when opened or when selectedPackageFromProp changes
   useEffect(() => {
     if (open) {
-      if (selectedPackage && selectedPackage.id) {
-        setSelectedPackageId(selectedPackage.id);
+      if (selectedPackageFromProp && selectedPackageFromProp.id) {
+        setSelectedPackageId(selectedPackageFromProp.id);
         setStep('slot');
       } else {
         setStep('package');
@@ -74,125 +80,124 @@ export const AdminAvailabilityModal = ({
         setSelectedSlotId(null);
       }
     }
-  }, [open, selectedPackage]);
+  }, [open, selectedPackageFromProp]);
 
   /* fetch whenever the filter changes */
   useEffect(() => {
     if (!open || !date) return;
     
-    // Reset state when date changes
-    setPackages([]);
+    // Reset state when date or selectedPackageId changes
+    // This ensures we always fetch fresh data for the current selection
     setSlots([]);
-    
-    (async () => {
+    setPackages([]);
+    setIsDateOk(null); // Reset availability status
+    setSelectedSlotId(null); // Clear selected slot when date or package changes
+
+    const fetchAvailability = async () => {
       setLoading(true);
       try {
-        const iso = date.toISOString().split('T')[0];
+        const iso = formatDate(date, 'yyyy-MM-dd');
         const base = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
-        let url;
-        let res;
         
-        // If no package selected yet, first check if the product is available on this date
-        if (!selectedPackage) {
+        // If no package selected yet or if we're on the package selection step
+        if (!selectedPackageId || step === 'package') { 
           console.log("Checking product availability for date:", iso);
-          url = `${base}/availability/product/${productId}?startDate=${iso}&endDate=${iso}`;
+          const url = `${base}/availability/product/${productId}?startDate=${iso}&endDate=${iso}`;
           
-          res = await fetch(url);
+          const res = await fetch(url);
           
           if (res.ok) {
             const data = await res.json();
-            const slot = data.availability?.find(
-              (a: any) => 
-                new Date(a.startDate) <= new Date(iso) &&
-                (!a.endDate || new Date(a.endDate) >= new Date(iso))
-            );
+            console.log("Received availability data:", data);
+            const availableAvailabilities = data.availability?.filter((a: any) => a.status === 'AVAILABLE');
             
-            if (!slot || slot.status !== 'AVAILABLE') {
+            if (!availableAvailabilities || availableAvailabilities.length === 0) {
               setIsDateOk(false);
-              setSlots([]);
               setPackages([]);
             } else {
               setIsDateOk(true);
                
-              // Extract unique packages from availability response
-              if (data.availability && Array.isArray(data.availability)) {
-                const availablePackages = data.availability
-                  .filter((a: any) => a.package && a.status === 'AVAILABLE')
-                  .map((a: any) => a.package ? {
+              const uniquePackages = Array.from(
+                new Map(availableAvailabilities
+                  .filter((a: any) => a.package) // Ensure package exists
+                  .map((a: any) => [a.package.id, {
                     id: a.package.id,
                     name: a.package.name,
-                    maxPeople: a.package.maxPeople
-                  } : null).filter(Boolean);
-                
-                // Remove duplicates by package ID
-                const uniquePackages = Array.from(
-                  new Map(availablePackages.map((pkg: any) => [pkg.id, pkg])).values()
-                );
-                
-                console.log("Found available packages:", uniquePackages);
-                setPackages(uniquePackages);
+                    maxPeople: a.package.maxPeople,
+                    basePrice: a.package.basePrice, // Include basePrice
+                    currency: a.package.currency // Include currency
+                  }])
+                ).values()
+              );
+              
+              console.log("Found available packages:", uniquePackages);
+              setPackages(uniquePackages);
+              // If a package was selected from prop, and it's in the available list, set it
+              if (selectedPackageFromProp && uniquePackages.some((p: any) => p.id === selectedPackageFromProp.id)) {
+                  setSelectedPackageId(selectedPackageFromProp.id);
+                  setStep('slot'); // Automatically move to slot selection if initial package is valid
               }
             }
           } else {
             console.error('Failed to fetch availability:', await res.text());
             setIsDateOk(false);
-            setSlots([]);
+            setPackages([]);
           }
-        } else {
-          // Fetch available slots when a package is selected
+        } 
+        
+        // Fetch slots if a package is selected and we're on the slot selection step
+        if (selectedPackageId && step === 'slot') { 
           setSlotsLoading(true);
           try {
-            // Previous asynchronous fetch code - keep it but move to a 1.5 second delay to avoid flickering
-            setTimeout(async () => {
-              const iso = date.toISOString().split('T')[0];
-              const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'long' });
-              const base = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
-              const url = `${base}/availability/package/${selectedPackage.id}/slots?date=${iso}`;
-              console.log("Fetching slots from:", url);
+            const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'long' });
+            const url = `${base}/availability/package/${selectedPackageId}/slots?date=${iso}`;
+            console.log("Fetching slots from:", url);
 
-              const res = await fetch(url);
+            const res = await fetch(url);
+            
+            if (res.ok) {
+              const data = await res.json();
+              console.log("Received slots data:", data);
               
-              if (res.ok) {
-                const data = await res.json();
-                console.log("Received slots data:", data);
-                
-                if (data && data.slots && Array.isArray(data.slots)) {
-                  // Filter slots based on day of week
-                  const filteredSlots = data.slots.filter((slot: { days: string | string[]; }) => 
-                    Array.isArray(slot.days) && slot.days.includes(dayOfWeek)
-                  );
-                  setSlots(filteredSlots);
-                  setIsDateOk(filteredSlots.length > 0);
-                } else {
-                  console.error('Invalid or empty slots data:', data);
-                  setSlots([]);
-                  setIsDateOk(false);
-                }
+              if (data && data.slots && Array.isArray(data.slots)) {
+                const filteredSlots = data.slots.filter((slot: { days: string | string[]; }) => 
+                  Array.isArray(slot.days) && slot.days.includes(dayOfWeek)
+                );
+                setSlots(filteredSlots);
+                setIsDateOk(filteredSlots.length > 0);
               } else {
-                console.error('Failed to fetch slots:', await res.text());
+                console.error('Invalid or empty slots data:', data);
                 setSlots([]);
                 setIsDateOk(false);
               }
-              setSlotsLoading(false);
-            }, 300); // Short delay to prevent flickering
+            } else {
+              console.error('Failed to fetch slots:', await res.text());
+              setSlots([]);
+              setIsDateOk(false);
+            }
           } catch (e) {
-            console.error(e);
+            console.error("Error fetching slots:", e);
             setSlots([]);
             setIsDateOk(false);
-            setSlotsLoading(false);
           } finally {
-            // Don't set loading to false here, do it in the timeout
+            setSlotsLoading(false);
           } 
         }
       } catch (e) {
-        console.error(e);
-        setSlots([]);
+        console.error("General error in fetching availability/slots:", e);
         setIsDateOk(false);
+        setPackages([]);
+        setSlots([]);
       } finally {
         setLoading(false);
       } 
-    })();
-  }, [open, date, adults, children, selectedPackage]);
+    };
+
+    // Debounce or add a small delay if fetches are too frequent
+    const timeoutId = setTimeout(fetchAvailability, 200); 
+    return () => clearTimeout(timeoutId); // Cleanup on unmount or re-render
+  }, [open, date, adults, children, productId, selectedPackageId, step]); // Added selectedPackageId and step to dependency array
+
 
   if (!open || !isMobile) return null;
 
@@ -253,7 +258,7 @@ export const AdminAvailabilityModal = ({
                   table: 'border-collapse',
                   head_row: 'text-gray-400',
                   day: 'w-10 h-10 flex items-center justify-center rounded-full hover:ring-2 hover:ring-[#104c57] hover:ring-opacity-50',
-                  day_selected: 'bg-[#ff914d] text-whitebg-[#104c57] text-white font-semibold ring-2 ring-[#104c57] ring-opacity-50',
+                  day_selected: 'bg-[#ff914d] text-white font-semibold ring-2 ring-[#104c57] ring-opacity-50',
                   day_today: 'border border-[#ff914d]',
                 }}
               />
@@ -399,6 +404,7 @@ export const AdminAvailabilityModal = ({
             </div>
           )}
 
+          {/* Package Selection Step */}
           {!loading && isDateOk === true && step === 'package' && packages.length > 0 && (
             <div>
               <h3 className="text-lg font-medium text-gray-900 mb-4">Select Package</h3>
@@ -407,8 +413,8 @@ export const AdminAvailabilityModal = ({
                   <button
                     key={pkg.id}
                     onClick={() => {
-                      onPackageSelect(pkg.id);
                       setSelectedPackageId(pkg.id);
+                      setStep('slot'); // Move to slot selection after package is chosen
                     }}
                     className={`w-full flex items-center justify-between px-4 py-3 border rounded-lg 
                       ${selectedPackageId === pkg.id 
@@ -422,35 +428,46 @@ export const AdminAvailabilityModal = ({
                           Max {pkg.maxPeople} people
                         </p>
                       )}
-                      {selectedPackageId === pkg.id && step === 'package' && (
+                      {selectedPackageId === pkg.id && ( // Check for selectedPackageId here
                         <div className="mt-1 flex items-center text-[#ff914d]">
                           <CheckCircle className="h-4 w-4 mr-1" />
                           <span className="text-xs">Selected</span>
                         </div>
                       )}
                     </div>
-                    <div className="bg-green-100 text-green-800 text-xs py-1 px-2 rounded-full">
-                      Available
-                    </div>
+                    {pkg.basePrice && ( // Display base price for admin
+                       <span className="font-semibold">
+                         {new Intl.NumberFormat('en-IN', {
+                           style: 'currency',
+                           currency: pkg.currency || 'INR',
+                           minimumFractionDigits: 0
+                         }).format(pkg.basePrice)}
+                       </span>
+                    )}
                   </button>
                 ))}
               </div>
             </div>
           )}
+          
           {/* Back button to return to package selection */}
           {step === 'slot' && !slotsLoading && (
             <div className="mb-4">
               <button
                 onClick={() => {
                   setSelectedPackageId(null);
-                  setSelectedSlotId(null);;
+                  setSelectedSlotId(null);
+                  setSlots([]); // Clear slots when going back
+                  setStep('package'); // Crucial line for navigation
                 }}
                 className="text-[#104c57] hover:text-[#ff914d] transition-colors text-sm"
               >
-                Go Back
+                Go Back to Packages
               </button>
             </div>
           )}
+
+          {/* Slot Selection Step */}
           {!loading && step === 'slot' && (
             <>
               {slotsLoading ? (
@@ -466,7 +483,6 @@ export const AdminAvailabilityModal = ({
                       key={slot.id}
                       onClick={() => {
                         setSelectedSlotId(slot.id);
-                        onPackageSelect(slot.id);
                        }}
                       className={clsx(
                         'w-full flex items-center justify-between px-4 py-3 border rounded-lg',
@@ -505,11 +521,11 @@ export const AdminAvailabilityModal = ({
                   ))}
                   
                   {/* Reserve Now button */}
-                  {selectedPackage && isDateOk && selectedSlotId && (
+                  {selectedPackageId && isDateOk && selectedSlotId && ( // Use selectedPackageId state
                     <Link
                       to={
                         `/book/${productId}` +
-                        `?package=${selectedPackage.id}` +
+                        `?package=${selectedPackageId}` + // Use internal state
                         `&slot=${selectedSlotId}` +
                         `&date=${datestr}` +
                         `&adults=${adults}` +
@@ -518,7 +534,7 @@ export const AdminAvailabilityModal = ({
                       >
                       <button 
                         onClick={() => {
-                          onPackageSelect(selectedSlotId);
+                          onPackageSelect(selectedSlotId); // Call the prop with the slot ID
                           onClose();
                         }}
                         className="w-full py-4 px-4 rounded-lg font-semibold transition-colors text-center block bg-[#ff914d] text-white hover:bg-[#e8823d] mb-4"
@@ -530,17 +546,18 @@ export const AdminAvailabilityModal = ({
                 </div>
               ) : (
                 <p className="text-center text-red-600">
-                  No time slots available for this date.
+                  No time slots available for this date for the selected package.
                   <br />
-                  <span className="text-gray-500 text-sm">Please try selecting another date.</span>
+                  <span className="text-gray-500 text-sm">Please try selecting another date or package.</span>
                 </p>
               )}
             </>
           )}
 
+          {/* No availability message (if no packages found for the date, or initial check fails) */}
           {!loading && isDateOk === false && step === 'package' && (
             <p className="text-center text-red-600">
-              No time slots available for this date.
+              No packages available for this date.
               <br />
               <span className="text-gray-500 text-sm">Please try selecting another date.</span>
             </p>
