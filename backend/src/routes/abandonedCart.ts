@@ -83,8 +83,6 @@ router.get('/', authenticate, authorize(['ADMIN']), async (req, res, next) => {
               id: true,
               title: true,
               images: true,
-              price: true,
-              discountPrice: true
             }
           }
         },
