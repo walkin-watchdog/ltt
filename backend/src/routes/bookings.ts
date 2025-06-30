@@ -2,6 +2,8 @@ import express from 'express';
 import { z } from 'zod';
 import { prisma } from '../utils/prisma'
 import { authenticate, authorize } from '../middleware/auth';
+import { sendBookingVoucher } from './payments';
+import { ExcelService } from '../services/excelService';
 
 const router = express.Router();
 
@@ -52,6 +54,139 @@ router.get('/', authenticate, authorize(['ADMIN', 'EDITOR', 'VIEWER']), async (r
     });
 
     res.json(bookings);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Export bookings to Excel
+router.get('/export', authenticate, authorize(['ADMIN', 'EDITOR', 'VIEWER']), async (req, res, next) => {
+  try {
+    const { ids, fromDate, toDate, status } = req.query;
+    
+    const where: any = {};
+    
+    // Filter by IDs if provided
+    if (ids) {
+      const bookingIds = (ids as string).split(',');
+      where.id = { in: bookingIds };
+    }
+    
+    // Filter by date range
+    if (fromDate || toDate) {
+      where.bookingDate = {};
+      if (fromDate) where.bookingDate.gte = new Date(fromDate as string);
+      if (toDate) where.bookingDate.lte = new Date(toDate as string);
+    }
+    
+    // Filter by status
+    if (status) {
+      where.status = status;
+    }
+    
+    const bookings = await prisma.booking.findMany({
+      where,
+      include: {
+        product: {
+          select: {
+            title: true,
+            productCode: true,
+            type: true,
+            location: true
+          }
+        },
+        package: {
+          select: {
+            name: true
+          }
+        },
+        slot: {
+          select: {
+            Time: true
+          }
+        },
+        payments: {
+          select: {
+            amount: true,
+            currency: true,
+            status: true,
+            paymentMethod: true,
+            createdAt: true
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+    
+    if (bookings.length === 0) {
+      return res.status(404).json({ error: 'No bookings found matching the criteria' });
+    }
+    
+    // Generate Excel file
+    const buffer = await ExcelService.generateBookingsExcel(bookings);
+    
+    // Set response headers
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="bookings_export_${new Date().toISOString().split('T')[0]}.xlsx"`);
+    
+    // Send the Excel buffer
+    res.send(buffer);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Export single booking to Excel
+router.get('/:id/export', authenticate, authorize(['ADMIN', 'EDITOR', 'VIEWER']), async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    
+    const booking = await prisma.booking.findUnique({
+      where: { id },
+      include: {
+        product: {
+          select: {
+            title: true,
+            productCode: true,
+            type: true,
+            location: true
+          }
+        },
+        package: {
+          select: {
+            name: true
+          }
+        },
+        slot: {
+          select: {
+            Time: true
+          }
+        },
+        payments: {
+          select: {
+            amount: true,
+            currency: true,
+            status: true,
+            paymentMethod: true,
+            createdAt: true
+          }
+        }
+      }
+    });
+    
+    if (!booking) {
+      return res.status(404).json({ error: 'Booking not found' });
+    }
+    
+    // Generate Excel file for a single booking
+    const buffer = await ExcelService.generateBookingsExcel([booking]);
+    
+    // Set response headers
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="booking_${booking.bookingCode}.xlsx"`);
+    
+    // Send the Excel buffer
+    res.send(buffer);
   } catch (error) {
     next(error);
   }
@@ -184,6 +319,160 @@ router.post('/', async (req, res, next) => {
     });
 
     res.status(201).json(booking);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Admin booking creation endpoint
+router.post('/admin', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, next) => {
+  try {
+    const adminBookingSchema = z.object({
+      productId: z.string(),
+      packageId: z.string().optional(),
+      slotId: z.string().optional(),
+      customerName: z.string().min(1),
+      customerEmail: z.string().email(),
+      customerPhone: z.string().min(1),
+      adults: z.number().min(1),
+      children: z.number().min(0),
+      bookingDate: z.string().transform(str => new Date(str)),
+      notes: z.string().optional(),
+      status: z.enum(['PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED']).default('CONFIRMED'),
+      paymentStatus: z.enum(['PENDING', 'PAID', 'FAILED', 'REFUNDED']).default('PAID')
+    });
+
+    const data = adminBookingSchema.parse(req.body);
+    
+    // Generate booking code
+    const bookingCode = `LT${Date.now()}${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+    
+    // Calculate total amount based on package/slot
+    let totalAmount = 0;
+    
+    const product = await prisma.product.findUnique({
+      where: { id: data.productId },
+      include: { packages: true }
+    });
+
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+    
+    let selectedPackage;
+    if (data.packageId) {
+      selectedPackage = product.packages.find(p => p.id === data.packageId);
+    }
+    
+    if (selectedPackage) {
+      let adultPrice = selectedPackage.basePrice;
+      let childPrice = selectedPackage.basePrice * 0.5; // Default child price is 50% of adult price
+      
+      // Apply package-level discount if available
+      if (selectedPackage.discountType === 'percentage' && selectedPackage.discountValue) {
+        adultPrice = adultPrice * (1 - (selectedPackage.discountValue / 100));
+        childPrice = childPrice * (1 - (selectedPackage.discountValue / 100));
+      } else if (selectedPackage.discountType === 'fixed' && selectedPackage.discountValue) {
+        adultPrice = Math.max(0, adultPrice - selectedPackage.discountValue);
+        childPrice = Math.max(0, childPrice - selectedPackage.discountValue);
+      }
+      
+      // Check for slot-specific pricing if a slot is selected
+      if (data.slotId) {
+        const slot = await prisma.packageSlot.findUnique({
+          where: { id: data.slotId },
+          include: {
+            adultTiers: true,
+            childTiers: true
+          }
+        });
+        
+        if (slot) {
+          // Use tier pricing for adults if available
+          if (slot.adultTiers.length > 0) {
+            const applicableTier = slot.adultTiers.find(tier => 
+              data.adults >= tier.min && data.adults <= tier.max
+            );
+            
+            if (applicableTier) {
+              adultPrice = applicableTier.price;
+            }
+          }
+          
+          // Use tier pricing for children if available
+          if (data.children > 0 && slot.childTiers.length > 0) {
+            const applicableTier = slot.childTiers.find(tier => 
+              data.children >= tier.min && data.children <= tier.max
+            );
+            
+            if (applicableTier) {
+              childPrice = applicableTier.price;
+            }
+          }
+        }
+      }
+      
+      // Calculate total amount
+      totalAmount = (adultPrice * data.adults) + (childPrice * data.children);
+    }
+    
+    // Create the booking
+    const booking = await prisma.booking.create({
+      data: {
+        bookingCode,
+        productId: data.productId,
+        packageId: data.packageId,
+        slotId: data.slotId,
+        customerName: data.customerName,
+        customerEmail: data.customerEmail,
+        customerPhone: data.customerPhone,
+        adults: data.adults,
+        children: data.children,
+        totalAmount,
+        bookingDate: data.bookingDate,
+        notes: data.notes,
+        status: data.status,
+        paymentStatus: data.paymentStatus
+      },
+      include: {
+        product: true,
+        package: true,
+        slot: true
+      }
+    });
+
+    res.status(201).json(booking);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Send voucher for a booking
+router.post('/:id/send-voucher', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    
+    const booking = await prisma.booking.findUnique({
+      where: { id },
+      include: {
+        product: true,
+        package: true,
+        slot: true
+      }
+    });
+    
+    if (!booking) {
+      return res.status(404).json({ error: 'Booking not found' });
+    }
+    
+    // Send voucher using the shared function
+    const success = await sendBookingVoucher(booking);
+    
+    if (success) {
+      res.json({ message: 'Voucher sent successfully' });
+    } else {
+      res.status(500).json({ error: 'Failed to send voucher' });
+    }
   } catch (error) {
     next(error);
   }

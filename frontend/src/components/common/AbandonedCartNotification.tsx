@@ -6,6 +6,11 @@ interface AbandonedCartNotificationProps {
   cart: {
     productId: string;
     productTitle: string;
+    packageId?: string;
+    slotId?: string;
+    selectedTimeSlot?: string;
+    adults?: number;
+    children?: number;
     date: string;
   };
   onDismiss: () => void;
@@ -26,6 +31,18 @@ export const AbandonedCartNotification: React.FC<AbandonedCartNotificationProps>
 
   const navigateToProduct = () => {
     window.location.href = `/product/${cart.productId}?recover=true`;
+    
+    // Store recovery parameters in sessionStorage for detailed state recovery
+    sessionStorage.setItem('recover_cart', JSON.stringify({
+      productId: cart.productId,
+      packageId: cart.packageId,
+      slotId: cart.slotId,
+      selectedTimeSlot: cart.selectedTimeSlot,
+      adults: cart.adults || 2,
+      children: cart.children || 0,
+      selectedDate: cart.date,
+      timestamp: Date.now()
+    }));
   };
 
   return (

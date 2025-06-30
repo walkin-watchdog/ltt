@@ -4,7 +4,7 @@ import bcrypt from 'bcrypt';
 import { z } from 'zod';
 import { prisma } from '../utils/prisma'
 import { Prisma } from '@prisma/client';
-import { authenticate, AuthRequest } from '../middleware/auth';
+import { authenticate, AuthRequest, authorize } from '../middleware/auth';
 import { EmailService } from '../services/emailService';
 import crypto from 'crypto';
 import { signAccess, signRefresh } from '../utils/jwt';
@@ -269,6 +269,107 @@ router.get('/me', authenticate, async (req: AuthRequest, res, next) => {
     });
 
     res.json(user);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get all users (Admin only)
+router.get('/users', authenticate, authorize(['ADMIN']), async (req: AuthRequest, res, next) => {
+  try {
+    const users = await prisma.user.findMany({
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        createdAt: true
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    res.json(users);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get user by ID (Admin only)
+router.get('/users/:id', authenticate, authorize(['ADMIN']), async (req: AuthRequest, res, next) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.params.id },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        createdAt: true
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json(user);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Update user (Admin only)
+router.put('/users/:id', authenticate, authorize(['ADMIN']), async (req: AuthRequest, res, next) => {
+  try {
+    const { name, role, password } = req.body;
+
+    // Check if trying to modify own role
+    if (req.params.id === req.user?.id && role && role !== req.user.role) {
+      return res.status(403).json({ error: 'You cannot change your own role' });
+    }
+
+    // Create update data
+    const updateData: any = {};
+    
+    if (name) updateData.name = name;
+    if (role) updateData.role = role;
+    
+    // Handle password update
+    if (password) {
+      updateData.password = await bcrypt.hash(password, 12);
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: req.params.id },
+      data: updateData,
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        createdAt: true
+      }
+    });
+
+    res.json(updatedUser);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Delete user (Admin only)
+router.delete('/users/:id', authenticate, authorize(['ADMIN']), async (req: AuthRequest, res, next) => {
+  try {
+    // Check if trying to delete yourself
+    if (req.params.id === req.user?.id) {
+      return res.status(403).json({ error: 'You cannot delete your own account' });
+    }
+
+    await prisma.user.delete({
+      where: { id: req.params.id }
+    });
+
+    res.status(204).send();
   } catch (error) {
     next(error);
   }

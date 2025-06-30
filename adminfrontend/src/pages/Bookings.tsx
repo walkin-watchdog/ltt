@@ -1,20 +1,59 @@
 import { useState, useEffect } from 'react';
-import { Search, Filter, Calendar, User, Phone, Mail, Eye, Download } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Search, Filter, Calendar, User, Phone, Mail, Eye, Download, Plus, Send } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import type { BookingProp } from '@/types.ts';
 
 export const Bookings = () => {
   const [bookings, setBookings] = useState<BookingProp[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [paymentFilter, setPaymentFilter] = useState('');
   const [dateFilter, setDateFilter] = useState('');
+  const [selectedBookings, setSelectedBookings] = useState<string[]>([]);
+  const [selectAll, setSelectAll] = useState(false);
   const { token, user } = useAuth();
+  const navigate = useNavigate();
+
+  // Filtered bookings must be declared before use in effects
+  const filteredBookings = bookings.filter(booking => {
+    const matchesSearch = 
+      booking.bookingCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      booking.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      booking.customerEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      booking.product.title.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = !statusFilter || booking.status === statusFilter;
+    const matchesPayment = !paymentFilter || booking.paymentStatus === paymentFilter;
+    const matchesDate = !dateFilter || booking.bookingDate.startsWith(dateFilter);
+    
+    return matchesSearch && matchesStatus && matchesPayment && matchesDate;
+  });
 
   useEffect(() => {
     fetchBookings();
   }, [token]);
+  
+  // Effect to handle "select all" functionality
+  useEffect(() => {
+    if (selectAll) {
+      setSelectedBookings(filteredBookings.map(booking => booking.id));
+    } else if (selectedBookings.length === filteredBookings.length) {
+      // If user manually deselected a booking after "select all" was checked
+      setSelectedBookings([]);
+    }
+  }, [selectAll]);
+  
+  // Update "select all" checkbox state when filtered bookings change
+  useEffect(() => {
+    if (selectedBookings.length === filteredBookings.length && filteredBookings.length > 0) {
+      setSelectAll(true);
+    } else {
+      setSelectAll(false);
+    }
+  }, [selectedBookings.length, filteredBookings.length]);
 
   const fetchBookings = async () => {
     try {
@@ -53,20 +92,138 @@ export const Bookings = () => {
       console.error('Error updating booking status:', error);
     }
   };
-
-  const filteredBookings = bookings.filter(booking => {
-    const matchesSearch = 
-      booking.bookingCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      booking.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      booking.customerEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      booking.product.title.toLowerCase().includes(searchTerm.toLowerCase());
+  
+  const handleSelectBooking = (bookingId: string) => {
+    setSelectedBookings(prev => 
+      prev.includes(bookingId) 
+        ? prev.filter(id => id !== bookingId) 
+        : [...prev, bookingId]
+    );
+  };
+  
+  const handleSelectAllBookings = () => {
+    setSelectAll(!selectAll);
+  };
+  
+  const handleExportSelected = async () => {
+    if (selectedBookings.length === 0) {
+      alert('Please select at least one booking to export');
+      return;
+    }
     
-    const matchesStatus = !statusFilter || booking.status === statusFilter;
-    const matchesPayment = !paymentFilter || booking.paymentStatus === paymentFilter;
-    const matchesDate = !dateFilter || booking.bookingDate.startsWith(dateFilter);
-    
-    return matchesSearch && matchesStatus && matchesPayment && matchesDate;
-  });
+    setIsExporting(true);
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/bookings/export?ids=${selectedBookings.join(',')}`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        }
+      );
+      
+      if (!response.ok) {
+        throw new Error('Failed to export bookings');
+      }
+      
+      // Convert response to blob
+      const blob = await response.blob();
+      
+      // Create a download link and click it
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = `bookings_export_${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error exporting bookings:', error);
+      alert('Failed to export bookings');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+  
+  const handleExportSingle = async (bookingId: string) => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/bookings/${bookingId}/export`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        }
+      );
+      
+      if (!response.ok) {
+        throw new Error('Failed to export booking');
+      }
+      
+      // Get booking code for filename
+      const booking = bookings.find(b => b.id === bookingId);
+      const bookingCode = booking ? booking.bookingCode : bookingId;
+      
+      // Convert response to blob
+      const blob = await response.blob();
+      
+      // Create a download link and click it
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = `booking_${bookingCode}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error exporting booking:', error);
+      alert('Failed to export booking');
+    }
+  };
+  
+  const handleExportAll = async () => {
+    setIsExporting(true);
+    try {
+      // Build query parameters based on current filters
+      const params = new URLSearchParams();
+      if (statusFilter) params.append('status', statusFilter);
+      if (dateFilter) params.append('fromDate', dateFilter);
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/bookings/export?${params.toString()}`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        }
+      );
+      
+      if (!response.ok) {
+        throw new Error('Failed to export bookings');
+      }
+      
+      const blob = await response.blob();
+      
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = `all_bookings_export_${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error exporting all bookings:', error);
+      alert('Failed to export bookings');
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -115,10 +272,39 @@ export const Bookings = () => {
           <p className="text-gray-600 mt-2">View and manage all bookings</p>
         </div>
         <div className="flex items-center space-x-3">
-          <button className="flex items-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </button>
+          {(user?.role === 'ADMIN' || user?.role === 'EDITOR') && (
+            <Link
+              to="/bookings/new"
+              className="flex items-center px-4 py-2 bg-[#ff914d] text-white rounded-lg hover:bg-[#e8823d] transition-colors"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Create Manual Booking
+            </Link>
+          )}
+          <div className="relative group">
+            <button className="flex items-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
+              <Download className="h-4 w-4 mr-2" />
+              {isExporting ? 'Exporting...' : 'Export'}
+            </button>
+            <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg hidden group-hover:block z-10">
+              <button 
+                onClick={handleExportAll} 
+                className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
+                disabled={isExporting}
+              >
+                Export All Bookings
+              </button>
+              <button 
+                onClick={handleExportSelected} 
+                className={`block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 ${
+                  selectedBookings.length === 0 ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+                disabled={selectedBookings.length === 0 || isExporting}
+              >
+                Export Selected ({selectedBookings.length})
+              </button>
+            </div>
+          </div>
           <span className="text-sm text-gray-500">
             {filteredBookings.length} bookings
           </span>
@@ -177,12 +363,42 @@ export const Bookings = () => {
         </div>
       </div>
 
+      {/* Selection Controls - Show when bookings are selected */}
+      {selectedBookings.length > 0 && (
+        <div className="bg-[#104c57] text-white px-4 py-3 rounded-lg mb-6 flex items-center justify-between">
+          <span>{selectedBookings.length} booking(s) selected</span>
+          <div className="flex space-x-3">
+            <button 
+              onClick={handleExportSelected}
+              className="text-sm px-3 py-1 bg-white text-[#104c57] rounded hover:bg-gray-100"
+              disabled={isExporting}
+            >
+              {isExporting ? 'Exporting...' : 'Export Selected'}
+            </button>
+            <button 
+              onClick={() => setSelectedBookings([])}
+              className="text-sm px-3 py-1 bg-transparent border border-white text-white rounded hover:bg-white/10"
+            >
+              Clear Selection
+            </button>
+          </div>
+        </div>
+      )}
+      
       {/* Bookings Table */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
+                <th className="px-4 py-3 text-left">
+                  <input
+                    type="checkbox"
+                    checked={selectAll}
+                    onChange={handleSelectAllBookings}
+                    className="h-4 w-4 text-[#ff914d] focus:ring-[#ff914d] border-gray-300 rounded"
+                  />
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Booking Details
                 </th>
@@ -209,6 +425,14 @@ export const Bookings = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredBookings.map((booking) => (
                 <tr key={booking.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-4 whitespace-nowrap">
+                    <input
+                      type="checkbox"
+                      checked={selectedBookings.includes(booking.id)}
+                      onChange={() => handleSelectBooking(booking.id)}
+                      className="h-4 w-4 text-[#ff914d] focus:ring-[#ff914d] border-gray-300 rounded"
+                    />
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
                       <div className="text-sm font-medium text-gray-900">
@@ -290,12 +514,27 @@ export const Bookings = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex items-center space-x-2">
-                      <button className="p-1 text-gray-400 hover:text-[#ff914d] transition-colors">
+                      <button
+                        onClick={() => navigate(`/bookings/${booking.id}/details`)} 
+                        className="p-1 text-gray-400 hover:text-[#ff914d] transition-colors"
+                        title="View Details"
+                      >
                         <Eye className="h-4 w-4" />
                       </button>
-                      <button className="p-1 text-gray-400 hover:text-blue-600 transition-colors">
+                      <button 
+                        onClick={() => handleExportSingle(booking.id)}
+                        className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                        title="Export to Excel"
+                      >
                         <Download className="h-4 w-4" />
                       </button>
+                      <Link 
+                        to={`/bookings/${booking.id}/send-voucher`}
+                        className="p-1 text-gray-400 hover:text-green-600 transition-colors"
+                        title="Send Voucher"
+                      >
+                        <Send className="h-4 w-4" />
+                      </Link>
                     </div>
                   </td>
                 </tr>

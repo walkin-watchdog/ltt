@@ -5,7 +5,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { ProductContentTab } from '../components/products/ProductContentTab';
 import { SchedulePriceTab } from '../components/products/SchedulePriceTab';
 import { BookingDetailsTab } from '../components/products/BookingDetailsTab';
-import { SpecialOffersTab } from '../components/products/SpecialOffersTab';
 import { AvailabilityTab } from '../components/products/AvailabilityTab';
 import { Save, ArrowLeft, Eye } from 'lucide-react';
 import type { ProductFormData } from '@/types.ts';
@@ -15,7 +14,6 @@ const tabs = [
   { id: 'content', name: 'Product Content', component: ProductContentTab },
   { id: 'schedule', name: 'Schedule & Price', component: SchedulePriceTab },
   { id: 'booking', name: 'Booking Details', component: BookingDetailsTab },
-  { id: 'offers', name: 'Special Offers', component: SpecialOffersTab },
   { id: 'availability', name: 'Availability', component: AvailabilityTab },
 ];
 
@@ -88,7 +86,6 @@ export const ProductForm = () => {
       // Add more checks as needed
       return missing;
     },
-    offers: () => [],
     availability: () => [],
   };
 

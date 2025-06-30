@@ -1,7 +1,6 @@
-import { useState, useRef, useEffect } from 'react';
-import { X, Upload, Plus, Image as ImageIcon, PlusCircle, Calendar } from 'lucide-react';
-// import { useToast } from '@/components/ui/toaster';
-import axios from 'axios';
+import { ImageUploader } from '../gallery/ImageUploader';
+import { useState, useEffect } from 'react';
+import { X, Plus, PlusCircle, Calendar } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { DestinationModal } from './DestinationModal';
 import { ExperienceCategoryModal } from './ExperienceCategoryModal';
@@ -21,10 +20,6 @@ interface ProductContentTabProps {
 }
 
 export const ProductContentTab = ({ formData, updateFormData }: ProductContentTabProps) => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [isUploading, setIsUploading] = useState(false);
-  // ...existing code...
   const [newItem, setNewItem] = useState<{
     highlight: string;
     inclusion: string;
@@ -75,62 +70,6 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
     fetchDestinations();
     fetchExperienceCategories();
   }, []);
-
-  const handleItineraryImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || !editingDay) return;
-
-    try {
-      const uploadFormData = new FormData();
-      Array.from(files).forEach(file => {
-        uploadFormData.append('images', file);
-      });
-
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/uploads/products`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-        body: uploadFormData,
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const newImages = data.images.map((img: any) => img.url);
-        setEditingDay({
-          ...editingDay,
-          images: [...(editingDay.images || []), ...newImages]
-        });
-      }
-    } catch (error) {
-      console.error('Error uploading images:', error);
-    }
-  };
-
-  const removeItineraryImage = (index: number) => {
-    if (!editingDay) return;
-    const newImages = editingDay.images.filter((_: any, i: number) => i !== index);
-    setEditingDay({
-      ...editingDay,
-      images: newImages
-    });
-  };
-
-  const addToArray = (field: string, value: string) => {
-    if (value.trim()) {
-      const currentArray = formData[field] || [];
-      updateFormData({
-        [field]: [...currentArray, value.trim()]
-      });
-    }
-  };
-
-  const removeFromArray = (field: string, index: number) => {
-    const currentArray = formData[field] || [];
-    updateFormData({
-      [field]: currentArray.filter((_: any, i: number) => i !== index)
-    });
-  };
 
   const addActivity = () => {
     if (newActivity.trim() && editingDay) {
@@ -195,58 +134,6 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
     updateFormData({ itinerary: updatedItinerary });
   };
 
-  const ArrayInput = ({ label, field, placeholder }: { label: string; field: string; placeholder: string }) => {
-    const [inputValue, setInputValue] = useState('');
-
-    return (
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
-        <div className="space-y-2">
-          <div className="flex">
-            <input
-              type="text"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              placeholder={placeholder}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-              onKeyPress={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  addToArray(field, inputValue);
-                  setInputValue('');
-                }
-              }}
-            />
-            <button
-              type="button"
-              onClick={() => {
-                addToArray(field, inputValue);
-                setInputValue('');
-              }}
-              className="px-4 py-2 bg-[#ff914d] text-white rounded-r-md hover:bg-[#e8823d] transition-colors"
-            >
-              <Plus className="h-4 w-4" />
-            </button>
-          </div>
-          <div className="space-y-1">
-            {(formData[field] || []).map((item: string, index: number) => (
-              <div key={index} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-md">
-                <span className="text-sm">{item}</span>
-                <button
-                  type="button"
-                  onClick={() => removeFromArray(field, index)}
-                  className="text-red-500 hover:text-red-700"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   const fetchDestinations = async () => {
     try {
       setIsLoadingDestinations(true);
@@ -281,54 +168,6 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
     } finally {
       setIsLoadingCategories(false);
     }
-  };
-
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) return;
-
-    const files = Array.from(e.target.files);
-    setIsUploading(true);
-    setUploadProgress(0);
-
-    try {
-      const uploadFormData = new FormData();
-      files.forEach(file => {
-        uploadFormData.append('images', file);
-      });
-
-      const response = await axios.post(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/uploads/products`,
-        uploadFormData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-            'Authorization': `Bearer ${token}`
-          },
-          onUploadProgress: (progressEvent) => {
-            const percentCompleted = Math.round((progressEvent.loaded * 100) / (progressEvent.total || 1));
-            setUploadProgress(percentCompleted);
-          }
-        }
-      );
-
-      if (response.data && response.data.images) {
-        const newImages = response.data.images.map((img: any) => img.url);
-        updateFormData({ images: [...(formData.images || []), ...newImages] });
-      }
-    } catch (error) {
-      console.error('Error uploading images:', error);
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    }
-  };
-
-  const removeImage = (index: number) => {
-    updateFormData({
-      images: formData.images.filter((_: any, i: number) => i !== index)
-    });
   };
 
   const addItem = (field: string, value: string) => {
@@ -368,72 +207,14 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
       {/* Images */}
       <div className="bg-gray-50 rounded-lg p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Images</h3>
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-6">
-          {formData.images.map((image: string, index: number) => (
-            <div key={index} className="relative group">
-              <img
-                src={image}
-                alt={`Product ${index + 1}`}
-                className="h-32 w-full object-cover rounded-lg"
-              />
-              <button
-                onClick={() => removeImage(index)}
-                className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-          ))}
-
-          <div className="h-32 flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 cursor-pointer transition-colors">
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileSelect}
-              className="hidden"
-              multiple
-              accept="image/*"
-            />
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="flex flex-col items-center text-gray-600 hover:text-[#ff914d]"
-              disabled={isUploading}
-            >
-              {isUploading ? (
-                <>
-                  <div className="mb-2 relative w-10 h-10">
-                    <svg className="w-10 h-10 animate-spin" viewBox="0 0 24 24">
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                        fill="none"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d={`M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z`}
-                      />
-                    </svg>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-xs font-semibold">{uploadProgress}%</span>
-                    </div>
-                  </div>
-                  <span className="text-sm">Uploading...</span>
-                </>
-              ) : (
-                <>
-                  <Upload className="h-8 w-8 mb-1" />
-                  <span className="text-sm">Add Images</span>
-                </>
-              )}
-            </button>
-          </div>
+        <div>
+          <ImageUploader
+            images={formData.images || []}
+            onChange={(images) => updateFormData({ images })}
+            maxImages={10}
+            folder="products"
+            title="Product Images *"
+          />
         </div>
       </div>
       {/* Basic Info */}
@@ -1142,7 +923,7 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
           </div>
 
           {/* Existing Itinerary Days */}
-          {formData.itinerary && formData.itinerary.length > 0 && (
+          {formData.itinerary && (
             <div className="space-y-4 mb-6">
               {formData.itinerary.map((day: ItineraryDay) => (
                 <div key={day.day} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
@@ -1292,40 +1073,17 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Images (Optional)
                     </label>
-                    <div className="grid grid-cols-3 gap-4 mb-4">
-                      {editingDay.images.map((image, index) => (
-                        <div key={index} className="relative group">
-                          <img
-                            src={image}
-                            alt={`Day ${editingDay.day} ${index + 1}`}
-                            className="w-full h-20 object-cover rounded-lg"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => removeItineraryImage(index)}
-                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition-colors">
-                      <input
-                        type="file"
-                        id="itinerary-images"
-                        multiple
-                        accept="image/*"
-                        onChange={handleItineraryImageUpload}
-                        className="hidden"
-                      />
-                      <label htmlFor="itinerary-images" className="cursor-pointer">
-                        <ImageIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                        <p className="text-xs text-gray-600">
-                          {uploadProgress !== null ? `${uploadProgress}%` : 'Upload day images'}
-                        </p>
-                      </label>
-                    </div>
+                    <ImageUploader
+                      images={editingDay.images}
+                      onChange={(images) =>
+                        setEditingDay({ ...editingDay, images })
+                      }
+                      maxImages={10}
+                      folder="itinerary"
+                      title="Day Images"
+                      allowReordering={false}
+                      className="mb-4"
+                    />
                   </div>
 
                   {/* Save Button */}

@@ -243,7 +243,7 @@ model Review {
 
 model Coupon {
   id          String     @id @default(cuid())
-  code        String     @unique
+  code        String     @unique @db.VarChar(50)
   description String
   type        CouponType
   value       Float
@@ -255,8 +255,26 @@ model Coupon {
   validFrom   DateTime
   validUntil  DateTime
   createdAt   DateTime   @default(now())
+  products    String[]   @default([])
+  usageHistory CouponUsage[]
 
   @@map("coupons")
+}
+
+model CouponUsage {
+  id            String    @id @default(cuid())
+  couponId      String
+  bookingId     String?
+  bookingCode   String?
+  customerId    String?
+  customerName  String
+  customerEmail String
+  discountAmount Float
+  createdAt     DateTime  @default(now())
+
+  coupon        Coupon    @relation(fields: [couponId], references: [id], onDelete: Cascade)
+
+  @@map("coupon_usage")
 }
 
 model TripRequest {

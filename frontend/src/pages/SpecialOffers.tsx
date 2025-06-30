@@ -1,26 +1,43 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { MapPin, Clock, Star, Percent, Tag, Calendar, AlertCircle } from 'lucide-react';
+import { MapPin, Clock, Star, Percent, Tag, Calendar, AlertCircle, Search } from 'lucide-react';
 import type { RootState, AppDispatch } from '@/store/store';
-import { fetchProducts } from '../store/slices/productsSlice';
 import { NewsletterSubscription } from '../components/common/NewsletterSubscription';
 import { SEOHead } from '../components/seo/SEOHead';
 
 export const SpecialOffers = () => {
-  const dispatch = useDispatch<AppDispatch>();
-  const { products, isLoading } = useSelector((state: RootState) => state.products);
+  const [discountedProducts, setDiscountedProducts] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
 
   useEffect(() => {
-    dispatch(fetchProducts({}));
-  }, [dispatch]);
+    fetchDiscountedProducts();
+  }, []);
 
-  // Filter products that have discount prices
-  const discountedProducts = products.filter(product => 
-    product.lowestDiscountedPackagePrice && 
-    product.lowestPackagePrice && 
-    product.lowestDiscountedPackagePrice < product.lowestPackagePrice
-  );
+  const filteredProducts = discountedProducts.filter(product => {
+    const matchesSearch = product.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                         product.location.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesType = !typeFilter || product.type === typeFilter;
+    return matchesSearch && matchesType;
+  });
+
+  const fetchDiscountedProducts = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/coupons/product-discounts`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        setDiscountedProducts(data);
+      }
+    } catch (error) {
+      console.error('Error fetching discounted products:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const calculateDiscount = (originalPrice?: number, discountedPrice?: number) => {
     if (!originalPrice || !discountedPrice) return 0;
@@ -152,6 +169,51 @@ export const SpecialOffers = () => {
         </div>
       </section>
 
+      {/* Search and Filters */}
+      <section className="py-8 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-wrap gap-4 items-center justify-between">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search for destinations, experiences..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#ff914d]"
+              />
+            </div>
+            
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setTypeFilter('')}
+                className={`px-3 py-2 rounded-lg text-sm font-medium ${
+                  !typeFilter ? 'bg-[#104c57] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                All Types
+              </button>
+              <button
+                onClick={() => setTypeFilter('TOUR')}
+                className={`px-3 py-2 rounded-lg text-sm font-medium ${
+                  typeFilter === 'TOUR' ? 'bg-[#104c57] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Tours
+              </button>
+              <button
+                onClick={() => setTypeFilter('EXPERIENCE')}
+                className={`px-3 py-2 rounded-lg text-sm font-medium ${
+                  typeFilter === 'EXPERIENCE' ? 'bg-[#104c57] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Experiences
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Current Deals */}
       <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -168,7 +230,7 @@ export const SpecialOffers = () => {
             <div className="text-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#ff914d] mx-auto"></div>
             </div>
-          ) : discountedProducts.length === 0 ? (
+          ) : filteredProducts.length === 0 ? (
             <div className="text-center py-12">
               <Tag className="h-16 w-16 text-gray-400 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-gray-900 mb-2">
@@ -185,8 +247,17 @@ export const SpecialOffers = () => {
               </Link>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {discountedProducts.map((product) => (
+            <>
+              <p className="text-center text-gray-600 mb-8">{filteredProducts.length} offers available</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {filteredProducts.map((product) => {
+                const pkg = product.discountedPackage;
+                const basePrice = pkg.basePrice;
+                const discountedPrice = pkg.discountType === 'percentage' 
+                  ? basePrice * (1 - pkg.discountValue / 100)
+                  : basePrice - pkg.discountValue;
+                
+                return (
                 <div key={product.id} className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow border-2 border-[#ff914d]">
                   <div className="relative h-48">
                     <img
@@ -200,7 +271,7 @@ export const SpecialOffers = () => {
                     <div className="absolute top-4 right-4 bg-[#ff914d] text-white px-3 py-2 rounded-lg font-bold">
                       <div className="flex items-center">
                         <Percent className="h-4 w-4 mr-1" />
-                        {calculateDiscount(product.lowestPackagePrice, product.lowestDiscountedPackagePrice)}% OFF
+                        {pkg.discountType === 'percentage' ? pkg.discountValue : Math.round((pkg.discountValue / basePrice) * 100)}% OFF
                       </div>
                     </div>
                     <div className="absolute top-12 right-4 bg-red-500 text-white px-2 py-1 rounded text-xs font-semibold">
@@ -251,13 +322,12 @@ export const SpecialOffers = () => {
                     {/* Pricing with prominent savings */}
                     <div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-lg p-4 mb-4">
                       <div className="text-center">
-                        <div className="text-sm text-gray-600 mb-1">Was: ₹{product.lowestPackagePrice?.toLocaleString()}</div>
+                        <div className="text-sm text-gray-600 mb-1">Was: ₹{basePrice?.toLocaleString()}</div>
                         <div className="text-3xl font-bold text-[#ff914d] mb-1">
-                          ₹{product.lowestDiscountedPackagePrice!.toLocaleString()}
+                          ₹{discountedPrice?.toLocaleString()}
                         </div>
                         <div className="text-sm font-semibold text-green-600">
-                          You Save: ₹{(product.lowestPackagePrice && product.lowestDiscountedPackagePrice) ? 
-                            (product.lowestPackagePrice - product.lowestDiscountedPackagePrice).toLocaleString() : '0'}
+                          You Save: ₹{(basePrice - discountedPrice).toLocaleString()}
                         </div>
                       </div>
                     </div>
@@ -276,8 +346,10 @@ export const SpecialOffers = () => {
                     </Link>
                   </div>
                 </div>
-              ))}
+               );
+              })}
             </div>
+            </>
           )}
         </div>
       </section>
@@ -310,8 +382,9 @@ export const SpecialOffers = () => {
                 <h4 className="font-medium text-gray-900 mb-2">Booking Terms</h4>
                 <ul className="space-y-1 text-left">
                   <li>• Offers valid for new bookings only</li>
+                  <li>• Discount is applied at checkout</li>
                   <li>• Subject to availability</li>
-                  <li>• Cannot be combined with other offers</li>
+                  <li>• Cannot be combined with coupon codes</li>
                 </ul>
               </div>
               <div>

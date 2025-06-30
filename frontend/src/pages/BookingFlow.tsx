@@ -5,9 +5,10 @@ import { Calendar, User, CreditCard, CheckCircle, Phone, Mail, MapPin, CalendarI
 import { useAbandonedCart } from '../hooks/useAbandonedCart';
 import type { RootState, AppDispatch } from '@/store/store';
 import { fetchProduct } from '../store/slices/productsSlice';
-import { createBooking } from '../store/slices/bookingSlice';
+import { createBooking, setStep } from '../store/slices/bookingSlice';
 import { trackBookingStart } from '../components/analytics/GoogleAnalytics';
 import { formatDate, parse } from 'date-fns';
+import { CouponForm } from '../components/payment/CouponForm';
 
 interface BookingFormData {
   selectedDate: string;
@@ -32,6 +33,7 @@ export const BookingFlow = () => {
 
   const [currentStep, setCurrentStep] = useState(1);
   const [emailBlurred, setEmailBlurred] = useState(false);
+  const [appliedDiscount, setAppliedDiscount] = useState(0);
 
   const [formData, setFormData] = useState<BookingFormData>({
     selectedDate: '',
@@ -39,6 +41,7 @@ export const BookingFlow = () => {
     children: 0,
     selectedPackage: null,
     selectedSlot: null,
+    selectedTimeSlot: null,
     customerName: '',
     customerEmail: '',
     customerPhone: '',
@@ -136,7 +139,9 @@ export const BookingFlow = () => {
       totalChildPrice = (adultPrice * 0.5) * formData.children;
     }
     
-    return totalAdultPrice + totalChildPrice;
+    // Apply coupon discount if any
+    const subtotal = totalAdultPrice + totalChildPrice;
+    return Math.max(0, subtotal - appliedDiscount);
   },
   [
     formData.adults,
@@ -144,6 +149,7 @@ export const BookingFlow = () => {
     formData.selectedPackage,
     formData.selectedSlot,
     currentProduct,
+    appliedDiscount
   ]);
 
   const { saveAbandonedCart } = useAbandonedCart(productId);
@@ -176,6 +182,32 @@ export const BookingFlow = () => {
        beganRef.current = true;
       }
     }
+    
+    // Check for recovered cart from abandonment
+    const recoveryData = sessionStorage.getItem('recover_cart');
+    if (recoveryData) {
+      try {
+        const cartData = JSON.parse(recoveryData);
+        if (cartData.productId === productId) {
+          // Pre-fill customer data from abandoned cart
+          setFormData(prev => ({
+            ...prev,
+            customerName: cartData.customerName || prev.customerName,
+            customerEmail: cartData.customerEmail || prev.customerEmail,
+            customerPhone: cartData.customerPhone || prev.customerPhone,
+            adults: cartData.adults || prev.adults,
+            children: cartData.children || prev.children,
+            selectedDate: cartData.selectedDate || prev.selectedDate
+          }));
+          
+          // Clear recovery data after successful application
+          sessionStorage.removeItem('recover_cart');
+        }
+      } catch (e) {
+        console.error('Error parsing recovery data:', e);
+      }
+    }
+    
   }, [formData, currentStep, emailBlurred, calculateTotal]);
 
   const handleStepSubmit = async () => {
@@ -286,6 +318,14 @@ export const BookingFlow = () => {
       console.error('Payment initialization error:', error);
       alert('Failed to initialize payment');
     }
+  };
+
+  const handleApplyCoupon = (discountAmount: number) => {
+    setAppliedDiscount(discountAmount);
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedDiscount(0);
   };
 
   if (productLoading || !currentProduct) {
@@ -686,7 +726,23 @@ export const BookingFlow = () => {
                   <span>Total:</span>
                   <span className="text-[#ff914d]">₹{calculateTotal().toLocaleString()}</span>
                 </div>
+                {appliedDiscount > 0 && (
+                  <div className="flex justify-between text-sm text-green-600">
+                    <span>Coupon Discount:</span>
+                    <span>-₹{appliedDiscount.toLocaleString()}</span>
+                  </div>
+                )}
               </div>
+
+              {/* Coupon Code */}
+              {currentStep === 3 && formData.selectedPackage && (
+                <CouponForm
+                  totalAmount={calculateTotal() + appliedDiscount}
+                  productId={formData.selectedPackage.productId || productId || ''}
+                  onApply={handleApplyCoupon}
+                  onRemove={handleRemoveCoupon}
+                />
+              )}
 
               <div className="mt-6 text-xs text-gray-500">
                 <p>• Free cancellation up to 24 hours before the tour</p>

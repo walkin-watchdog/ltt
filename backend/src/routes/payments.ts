@@ -109,49 +109,28 @@ router.post('/verify', authenticate, rateLimitPayment, async (req, res, next) =>
     });
 
     // Update booking status
-    await prisma.booking.update({
+    const updatedBooking = await prisma.booking.update({
       where: { id: booking.id },
       data: {
         status: 'CONFIRMED',
         paymentStatus: 'PAID',
       },
+      include: {
+        product: true,
+        package: true,
+        slot: true
+      }
     });
 
     // Send confirmation emails
-    await EmailService.sendPaymentConfirmation(booking, {
-      amount: booking.totalAmount,
+    await EmailService.sendPaymentConfirmation(updatedBooking, {
+      amount: updatedBooking.totalAmount,
       paymentMethod: 'Razorpay',
       razorpayPaymentId: paymentData.razorpay_payment_id,
-    }, booking.product);
+    }, updatedBooking.product);
 
     // Generate and send voucher
-    const voucherPDF = await PDFService.generateBookingVoucher({
-      booking,
-      product: booking.product,
-      customer: {
-        name: booking.customerName,
-        email: booking.customerEmail,
-        phone: booking.customerPhone,
-      },
-    });
-
-    await EmailService.sendEmail({
-      to: booking.customerEmail,
-      subject: `Booking Voucher - ${booking.bookingCode}`,
-      template: 'voucher',
-      context: {
-        customerName: booking.customerName,
-        bookingCode: booking.bookingCode,
-        productTitle: booking.product.title,
-      },
-      attachments: [
-        {
-          filename: `voucher-${booking.bookingCode}.pdf`,
-          content: voucherPDF,
-          contentType: 'application/pdf',
-        },
-      ],
-    });
+    await sendBookingVoucher(updatedBooking);
 
     res.json({ success: true, message: 'Payment verified successfully' });
   } catch (error) {
@@ -237,5 +216,59 @@ router.post('/:paymentId/refund', authenticate, authorize(['ADMIN']), async (req
     next(error);
   }
 });
+
+// Helper function to send booking voucher
+export const sendBookingVoucher = async (booking: any) => {
+  try {
+    // Generate PDF voucher
+    const voucherPDF = await PDFService.generateBookingVoucher({
+      booking,
+      product: booking.product,
+      customer: {
+        name: booking.customerName,
+        email: booking.customerEmail,
+        phone: booking.customerPhone,
+      },
+      packageDetails: booking.package,
+      slotDetails: booking.slot
+    });
+
+    // Send email with voucher attachment
+    await EmailService.sendEmail({
+      to: booking.customerEmail,
+      subject: `Booking Voucher - ${booking.bookingCode}`,
+      template: 'voucher',
+      context: {
+        customerName: booking.customerName,
+        bookingCode: booking.bookingCode,
+        productTitle: booking.product.title,
+        bookingDate: new Date(booking.bookingDate).toLocaleDateString('en-IN', {
+          weekday: 'long', 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric'
+        }),
+        adults: booking.adults,
+        children: booking.children,
+        packageName: booking.package?.name || 'Standard Package',
+        totalAmount: booking.totalAmount.toLocaleString('en-IN'),
+        timeSlot: booking.slot?.Time?.[0] || 'As per confirmation'
+      },
+      attachments: [
+        {
+          filename: `voucher-${booking.bookingCode}.pdf`,
+          content: voucherPDF,
+          contentType: 'application/pdf',
+        },
+      ],
+    });
+
+    logger.info(`Voucher sent successfully for booking ${booking.id}`);
+    return true;
+  } catch (error) {
+    logger.error(`Error sending booking voucher for booking ${booking.id}:`, error);
+    return false;
+  }
+};
 
 export default router;

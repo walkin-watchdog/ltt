@@ -10,13 +10,17 @@ import { Products } from './pages/Products';
 import { ProductForm } from './pages/ProductForm';
 import { ProductPreview } from './pages/ProductPreview';
 import { AbandonedCarts } from './pages/AbandonedCarts';
+import { ManualBooking } from './pages/ManualBooking';
 import { Availability } from './pages/Availability';
+import { UserManagement } from './pages/UserManagement';
+import { Coupons } from './pages/Coupons';
 import { Bookings } from './pages/Bookings';
 import { NewsletterAdmin } from './pages/NewsletterAdmin';
 import { DestinationsAdmin } from './pages/DestinationsAdmin';
 import { ExperienceCategoriesAdmin } from './pages/ExperienceCategoriesAdmin';
 import { Requests } from './pages/Requests';
 import { ToasterProvider } from './components/ui/toaster';
+import { Gallery } from './pages/Gallery';
 
 function App() {
   return (
@@ -69,6 +73,13 @@ function App() {
                     </Layout>
                   </ProtectedRoute>
                 } />
+                <Route path="/coupons" element={
+                  <ProtectedRoute requiredRoles={['ADMIN', 'EDITOR']}>
+                    <Layout>
+                      <Coupons />
+                    </Layout>
+                  </ProtectedRoute>
+                } />
                 <Route path="/bookings" element={
                   <ProtectedRoute>
                     <Layout>
@@ -76,10 +87,24 @@ function App() {
                     </Layout>
                   </ProtectedRoute>
                 } />
+                <Route path="/bookings/new" element={
+                  <ProtectedRoute requiredRoles={['ADMIN', 'EDITOR']}>
+                    <Layout>
+                      <ManualBooking />
+                    </Layout>
+                  </ProtectedRoute>
+                } />
                 <Route path="/requests" element={
                   <ProtectedRoute>
                     <Layout>
                       <Requests />
+                    </Layout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/user-management" element={
+                  <ProtectedRoute requiredRoles={['ADMIN']}>
+                    <Layout>
+                      <UserManagement />
                     </Layout>
                   </ProtectedRoute>
                 } />
@@ -101,6 +126,13 @@ function App() {
                   <ProtectedRoute>
                     <Layout>
                       <ExperienceCategoriesAdmin />
+                    </Layout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/gallery" element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <Gallery />
                     </Layout>
                   </ProtectedRoute>
                 } />

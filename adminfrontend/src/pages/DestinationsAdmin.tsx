@@ -5,14 +5,13 @@ import {
   Search, 
   Edit, 
   Trash2, 
-  Plus, 
-  Image, 
+  Plus,
   X,
   Save,
   Check,
 } from 'lucide-react';
 import { useToast } from '../components/ui/toaster';
-import axios from 'axios';
+import { ImageUploader } from '../components/gallery/ImageUploader';
 
 interface Destination {
   id: string;
@@ -47,7 +46,6 @@ export const DestinationsAdmin = () => {
     highlights: []
   });
   const [newHighlight, setNewHighlight] = useState('');
-  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -177,44 +175,7 @@ export const DestinationsAdmin = () => {
     }));
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: 'image' | 'bannerImage') => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    try {
-      const uploadFormData = new FormData();
-      uploadFormData.append('images', files[0]);
-
-      const res = await axios.post(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/uploads/products`,
-        uploadFormData,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data',
-          },
-          onUploadProgress: ev => {
-            const pct = Math.round((ev.loaded * 100) / (ev.total || 1));
-            setUploadProgress(pct);
-          },
-        }
-      );
-
-      const { images } = res.data as { images: Array<{ url: string }> };
-      if (images && images.length > 0) {
-        setCurrentDestination(prev => ({
-          ...prev,
-          [field]: images[0].url
-        }));
-        toast({ message: 'Image uploaded successfully', type: 'success' });
-      }
-    } catch (error) {
-      console.error('Error uploading image:', error);
-      toast({ message: 'Failed to upload image', type: 'error' });
-    } finally {
-      setUploadProgress(null);
-    }
-  };
+  
 
   if (isLoading) {
     return (
@@ -421,38 +382,18 @@ export const DestinationsAdmin = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Card Image *
                   </label>
-                  <div className="mt-1 flex items-center">
-                    {currentDestination.image ? (
-                      <div className="relative">
-                        <img
-                          src={currentDestination.image}
-                          alt="Destination"
-                          className="h-32 w-full object-cover rounded-md"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setCurrentDestination(prev => ({ ...prev, image: '' }))}
-                          className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="border-2 border-dashed border-gray-300 rounded-md p-6 text-center hover:border-gray-400 transition-colors w-full">
-                        <input
-                          type="file"
-                          id="card-image"
-                          accept="image/*"
-                          onChange={(e) => handleImageUpload(e, 'image')}
-                          className="hidden"
-                        />
-                        <label htmlFor="card-image" className="cursor-pointer">
-                          <Image className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                          <p className="text-sm text-gray-600">Upload image</p>
-                        </label>
-                      </div>
-                    )}
-                  </div>
+                  <ImageUploader
+                    images={[currentDestination.image].filter(Boolean) as string[]}
+                    onChange={(images) => {
+                      setCurrentDestination(prev => ({
+                        ...prev,
+                        image: images[0] || ''
+                      }));
+                    }}
+                    maxImages={1}
+                    folder="destinations"
+                    title="Destination Images"
+                  />
                   <p className="text-xs text-gray-500 mt-1">This image appears on the destination card</p>
                 </div>
                 
@@ -460,38 +401,18 @@ export const DestinationsAdmin = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Banner Image *
                   </label>
-                  <div className="mt-1 flex items-center">
-                    {currentDestination.bannerImage ? (
-                      <div className="relative">
-                        <img
-                          src={currentDestination.bannerImage}
-                          alt="Banner"
-                          className="h-32 w-full object-cover rounded-md"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setCurrentDestination(prev => ({ ...prev, bannerImage: '' }))}
-                          className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="border-2 border-dashed border-gray-300 rounded-md p-6 text-center hover:border-gray-400 transition-colors w-full">
-                        <input
-                          type="file"
-                          id="banner-image"
-                          accept="image/*"
-                          onChange={(e) => handleImageUpload(e, 'bannerImage')}
-                          className="hidden"
-                        />
-                        <label htmlFor="banner-image" className="cursor-pointer">
-                          <Image className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                          <p className="text-sm text-gray-600">Upload banner</p>
-                        </label>
-                      </div>
-                    )}
-                  </div>
+                  <ImageUploader
+                    images={[currentDestination.bannerImage].filter(Boolean) as string[]}
+                    onChange={(images) => {
+                      setCurrentDestination(prev => ({
+                        ...prev,
+                        bannerImage: images[0] || ''
+                      }));
+                    }}
+                    maxImages={1}
+                    folder="destinations"
+                    title="Destination Images"
+                  />
                   <p className="text-xs text-gray-500 mt-1">This image appears as hero on destination page</p>
                 </div>
               </div>

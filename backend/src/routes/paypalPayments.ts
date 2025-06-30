@@ -4,9 +4,9 @@ import { prisma } from '../utils/prisma'
 import { PayPalService } from '../services/paypalService';
 import { rateLimitPayment } from '../middleware/rateLimit';
 import { EmailService } from '../services/emailService';
-import { PDFService } from '../services/pdfService';
 import { authenticate, authorize } from '../middleware/auth';
 import { logger } from '../utils/logger';
+import { sendBookingVoucher } from './payments';
 
 const router = express.Router();
 
@@ -111,6 +111,11 @@ router.post('/capture', authenticate, rateLimitPayment, async (req, res, next) =
         status: 'CONFIRMED',
         paymentStatus: 'PAID',
       },
+      include: {
+        product: true,
+        package: true,
+        slot: true
+      }
     });
 
     // Send confirmation emails
@@ -121,33 +126,11 @@ router.post('/capture', authenticate, rateLimitPayment, async (req, res, next) =
     }, booking.product);
 
     // Generate and send voucher
-    const voucherPDF = await PDFService.generateBookingVoucher({
-      booking,
-      product: booking.product,
-      customer: {
-        name: booking.customerName,
-        email: booking.customerEmail,
-        phone: booking.customerPhone,
-      },
+    const updatedBooking = await prisma.booking.findUnique({
+      where: { id: booking.id },
+      include: { product: true, package: true, slot: true }
     });
-
-    await EmailService.sendEmail({
-      to: booking.customerEmail,
-      subject: `Booking Voucher - ${booking.bookingCode}`,
-      template: 'voucher',
-      context: {
-        customerName: booking.customerName,
-        bookingCode: booking.bookingCode,
-        productTitle: booking.product.title,
-      },
-      attachments: [
-        {
-          filename: `voucher-${booking.bookingCode}.pdf`,
-          content: voucherPDF,
-          contentType: 'application/pdf',
-        },
-      ],
-    });
+    if (updatedBooking) await sendBookingVoucher(updatedBooking);
 
     res.json({ 
       success: true, 

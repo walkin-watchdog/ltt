@@ -46,6 +46,45 @@ const galleryStorage = new CloudinaryStorage({
   } as any,
 });
 
+// Cloudinary storage for itinerary images
+const itinerariesStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'luxe-travel/itineraries',
+    allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+    eager: [
+      { width: 1200, height: 800, crop: 'fill', quality: 'auto' },
+    ],
+    eager_async: true,
+  } as any,
+});
+
+// Cloudinary storage for destinations images
+const destinationsStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'luxe-travel/destinations',
+    allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+    eager: [
+      { width: 1200, height: 800, crop: 'fill', quality: 'auto' },
+    ],
+    eager_async: true,
+  } as any,
+});
+
+// Cloudinary storage for experiences images
+const experiencesStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'luxe-travel/experiences',
+    allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+    eager: [
+      { width: 1200, height: 800, crop: 'fill', quality: 'auto' },
+    ],
+    eager_async: true,
+  } as any,
+});
+
 export const uploadProductImages = multer({
   storage: productStorage,
   limits: {
@@ -68,6 +107,60 @@ export const uploadGalleryImages = multer({
   storage: galleryStorage,
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB limit
+  },
+  fileFilter: async (_req, file, cb) => {
+    try {
+      const ok = await validateMagicBytes(file);
+      if (!ok) {
+        return cb(new Error('Unsupported image type'));
+      }
+      cb(null, true);
+    } catch (err) {
+      cb(err as Error);
+    }
+  },
+});
+
+export const uploadDestinationImages = multer({
+  storage: destinationsStorage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: async (_req, file, cb) => {
+    try {
+      const ok = await validateMagicBytes(file);
+      if (!ok) {
+        return cb(new Error('Unsupported image type'));
+      }
+      cb(null, true);
+    } catch (err) {
+      cb(err as Error);
+    }
+  },
+});
+
+export const uploadExperienceImages = multer({
+  storage: experiencesStorage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: async (_req, file, cb) => {
+    try {
+      const ok = await validateMagicBytes(file);
+      if (!ok) {
+        return cb(new Error('Unsupported image type'));
+      }
+      cb(null, true);
+    } catch (err) {
+      cb(err as Error);
+    }
+  },
+});
+
+export const uploadItineraryImages = multer({
+  storage: itinerariesStorage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
   },
   fileFilter: async (_req, file, cb) => {
     try {
@@ -136,6 +229,92 @@ export class UploadService {
     }
   }
 
+  // Get images from Cloudinary
+  static async getImages(folder: string = '', options: {
+    limit?: number;
+    nextCursor?: string;
+    prefix?: string;
+  } = {}): Promise<any> {
+    try {
+      const { limit = 25, nextCursor, prefix } = options;
+      
+      const params: any = {
+        type: 'upload',
+        max_results: limit,
+      };
+      
+      if (folder) {
+        params.prefix = `luxe-travel/${folder}`;
+      } else if (prefix) {
+        params.prefix = prefix;
+      } else {
+        params.prefix = 'luxe-travel';
+      }
+      
+      if (nextCursor) {
+        params.next_cursor = nextCursor;
+      }
+      
+      const result = await cloudinary.api.resources(params);
+      
+      return {
+        images: result.resources.map((resource: any) => ({
+          id: resource.public_id,
+          url: resource.secure_url,
+          width: resource.width,
+          height: resource.height,
+          format: resource.format,
+          created: resource.created_at,
+          bytes: resource.bytes,
+          folder: resource.folder
+        })),
+        hasMore: result.next_cursor ? true : false,
+        nextCursor: result.next_cursor
+      };
+    } catch (error) {
+      logger.error('Error fetching images from Cloudinary:', error);
+      throw new Error('Failed to fetch images');
+    }
+  }
+
+  // Search images from Cloudinary
+  static async searchImages(query: string, options: {
+    limit?: number;
+    nextCursor?: string;
+  } = {}): Promise<any> {
+    try {
+      const { limit = 25, nextCursor } = options;
+      
+      const params: any = {
+        expression: `folder:luxe-travel* AND ${query}`,
+        max_results: limit
+      };
+      
+      if (nextCursor) {
+        params.next_cursor = nextCursor;
+      }
+      
+      const result = await cloudinary.search.expression(params.expression).max_results(params.max_results).execute();
+      
+      return {
+        images: result.resources.map((resource: any) => ({
+          id: resource.public_id,
+          url: resource.secure_url,
+          width: resource.width,
+          height: resource.height,
+          format: resource.format,
+          created: resource.created_at,
+          bytes: resource.bytes,
+          folder: resource.folder
+        })),
+        hasMore: result.next_cursor ? true : false,
+        nextCursor: result.next_cursor
+      };
+    } catch (error) {
+      logger.error('Error searching images from Cloudinary:', error);
+      throw new Error('Failed to search images');
+    }
+  }
   static async optimizeImage(buffer: Buffer, options: {
     width?: number;
     height?: number;

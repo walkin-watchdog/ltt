@@ -3,16 +3,21 @@ import { useState } from 'react';
 import { 
   Home, 
   Package, 
-  MapPin,
-  Tag,
-  Mail,
+  MapPin, 
+  Tag, 
+  Ticket,
+  Mail, 
   Calendar, 
   BookOpen, 
-  MessageSquare,
-  ShoppingCart,
-  Menu,
-  X
+  MessageSquare, 
+  ShoppingCart, 
+  Menu, 
+  X, 
+  UsersIcon,
+  Pin,
+  PinOff
 } from 'lucide-react';
+import { Image } from 'lucide-react';
 
 
 const navigation = [
@@ -20,7 +25,10 @@ const navigation = [
   { name: 'Products', href: '/products', icon: Package },
   { name: 'Destinations', href: '/destinations-admin', icon: MapPin },
   { name: 'Experience Categories', href: '/experience-categories', icon: Tag },
+  { name: 'Coupons', href: '/coupons', icon: Ticket },
   { name: 'Availability', href: '/availability', icon: Calendar },
+  { name: 'Gallery', href: '/gallery', icon: Image },
+  { name: 'User Management', href: '/user-management', icon: UsersIcon },
   { name: 'Bookings', href: '/bookings', icon: BookOpen },
   { name: 'Requests', href: '/requests', icon: MessageSquare },
   { name: 'Abandoned Carts', href: '/abandoned-carts', icon: ShoppingCart },
@@ -30,16 +38,18 @@ const navigation = [
 export const Sidebar = () => {
   const location = useLocation();
   // const { user, logout } = useAuth();
-  const [isCollapsed, setIsCollapsed] = useState(false);
-
-  const toggleSidebar = () => {
-    setIsCollapsed(!isCollapsed);
-  };
+  const [isPinned, setIsPinned] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const isCollapsed = !isPinned && !isHovered;
 
   return (
-    <div className={`bg-[#104c57] text-white flex flex-col min-h-screen transition-all duration-300 ${
-      isCollapsed ? 'w-16' : 'w-64'
-    }`}>
+    <div
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      className={`bg-[#104c57] text-white flex flex-col min-h-screen transition-all duration-300 ${
+        isCollapsed ? 'w-16' : 'w-64'
+      }`}
+    >
       {/* Header with Toggle Button */}
       <div className="p-6 border-b border-[#0d3d47] flex items-center justify-between">
         {!isCollapsed && (
@@ -51,16 +61,18 @@ export const Sidebar = () => {
             <p className="text-sm text-gray-300 mt-1">Admin Dashboard</p>
           </div>
         )}
-        <button
-          onClick={toggleSidebar}
-          className="p-2 rounded-lg hover:bg-[#0d3d47] transition-colors"
-        >
-          {isCollapsed ? (
-            <Menu className="h-5 w-5" />
-          ) : (
-            <X className="h-5 w-5" />
-          )}
-        </button>
+        {!isCollapsed && (
+          <button
+            onClick={() => setIsPinned(!isPinned)}
+            className="p-2 rounded-lg hover:bg-[#0d3d47] transition-colors"
+          >
+            {isPinned ? (
+              <PinOff className="h-5 w-5" />
+            ) : (
+              <Pin className="h-5 w-5" />
+            )}
+          </button>
+        )}
       </div>
 
       {/* Navigation */}

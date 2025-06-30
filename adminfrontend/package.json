@@ -26,6 +26,7 @@
     "@reduxjs/toolkit": "^2.0.1",
     "react-redux": "^9.0.4",
     "react-hook-form": "^7.48.2",
+    "react-hot-toast": "^2.5.2",
     "react-day-picker": "^8.10.0",
     "react-modal-sheet": "^4.4.0",
     "@hookform/resolvers": "^3.3.2",

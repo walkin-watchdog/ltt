@@ -144,6 +144,35 @@ export const ProductDetail = () => {
 
   useEffect(() => {
     if (id) {
+      // Check for recovery parameters in URL and sessionStorage
+      const urlParams = new URLSearchParams(window.location.search);
+      const isRecover = urlParams.get('recover') === 'true';
+      
+      if (isRecover) {
+        const recoveryData = sessionStorage.getItem('recover_cart');
+        if (recoveryData) {
+          try {
+            const cartData = JSON.parse(recoveryData);
+            // Only use recovery data if it's for the current product and less than 30 minutes old
+            if (cartData.productId === id && (Date.now() - cartData.timestamp < 30 * 60 * 1000)) {
+              setSelectedDateStr(cartData.selectedDate || todayStr);
+              setAdultsCount(cartData.adults || 2);
+              setChildrenCount(cartData.children || 0);
+              
+              // Store IDs to set after product loads
+              sessionStorage.setItem('pending_recovery', JSON.stringify({
+                packageId: cartData.packageId,
+                slotId: cartData.slotId,
+                selectedTimeSlot: cartData.selectedTimeSlot
+              }));
+            }
+          } catch (err) {
+            console.error('Error parsing recovery data:', err);
+            sessionStorage.removeItem('recover_cart');
+          }
+        }
+      }
+      
       dispatch(fetchProduct(id));
     }
   }, [dispatch, id]);
@@ -158,6 +187,46 @@ export const ProductDetail = () => {
   useEffect(() => {
     if (!currentProduct || !currentProduct.packages || currentProduct.packages.length === 0) {
       return;
+    }
+    
+    // Apply pending recovery data if it exists
+    const pendingRecovery = sessionStorage.getItem('pending_recovery');
+    if (pendingRecovery) {
+      try {
+        const recoveryData = JSON.parse(pendingRecovery);
+        
+        // Set selected package if it exists
+        if (recoveryData.packageId) {
+          const pkg = currentProduct.packages.find(p => p.id === recoveryData.packageId);
+          if (pkg) {
+            setSelectedPackage(pkg);
+            
+            // Set selected slot and time slot after package is selected and slots are loaded
+            setTimeout(() => {
+              if (recoveryData.slotId && pkg.slots) {
+                const slot = pkg.slots.find((s: any) => s.id === recoveryData.slotId);
+                if (slot) {
+                  setSelectedSlotId(recoveryData.slotId);
+                  setSelectedSlot(slot);
+                  
+                  if (recoveryData.selectedTimeSlot && 
+                      Array.isArray(slot.Time) && 
+                      slot.Time.includes(recoveryData.selectedTimeSlot)) {
+                    setSelectedTimeSlot(recoveryData.selectedTimeSlot);
+                  }
+                }
+              }
+            }, 500);
+          }
+        }
+        
+        // Clear pending recovery after applying
+        sessionStorage.removeItem('pending_recovery');
+        
+      } catch (err) {
+        console.error('Error applying recovery data:', err);
+        sessionStorage.removeItem('pending_recovery');
+      }
     }
     
     let cheapest = currentProduct.packages[0];

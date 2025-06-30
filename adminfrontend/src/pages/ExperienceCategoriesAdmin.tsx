@@ -5,14 +5,13 @@ import {
   Search, 
   Edit, 
   Trash2, 
-  Plus, 
-  Image, 
+  Plus,
   X,
   Save,
   Check
 } from 'lucide-react';
 import { useToast } from '../components/ui/toaster';
-import axios from 'axios';
+import { ImageUploader } from '../components/gallery/ImageUploader';
 
 interface ExperienceCategory {
   id: string;
@@ -47,7 +46,6 @@ export const ExperienceCategoriesAdmin = () => {
     highlights: []
   });
   const [newHighlight, setNewHighlight] = useState('');
-  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -175,45 +173,6 @@ export const ExperienceCategoriesAdmin = () => {
       ...prev,
       highlights: prev.highlights?.filter((_, i) => i !== index)
     }));
-  };
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: 'image' | 'bannerImage') => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    try {
-      const uploadFormData = new FormData();
-      uploadFormData.append('images', files[0]);
-
-      const res = await axios.post(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/uploads/products`,
-        uploadFormData,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data',
-          },
-          onUploadProgress: ev => {
-            const pct = Math.round((ev.loaded * 100) / (ev.total || 1));
-            setUploadProgress(pct);
-          },
-        }
-      );
-
-      const { images } = res.data as { images: Array<{ url: string }> };
-      if (images && images.length > 0) {
-        setCurrentCategory(prev => ({
-          ...prev,
-          [field]: images[0].url
-        }));
-        toast({ message: 'Image uploaded successfully', type: 'success' });
-      }
-    } catch (error) {
-      console.error('Error uploading image:', error);
-      toast({ message: 'Failed to upload image', type: 'error' });
-    } finally {
-      setUploadProgress(null);
-    }
   };
 
   if (isLoading) {
@@ -421,38 +380,18 @@ export const ExperienceCategoriesAdmin = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Card Image *
                   </label>
-                  <div className="mt-1 flex items-center">
-                    {currentCategory.image ? (
-                      <div className="relative">
-                        <img
-                          src={currentCategory.image}
-                          alt="Category"
-                          className="h-32 w-full object-cover rounded-md"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setCurrentCategory(prev => ({ ...prev, image: '' }))}
-                          className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="border-2 border-dashed border-gray-300 rounded-md p-6 text-center hover:border-gray-400 transition-colors w-full">
-                        <input
-                          type="file"
-                          id="cat-card-image"
-                          accept="image/*"
-                          onChange={(e) => handleImageUpload(e, 'image')}
-                          className="hidden"
-                        />
-                        <label htmlFor="cat-card-image" className="cursor-pointer">
-                          <Image className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                          <p className="text-sm text-gray-600">Upload image</p>
-                        </label>
-                      </div>
-                    )}
-                  </div>
+                  <ImageUploader
+                    images={[currentCategory.image].filter(Boolean) as string[]}
+                    onChange={(images) => {
+                      setCurrentCategory(prev => ({
+                        ...prev,
+                        image: images[0] || ''
+                      }));
+                    }}
+                    maxImages={1}
+                    folder="experiences"
+                    title="Category Images"
+                  />
                   <p className="text-xs text-gray-500 mt-1">This image appears on the category card</p>
                 </div>
                 
@@ -460,38 +399,18 @@ export const ExperienceCategoriesAdmin = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Banner Image *
                   </label>
-                  <div className="mt-1 flex items-center">
-                    {currentCategory.bannerImage ? (
-                      <div className="relative">
-                        <img
-                          src={currentCategory.bannerImage}
-                          alt="Banner"
-                          className="h-32 w-full object-cover rounded-md"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setCurrentCategory(prev => ({ ...prev, bannerImage: '' }))}
-                          className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="border-2 border-dashed border-gray-300 rounded-md p-6 text-center hover:border-gray-400 transition-colors w-full">
-                        <input
-                          type="file"
-                          id="cat-banner-image"
-                          accept="image/*"
-                          onChange={(e) => handleImageUpload(e, 'bannerImage')}
-                          className="hidden"
-                        />
-                        <label htmlFor="cat-banner-image" className="cursor-pointer">
-                          <Image className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                          <p className="text-sm text-gray-600">Upload banner</p>
-                        </label>
-                      </div>
-                    )}
-                  </div>
+                  <ImageUploader
+                    images={[currentCategory.bannerImage].filter(Boolean) as string[]}
+                    onChange={(images) => {
+                      setCurrentCategory(prev => ({
+                        ...prev,
+                        bannerImage: images[0] || ''
+                      }));
+                    }}
+                    maxImages={1}
+                    folder="experiences"
+                    title="Category Images"
+                  />
                   <p className="text-xs text-gray-500 mt-1">This image appears as hero on category page</p>
                 </div>
               </div>

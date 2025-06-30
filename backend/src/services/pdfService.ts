@@ -7,6 +7,8 @@ export interface VoucherData {
   booking: any;
   product: any;
   customer: any;
+  packageDetails?: any;
+  slotDetails?: any;
 }
 
 export class PDFService {
@@ -45,16 +47,30 @@ export class PDFService {
            .fillColor('#104c57')
            .text('Booking Details', 70, 190);
 
+        let yPos = 215;
         doc.fontSize(11)
            .fillColor('#333333')
-           .text(`Booking Code: ${data.booking.bookingCode}`, 70, 215)
-           .text(`Tour/Experience: ${data.product.title}`, 70, 235)
-           .text(`Customer Name: ${data.booking.customerName}`, 70, 255)
-           .text(`Email: ${data.booking.customerEmail}`, 70, 275)
-           .text(`Phone: ${data.booking.customerPhone}`, 70, 295)
-           .text(`Booking Date: ${new Date(data.booking.bookingDate).toLocaleDateString('en-IN')}`, 70, 315)
-           .text(`Adults: ${data.booking.adults} | Children: ${data.booking.children}`, 70, 335)
-           .text(`Total Amount: ₹${data.booking.totalAmount.toLocaleString()}`, 70, 355);
+           .text(`Booking Code: ${data.booking.bookingCode}`, 70, yPos)
+           .text(`Tour/Experience: ${data.product.title}`, 70, yPos + 20)
+           .text(`Customer Name: ${data.booking.customerName}`, 70, yPos + 40)
+           .text(`Email: ${data.booking.customerEmail}`, 70, yPos + 60)
+           .text(`Phone: ${data.booking.customerPhone}`, 70, yPos + 80)
+           .text(`Booking Date: ${new Date(data.booking.bookingDate).toLocaleDateString('en-IN')}`, 70, yPos + 100)
+           .text(`Adults: ${data.booking.adults} | Children: ${data.booking.children}`, 70, yPos + 120);
+
+        yPos += 140;
+
+        if (data.packageDetails) {
+          doc.text(`Package: ${data.packageDetails.name}`, 70, yPos);
+          yPos += 20;
+        }
+
+        if (data.slotDetails && data.slotDetails.Time && data.slotDetails.Time.length > 0) {
+          doc.text(`Time: ${data.slotDetails.Time[0]}`, 70, yPos);
+          yPos += 20;
+        }
+
+        doc.text(`Total Amount: ₹${data.booking.totalAmount.toLocaleString()}`, 70, yPos);
 
         // Product Details
         doc.fontSize(14)
