@@ -31,12 +31,7 @@ router.get('/product/:productId', async (req, res, next) => {
 
       where.AND = [
         { startDate: { lte: to } },
-        {
-          OR: [
-            { endDate: null },
-            { endDate: { gte: from } }
-          ]
-        }
+        { endDate:   { gte: to } }
       ];
     } else {
       const today = new Date();
