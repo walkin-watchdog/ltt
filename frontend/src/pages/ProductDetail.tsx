@@ -655,6 +655,16 @@ export const ProductDetail = () => {
                   </span>
                 ))}
               </div>
+                              {currentProduct.healthRestrictions && Array.isArray(currentProduct.healthRestrictions) && currentProduct.healthRestrictions.length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="text-md font-semibold text-gray-900 mb-2">Health Restrictions</h3>
+                    <ul className="list-disc list-inside text-gray-700 text-sm space-y-1">
+                      {currentProduct.healthRestrictions.map((restriction: string, idx: number) => (
+                        <li key={idx}>{restriction}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
             </div>
   
             {/* Itinerary */}

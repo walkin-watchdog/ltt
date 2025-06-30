@@ -525,37 +525,41 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
             {isLoadingDestinations && (
               <p className="text-sm text-gray-500 mt-1">Loading destinations...</p>
             )}
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Category *
-            </label>
-            <div className="flex">
-              <select
-                value={formData.category}
-                onChange={(e) => updateFormData({
-                  category: e.target.value,
-                  experienceCategoryId: experienceCategories.find(c => c.name === e.target.value)?.id || null
-                })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                required
-              >
-                <option value="">Select a category</option>
-                {experienceCategories.map(category => (
-                  <option key={category.id} value={category.name}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                onClick={() => setIsCategoryModalOpen(true)}
-                className="px-3 py-2 bg-[#ff914d] text-white rounded-r-md hover:bg-[#e8823d] transition-colors"
-              >
-                <PlusCircle className="h-5 w-5" />
-              </button>
-            </div>
-            {isLoadingCategories && (
-              <p className="text-sm text-gray-500 mt-1">Loading categories...</p>
-            )}
+          {formData.type === 'EXPERIENCE' && (
+  <>
+    <label className="block text-sm font-medium text-gray-700 mb-2">
+      Category *
+    </label>
+    <div className="flex">
+      <select
+        value={formData.category}
+        onChange={(e) => updateFormData({
+          category: e.target.value,
+          experienceCategoryId: experienceCategories.find(c => c.name === e.target.value)?.id || null
+        })}
+        className="w-full px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+        required={formData.type === 'EXPERIENCE'}
+      >
+        <option value="">Select a category</option>
+        {experienceCategories.map(category => (
+          <option key={category.id} value={category.name}>
+            {category.name}
+          </option>
+        ))}
+      </select>
+      <button
+        type="button"
+        onClick={() => setIsCategoryModalOpen(true)}
+        className="px-3 py-2 bg-[#ff914d] text-white rounded-r-md hover:bg-[#e8823d] transition-colors"
+      >
+        <PlusCircle className="h-5 w-5" />
+      </button>
+    </div>
+    {isLoadingCategories && (
+      <p className="text-sm text-gray-500 mt-1">Loading categories...</p>
+    )}
+  </>
+)}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">

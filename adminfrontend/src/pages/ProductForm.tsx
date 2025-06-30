@@ -69,7 +69,7 @@ export const ProductForm = () => {
       if (!formData.description) missing.push('Description');
       if (!formData.type) missing.push('Type');
       if (!formData.location) missing.push('Location');
-      if (!formData.category) missing.push('Category');
+      if (formData.type=='EXPERIENCE'&&!formData.category) missing.push('Category');
       if (!formData.duration) missing.push('Duration');
       if (!formData.capacity || formData.capacity < 1) missing.push('Max Capacity');
       // Optionally require at least one image
@@ -187,7 +187,7 @@ export const ProductForm = () => {
     setIsSaving(true);
 
     // Validate form data
-    if (!formData.title || !formData.productCode || !formData.description || !formData.category || 
+    if (!formData.title || !formData.productCode || !formData.description|| 
         !formData.location || !formData.duration) {
       toast({ message: "Please fill out all required fields in the Product Content tab", type: "error" });
       setActiveTab('content');

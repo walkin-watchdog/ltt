@@ -17,7 +17,6 @@ const productSchema = z.object({
   productCode: z.string().min(1),
   description: z.string().min(1),
   type: z.enum(['TOUR', 'EXPERIENCE']),
-  category: z.string().min(1),
   location: z.string().min(1),
   duration: z.string().min(1),
   capacity: z.number().min(1),
@@ -69,7 +68,7 @@ const productSchema = z.object({
   images: z.array(z.string()),
   tags: z.array(z.string()),
   difficulty: z.string().optional().nullable(),
-  healthRestrictions: z.string().optional().nullable(),
+  healthRestrictions: z.array(z.string()).optional(),
   accessibility: z.string().optional().nullable(),
   guides: z.array(z.string()),
   languages: z.array(z.string()),
@@ -331,25 +330,34 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
     // Use transaction to ensure data consistency
     const product = await prisma.$transaction(async (tx) => {
       // Create the product first
+      const productData = {
+        ...rest,
+        slug,
+        ...(blockedDates.length && {
+          blockedDates: {
+            create: blockedDates.map(b => ({
+              date: new Date(b.date),
+              reason: b.reason,
+              isActive: false
+            }))
+          }
+        }),
+        ...(itinerary.length && {
+          itineraries: {
+            create: itinerary
+          }
+        })
+      };
+      
+      // Only set experienceCategoryId for EXPERIENCE type
+      if (rest.type === 'EXPERIENCE' && rest.experienceCategoryId) {
+        productData.experienceCategoryId = rest.experienceCategoryId;
+      } else {
+        productData.experienceCategoryId = null;
+      }
+      
       const createdProduct = await tx.product.create({
-        data: {
-          ...rest,
-          slug,
-          ...(blockedDates.length && {
-            blockedDates: {
-              create: blockedDates.map(b => ({
-                date: new Date(b.date),
-                reason: b.reason,
-                isActive: false
-              }))
-            }
-          }),
-          ...(itinerary.length && {
-            itineraries: {
-              create: itinerary
-            }
-          })
-        }
+        data: productData
       });
 
       if (createdProduct.destinationId) {
@@ -432,8 +440,6 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
         }
       }
 
-    
-
       // Return the product with all related data
       return await tx.product.findUniqueOrThrow({
         where: { id: createdProduct.id },
@@ -469,7 +475,6 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
                 startDate,
                 endDate,
                 status: 'AVAILABLE',
-                available: pkg.maxPeople,
                 booked: 0,
               },
             })
@@ -482,7 +487,6 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
             startDate,
             endDate,
             status: 'AVAILABLE',
-            available: product.capacity,
             booked: 0,
           },
         });
@@ -507,6 +511,11 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
     const { blockedDates, itinerary, packages, ...rest } = data;
 
     const product = await prisma.$transaction(async (tx) => {
+      if (rest.type === 'EXPERIENCE' && rest.experienceCategoryId) {
+        rest.experienceCategoryId = rest.experienceCategoryId;
+      } else {
+        rest.experienceCategoryId = null;
+      }
       // Update the main product data
       let updatedProduct = await tx.product.update({
         where: { id: req.params.id },
@@ -645,7 +654,6 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
                 startDate: start,
                 endDate: end,
                 status: 'AVAILABLE',
-                available: pkg.maxPeople,
                 booked: 0,
               },
             })
@@ -658,7 +666,6 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
             startDate: start,
             endDate: end,
             status: 'AVAILABLE',
-            available: product.capacity,
             booked: 0,
           },
         });

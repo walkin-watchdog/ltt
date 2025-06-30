@@ -227,9 +227,9 @@ export const DestinationModal = ({ isOpen, onClose, onSelect }: DestinationModal
                               />
                             )}
                           </div>
-                          <div>
-                            <h3 className="font-medium text-gray-900">{destination.name}</h3>
-                            <p className="text-sm text-gray-500 truncate">{destination.tagline}</p>
+                          <div className='flex-1 min-w-0'>
+                            <h3 className="font-medium text-gray-900 ">{destination.name}</h3>
+                            <p className="text-sm text-gray-500">{destination.tagline}</p>
                           </div>
                         </div>
                       </div>

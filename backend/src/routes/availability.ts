@@ -61,7 +61,7 @@ router.get('/product/:productId', async (req, res, next) => {
     // Calculate availability summary
     const summary = {
       total: availability.length,
-      available: availability.filter(a => a.status === 'AVAILABLE' && (a.booked < a.available)).length,
+      // available: availability.filter(a => a.status === 'AVAILABLE' && (a.booked < a.available)).length,
       soldOut: availability.filter(a => a.status === 'SOLD_OUT').length,
       notOperating: availability.filter(a => a.status === 'NOT_OPERATING').length,
       nextAvailable: availability.find(a => a.status === 'AVAILABLE')?.startDate || null,
@@ -318,7 +318,6 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
         startDate: data.startDate,
         endDate: data.endDate,
         status: data.status,
-        available: data.available || 0,
         booked: data.booked || 0
       },
       include: {
@@ -382,7 +381,6 @@ router.post('/bulk', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, r
           startDate: new Date(range.startDate),
           endDate: range.endDate ? new Date(range.endDate) : null,
           status,
-          available: available || 0,
           booked: 0
         }
       });

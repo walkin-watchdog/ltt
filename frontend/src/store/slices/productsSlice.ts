@@ -34,6 +34,7 @@ interface Product {
   availableDates?: string[];
   lowestPackagePrice?: number;
   lowestDiscountedPackagePrice?: number;
+  healthRestrictions?: string[]; // Changed to array of strings
 }
 
 interface ProductsFilter {

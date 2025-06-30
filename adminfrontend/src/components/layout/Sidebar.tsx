@@ -10,11 +10,10 @@ import {
   BookOpen, 
   MessageSquare,
   ShoppingCart,
-  LogOut,
   Menu,
   X
 } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
+
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: Home },
@@ -30,7 +29,7 @@ const navigation = [
 
 export const Sidebar = () => {
   const location = useLocation();
-  const { user, logout } = useAuth();
+  // const { user, logout } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const toggleSidebar = () => {
@@ -38,7 +37,7 @@ export const Sidebar = () => {
   };
 
   return (
-    <div className={`bg-[#104c57] text-white flex flex-col transition-all duration-300 ${
+    <div className={`bg-[#104c57] text-white flex flex-col min-h-screen transition-all duration-300 ${
       isCollapsed ? 'w-16' : 'w-64'
     }`}>
       {/* Header with Toggle Button */}
@@ -54,7 +53,7 @@ export const Sidebar = () => {
         )}
         <button
           onClick={toggleSidebar}
-          className=" mt-6 p-2 rounded-lg hover:bg-[#0d3d47] transition-colors"
+          className="p-2 rounded-lg hover:bg-[#0d3d47] transition-colors"
         >
           {isCollapsed ? (
             <Menu className="h-5 w-5" />
@@ -96,7 +95,7 @@ export const Sidebar = () => {
       </nav>
 
       {/* User Info & Logout */}
-      <div className="p-4 border-t border-[#0d3d47] bg-[#104c57]">
+      {/* <div className="p-4 border-t border-[#0d3d47] bg-[#104c57]">
         {!isCollapsed ? (
           <>
             <div className="flex items-center mb-4 bg-[#0d3d47] rounded-lg p-3">
@@ -134,7 +133,7 @@ export const Sidebar = () => {
             </button>
           </div>
         )}
-      </div>
+      </div> */}
     </div>
   );
 };

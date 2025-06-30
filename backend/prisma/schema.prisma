@@ -36,7 +36,6 @@ model Product {
   slug        String      @unique
   description String
   type        ProductType
-  category    String
   location    String
   duration    String
   capacity    Int
@@ -47,7 +46,7 @@ model Product {
   images      String[]
   tags        String[]
   difficulty  String?
-  healthRestrictions String?
+  healthRestrictions String[]
   accessibility String?
   guides      String[]
   languages   String[]
@@ -169,7 +168,6 @@ model Availability {
   endDate   DateTime?
   status    AvailabilityStatus
   booked    Int               @default(0)
-  available Int
   packageId String?           /// new optional FK to support per-package tallies
 
   package Package? @relation("PackageAvailability", fields: [packageId], references: [id], onDelete: Cascade)
