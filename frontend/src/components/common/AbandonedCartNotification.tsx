@@ -7,7 +7,7 @@ interface AbandonedCartNotificationProps {
     productTitle: string;
     packageId?: string;
     slotId?: string;
-    selectedTimeSlot?: any;
+    selectedTimeSlot: string;
     adults?: number;
     children?: number;
     date: string;

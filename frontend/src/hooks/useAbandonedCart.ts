@@ -5,8 +5,8 @@ import { debounce } from '../lib/utils';
 
 interface AbandonedCartData {
   productId: string;
-  packageId?: string;
-  slotId?: string;
+  packageId: string;
+  slotId: string;
   customerName: string;
   customerEmail: string;
   customerPhone: string;
@@ -38,8 +38,8 @@ export const useAbandonedCart = (productId?: string) => {
       const body = {
         email       : data.customerEmail,
         productId   : data.productId,
-        packageId   : data.packageId || null,
-        slotId      : data.slotId || null,
+        packageId   : data.packageId,
+        slotId      : data.slotId,
         customerData: {
           customerName : data.customerName,
           customerEmail: data.customerEmail,
@@ -48,7 +48,7 @@ export const useAbandonedCart = (productId?: string) => {
           children     : data.children,
           selectedDate : data.selectedDate,
           totalAmount  : data.totalAmount,
-          selectedTimeSlot: data.selectedTimeSlot || null,
+          selectedTimeSlot: data.selectedTimeSlot,
         },
         updatedAt: new Date().toISOString()
       };
@@ -151,6 +151,7 @@ export const useAbandonedCart = (productId?: string) => {
           adults       : latestPayload.current.adults,
           children     : latestPayload.current.children,
           selectedDate : latestPayload.current.selectedDate,
+          selectedTimeSlot: latestPayload.current.selectedTimeSlot,
           totalAmount  : latestPayload.current.totalAmount,
         },
         updatedAt: new Date().toISOString(),

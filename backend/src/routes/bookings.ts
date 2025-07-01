@@ -18,6 +18,7 @@ const bookingSchema = z.object({
   adults: z.number().min(1),
   children: z.number().min(0),
   bookingDate: z.string().transform(str => new Date(str)),
+  selectedTimeSlot: z.string().min(1),
   notes: z.string().optional()
 });
 
@@ -337,6 +338,7 @@ router.post('/admin', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, 
       adults: z.number().min(1),
       children: z.number().min(0),
       bookingDate: z.string().transform(str => new Date(str)),
+      selectedTimeSlot: z.string().min(1),
       notes: z.string().optional(),
       status: z.enum(['PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED']).default('CONFIRMED'),
       paymentStatus: z.enum(['PENDING', 'PAID', 'FAILED', 'REFUNDED']).default('PAID')
@@ -430,6 +432,7 @@ router.post('/admin', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, 
         children: data.children,
         totalAmount,
         bookingDate: data.bookingDate,
+        selectedTimeSlot: data.selectedTimeSlot,
         notes: data.notes,
         status: data.status,
         paymentStatus: data.paymentStatus

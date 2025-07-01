@@ -31,7 +31,6 @@ export const AvailabilityModal = ({
   open,
   productId,
   onClose,
-  onPackageSelect,
   initialDate,
   initialAdults,
   initialChildren,
@@ -41,6 +40,7 @@ export const AvailabilityModal = ({
   const [adults, setAdults] = useState(initialAdults ?? 2);
   const [children, setChildren] = useState(initialChildren ?? 0);
   const [slots, setSlots] = useState<any[]>([]);
+  const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [isDateOk, setIsDateOk]= useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
   const [packages, setPackages] = useState<any[]>([]);
@@ -54,7 +54,7 @@ export const AvailabilityModal = ({
   ); // Initialize step based on prop
   const [slotsLoading, setSlotsLoading] = useState(false);
   const isMobile = useMediaQuery('(max-width:1023px)');
-  const datestr = date ? formatDate(date, 'yyyy-MM-dd') : ''; // Ensure datestr is always defined if date is present
+  const datestr = date ? formatDate(date, 'MM/dd/yyyy') : '';
 
   useEffect(() => {
     setDate(initialDate ? new Date(initialDate) : null);
@@ -195,13 +195,12 @@ export const AvailabilityModal = ({
     };
 
     // Debounce or add a small delay if fetches are too frequent
-    const timeoutId = setTimeout(fetchAvailability, 200); 
+    const timeoutId = setTimeout(fetchAvailability, 200);
     return () => clearTimeout(timeoutId); // Cleanup on unmount or re-render
   }, [open, date, adults, children, productId, selectedPackageId, step]); // Added selectedPackageId and step to dependency array
 
 
   if (!open || !isMobile) return null;
-
   return (
     <div
       className={clsx(
@@ -471,7 +470,8 @@ export const AvailabilityModal = ({
 
           {/* Slot Selection Step */}
           {!loading && step === 'slot' && (
-            <>
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Select Time</h3>
               {slotsLoading ? (
                 <div className="flex justify-center items-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ff914d] mr-3"></div>
@@ -479,68 +479,59 @@ export const AvailabilityModal = ({
                 </div>
               ) : slots.length > 0 ? (
                 <div className="space-y-2">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Select Time</h3>
-                  {slots.map(slot => (
-                    <button
-                      key={slot.id}
-                      onClick={() => {
-                        setSelectedSlotId(slot.id);
-                       }}
-                      className={clsx(
-                        'w-full flex items-center justify-between px-4 py-3 border rounded-lg',
-                        slot.id === selectedSlotId
-                          ? 'border-2 border-[#ff914d] bg-orange-50'
-                          : 'border-gray-200 hover:border-[#ff914d] hover:shadow-md'
-                      )}
-                    >
-                      <div className="flex flex-col text-left flex-grow">
-                        <div className="flex justify-between">
-                          <span className="font-medium">
-                            {Array.isArray(slot.Time) && slot.Time.length > 0 
-                              ? slot.Time[0] 
-                              : "Time not specified"}
-                          </span>
-                          {slot.id === selectedSlotId && (
+                  {slots
+                    .flatMap(slot =>
+                      Array.isArray(slot.Time)
+                        ? slot.Time.map((time: string) => ({ slotId: slot.id, time, slot }))
+                        : []
+                    )
+                    .map(({ slotId, time, slot }) => {
+                      const availableSeats = slot.available - (slot.booked || 0);
+                      const isDisabled = availableSeats < (adults + children);
+                      const isSelected =
+                        selectedSlotId === slotId && selectedTime === time;
+
+                      return (
+                        <button
+                          key={`${slotId}-${time}`}
+                          onClick={() => {
+                            if (!isDisabled) {
+                              setSelectedSlotId(slotId);
+                              setSelectedTime(time);
+                            }
+                          }}
+                          disabled={isDisabled}
+                          className={clsx(
+                            'w-full flex items-center justify-between px-4 py-3 border rounded-lg',
+                            isSelected
+                              ? 'border-2 border-[#ff914d] bg-orange-50'
+                              : 'border-gray-200 hover:border-[#ff914d] hover:shadow-md',
+                            isDisabled && 'opacity-50 cursor-not-allowed'
+                          )}
+                        >
+                          <span className="font-medium">{time}</span>
+                          {isSelected && (
                             <div className="bg-[#ff914d] text-white rounded-full h-5 w-5 flex items-center justify-center ml-2">
                               ✓
                             </div>
                           )}
-                        </div>
-                        {/* Show additional times if there are more than one */}
-                        {Array.isArray(slot.Time) && slot.Time.length > 1 && (
-                          <span className="text-xs text-gray-500 mt-1">
-                            Also available: {slot.Time.slice(1).join(', ')}
-                          </span>
-                        )}
-                      </div>
-                      
-                      <div className="text-right ml-2">
-                        <div className="bg-green-100 text-green-800 text-xs py-1 px-2 rounded-full">
-                          Available
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                  
-                  {/* Reserve Now button */}
-                  {selectedPackageId && isDateOk && selectedSlotId && (
+                        </button>
+                      );
+                    })}
+
+                  {selectedPackageId && isDateOk && selectedSlotId && selectedTime && (
                     <Link
                       to={
                         `/book/${productId}` +
-                        `?package=${selectedPackageId}` + // Use internal state
+                        `?package=${selectedPackageId}` +
                         `&slot=${selectedSlotId}` +
+                        `&time=${encodeURIComponent(selectedTime ?? '')}` +
                         `&date=${datestr}` +
                         `&adults=${adults}` +
                         `&children=${children}`
                       }
-                      >
-                      <button 
-                        onClick={() => {
-                          onPackageSelect(selectedSlotId); // Call the prop with the slot ID
-                          onClose();
-                        }}
-                        className="w-full py-4 px-4 rounded-lg font-semibold transition-colors text-center block bg-[#ff914d] text-white hover:bg-[#e8823d] mb-4"
-                      >
+                    >
+                      <button onClick={onClose} className="w-full py-4 rounded-lg bg-[#ff914d] text-white">
                         Reserve Now
                       </button>
                     </Link>
@@ -549,11 +540,9 @@ export const AvailabilityModal = ({
               ) : (
                 <p className="text-center text-red-600">
                   No time slots available for this date for the selected package.
-                  <br />
-                  <span className="text-gray-500 text-sm">Please try selecting another date or package.</span>
                 </p>
               )}
-            </>
+            </div>
           )}
 
           {/* No availability message (if no packages found for the date, or initial check fails) */}

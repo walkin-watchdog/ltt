@@ -18,6 +18,7 @@ const abandonedCartSchema = z.object({
     adults: z.number(),
     children: z.number(),
     selectedDate: z.string(),
+    selectedTimeSlot: z.string(),
     totalAmount: z.number()
   })
 });
@@ -193,7 +194,8 @@ router.post('/:id/convert', async (req, res, next) => {
         adults: customerData.adults,
         children: customerData.children,
         totalAmount: customerData.totalAmount,
-        bookingDate: new Date(customerData.selectedDate)
+        bookingDate: new Date(customerData.selectedDate),
+        selectedTimeSlot: customerData.selectedTimeSlot
       }
     });
 

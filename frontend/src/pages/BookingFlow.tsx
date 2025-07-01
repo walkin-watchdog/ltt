@@ -5,7 +5,7 @@ import { Calendar, User, CreditCard, CheckCircle, Phone, Mail, MapPin, CalendarI
 import { useAbandonedCart } from '../hooks/useAbandonedCart';
 import type { RootState, AppDispatch } from '@/store/store';
 import { fetchProduct } from '../store/slices/productsSlice';
-import { createBooking, setStep } from '../store/slices/bookingSlice';
+import { createBooking } from '../store/slices/bookingSlice';
 import { trackBookingStart } from '../components/analytics/GoogleAnalytics';
 import { formatDate, parse } from 'date-fns';
 import { CouponForm } from '../components/payment/CouponForm';
@@ -42,7 +42,7 @@ export const BookingFlow = () => {
     children: 0,
     selectedPackage: null,
     selectedSlot: null,
-    selectedTimeSlot: null,
+    selectedTimeSlot: '',
     customerName: '',
     customerEmail: '',
     customerPhone: '',
@@ -56,6 +56,7 @@ export const BookingFlow = () => {
       const adults = searchParams.get('adults');
       const children = searchParams.get('children');
       const slotId = searchParams.get('slot');
+      const timeParam = searchParams.get('time');
       if (date) {
         const iso = formatDate(parse(date, 'MM/dd/yyyy', new Date()), 'yyyy-MM-dd');
         if (iso) {
@@ -74,6 +75,7 @@ export const BookingFlow = () => {
         ...formData,
         selectedPackage: selectedPkg,
         selectedDate: date || formData.selectedDate,
+        selectedTimeSlot: formData.selectedTimeSlot,
         adults: adults ? parseInt(adults) : formData.adults,
         children: children ? parseInt(children) : formData.children,
       };
@@ -83,6 +85,9 @@ export const BookingFlow = () => {
         const slot = selectedPkg.slots?.find((s: any) => s.id === slotId);
         if (slot) {
           updatedFormData.selectedSlot = slot;
+          if (timeParam) {
+            updatedFormData.selectedTimeSlot = timeParam;
+          }
         }
       }
       
@@ -175,6 +180,7 @@ export const BookingFlow = () => {
         adults: formData.adults,
         children: formData.children,
         selectedDate: formData.selectedDate,
+        selectedTimeSlot: formData.selectedTimeSlot,
         totalAmount: calculateTotal(),
       });
 
@@ -198,7 +204,8 @@ export const BookingFlow = () => {
             customerPhone: cartData.customerPhone || prev.customerPhone,
             adults: cartData.adults || prev.adults,
             children: cartData.children || prev.children,
-            selectedDate: cartData.selectedDate || prev.selectedDate
+            selectedDate: cartData.selectedDate || prev.selectedDate,
+            selectedTimeSlot: cartData.selectedTimeSlot || prev.selectedTimeSlot
           }));
           
           // Clear recovery data after successful application
@@ -227,7 +234,7 @@ export const BookingFlow = () => {
         return;
       }
       
-      if (!formData.selectedPackage || !formData.selectedSlot) {
+      if (!formData.selectedPackage || !formData.selectedTimeSlot) {
         alert('Please select a package and time slot');
         return;
       }
@@ -242,6 +249,7 @@ export const BookingFlow = () => {
         adults: formData.adults,
         children: formData.children,
         bookingDate: formData.selectedDate,
+        selectedTimeSlot: formData.selectedTimeSlot,
         notes: formData.notes
       };
 
@@ -462,22 +470,15 @@ export const BookingFlow = () => {
               )}
               
               {/* Display selected time slot if any */}
-              {formData.selectedSlot && (
+              {formData.selectedTimeSlot && (
                 <div className="mt-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Selected Time
                   </label>
                   <div className="text-left p-4 rounded-lg border transition-colors border-[#ff914d] bg-orange-50">
                     <p className="font-medium text-gray-900">
-                      {Array.isArray(formData.selectedSlot.Time) && formData.selectedSlot.Time.length > 0 
-                        ? formData.selectedSlot.Time[0] 
-                        : 'Time not specified'}
+                      { formData.selectedTimeSlot || 'Time not specified'}
                     </p>
-                    {formData.selectedSlot.available && (
-                      <p className="text-sm text-gray-600 mt-1">
-                        {formData.selectedSlot.available - (formData.selectedSlot.booked || 0)} seats available
-                      </p>
-                    )}
                   </div>
                 </div>
               )}
@@ -579,9 +580,7 @@ export const BookingFlow = () => {
                         {formData.selectedPackage && (
                         <div className="flex justify-between">
                           <span>Time:</span>
-                          <span>{Array.isArray(formData.selectedSlot?.Time) && formData.selectedSlot?.Time.length > 0 
-                            ? formData.selectedSlot.Time[0] 
-                            : 'Not specified'}</span>
+                          <span>{formData.selectedTimeSlot}</span>
                         </div>
                       )}
                       </div>
@@ -713,12 +712,10 @@ export const BookingFlow = () => {
                   </div>
                 )}
                 
-                {formData.selectedSlot && (
+                {formData.selectedTimeSlot && (
                   <div className="flex justify-between">
                     <span>Time:</span>
-                    <span>{Array.isArray(formData.selectedSlot.Time) && formData.selectedSlot.Time.length > 0 
-                      ? formData.selectedSlot.Time[0] 
-                      : 'Not specified'}</span>
+                    <span>{formData.selectedTimeSlot}</span>
                   </div>
                 )}
                 

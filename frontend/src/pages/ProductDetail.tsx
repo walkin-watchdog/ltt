@@ -61,7 +61,7 @@ export const ProductDetail = () => {
   const [selectedDateStr, setSelectedDateStr] = useState(todayStr);
   const [adultsCount, setAdultsCount] = useState(2);
   const [childrenCount, setChildrenCount] = useState(0);
-  const { email } = useSelector((state: RootState) => state.auth);
+  const { email } = useSelector((state: RootState) => state.auth as { email: string });
   const [abandonedCart, setAbandonedCart] = useState<any>(null);
   const [showRecoveryPrompt, setShowRecoveryPrompt] = useState(false);
   const [cheapestPackage, setCheapestPackage] = useState<any>(null);
@@ -1229,7 +1229,6 @@ export const ProductDetail = () => {
             {!isMobile && selectedPackage && (
               <div className="mb-4">
                 <h3 className="text-lg font-medium text-gray-900 mb-3">Select Time</h3>
-
                 {slotsLoading ? (
                   <div className="flex justify-center py-4">
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#ff914d]"></div>
@@ -1240,54 +1239,45 @@ export const ProductDetail = () => {
                   </p>
                 ) : (
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {slotsForPackage.map((slot) => {
-                      const availableSeats = slot.available - (slot.booked || 0);
-                      const isDisabled = availableSeats < (adultsCount + childrenCount);
+                    {slotsForPackage
+                      .flatMap(slot =>
+                        Array.isArray(slot.Time)
+                          ? slot.Time.map((time: string) => ({ slotId: slot.id, time, slot }))
+                          : []
+                      )
+                      .map(({ slotId, time, slot }) => {
+                        const availableSeats = slot.available - (slot.booked || 0);
+                        const isDisabled = availableSeats < (adultsCount + childrenCount);
+                        const isSelected =
+                          selectedSlotId === slotId && selectedTimeSlot === time;
 
-                      return (
-                        <div
-                          key={slot.id}
-                          onClick={() => !isDisabled && handleSlotSelect(slot.id)}
-                          className={`border rounded-lg p-3 text-center cursor-pointer transition-colors ${false ? 'border-gray-200 bg-gray-50 cursor-not-allowed' :
-                            selectedSlotId === slot.id ? 'border-[#ff914d] bg-orange-50' :
-                              'border-gray-200 hover:border-[#ff914d]'
-                            }`}
-                        >
-                          <div className="font-medium">
-                            {Array.isArray(slot.Time) && slot.Time.length > 0 ? slot.Time[0] : 'No time specified'}
-                          </div>
-                        </div>
-                      );
-                    })}
+                        return (
+                          <button
+                            key={`${slotId}-${time}`}
+                            onClick={() => {
+                              if (!isDisabled) {
+                                handleSlotSelect(slotId);
+                                setSelectedTimeSlot(time);
+                              }
+                            }}
+                            disabled={isDisabled}
+                            className={`border rounded-lg p-3 text-center cursor-pointer transition-colors ${
+                              isSelected
+                                ? 'border-[#ff914d] bg-orange-50'
+                                : 'border-gray-200 hover:border-[#ff914d]'
+                            } ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          >
+                            {time}
+                          </button>
+                        );
+                      })}
                   </div>
                 )}
               </div>
             )}
 
-            {!isMobile && selectedSlot && selectedSlot.Time && selectedSlot.Time.length > 1 && (
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Choose Specific Time
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {selectedSlot.Time.map((time: string, index: number) => (
-                    <div
-                      key={index}
-                      className={`
-                      border rounded-lg py-2 px-3 text-center cursor-pointer
-                      ${selectedTimeSlot === time ? 'border-[#ff914d] bg-orange-50' : 'border-gray-200 hover:border-[#ff914d]'}
-                    `}
-                      onClick={() => setSelectedTimeSlot(time)}
-                    >
-                      {time}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {/* Pricing info for selected package/slot */}
-            {!isMobile && selectedPackage && selectedSlot && (
+            {!isMobile && selectedPackage && selectedSlot && selectedTimeSlot && (
               <div className="mb-4 p-4 bg-gray-50 rounded-lg">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm text-gray-700">Adults:</span>
@@ -1338,6 +1328,7 @@ export const ProductDetail = () => {
                   `/book/${currentProduct.id}` +
                   `?package=${selectedPackage.id}` +
                   `&slot=${selectedSlot.id}` +
+                  `&time=${encodeURIComponent(selectedTimeSlot ?? '')}` +
                   `&date=${encodeURIComponent(selectedDateStr)}` +
                   `&adults=${adultsCount}` +
                   `&children=${childrenCount}`
