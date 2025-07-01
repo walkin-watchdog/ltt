@@ -871,25 +871,29 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
                   <label className="text-sm font-medium text-gray-700">
                     Child Pricing Tiers *
                   </label>
+                  <span className="text-xs text-gray-500">
+                    Consider accessibility needs for children
+                  </span>
                 </div>
                 <div className="space-y-3">
                   {slotFormData.childTiers.map((tier, index) => (
                     <div key={index} className="flex items-center gap-2 p-3 rounded-md bg-green-50">
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">Min</label>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Min Age</label>
                         <input
                           type="number"
-                          min={1}
+                          min={0}
                           value={tier.min}
                           onChange={(e) => handleTierChange(e, 'childTiers', index, 'min')}
                           className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-sm"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">Max</label>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Max Age</label>
                         <input
                           type="number"
                           min={tier.min}
+                          max={17}
                           value={tier.max}
                           onChange={(e) => handleTierChange(e, 'childTiers', index, 'max')}
                           className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-sm"
@@ -935,6 +939,9 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
                     <Plus className="h-3 w-3 mr-1" />
                     Add Tier
                   </button>
+                  <div className="text-xs text-gray-500 bg-blue-50 p-2 rounded-md">
+                    <strong>Note:</strong> Consider special pricing for children with accessibility needs or those requiring additional assistance
+                  </div>
                 </div>
               </div>
               

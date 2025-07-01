@@ -12,6 +12,30 @@ const ensureNumeric = (value: any): number => {
   return value;
 };
 
+// Add validation schema for the new guide structure
+const guideSchema = z.object({
+  language: z.string().min(1),
+  inPerson: z.boolean(),
+  audio: z.boolean(),
+  written: z.boolean()
+});
+const itineraryActivitySchema = z.object({
+  location: z.string().min(1),
+  isStop: z.boolean().optional(),
+  stopDuration: z.number().nullable().optional(),
+  inclusions: z.array(z.string()).optional().default([]),
+  exclusions: z.array(z.string()).optional().default([]),
+  order: z.number().optional(),
+});
+
+const itinerarySchema = z.object({
+  day: z.number().int().positive(),
+  title: z.string().min(1),
+  description: z.string().min(1),
+  activities: z.array(itineraryActivitySchema).default([]),
+  images: z.array(z.string()).default([]),
+});
+
 const productSchema = z.object({
   title: z.string().min(1),
   productCode: z.string().min(1),
@@ -24,15 +48,7 @@ const productSchema = z.object({
   highlights: z.array(z.string()),
   inclusions: z.array(z.string()),
   exclusions: z.array(z.string()),
-  itinerary: z.array(
-    z.object({
-      day: z.number().int().positive(),
-      title: z.string().min(1),
-      description: z.string().min(1),
-      activities: z.array(z.string()).default([]),
-      images: z.array(z.string()).default([])
-    })
-  ).optional(),
+  itinerary: z.array(itinerarySchema).optional(),
   packages: z.array(z.object({
     name: z.string().min(1),
     description: z.string().min(1),
@@ -71,8 +87,7 @@ const productSchema = z.object({
   difficulty: z.string().optional().nullable(),
   healthRestrictions: z.array(z.string()).optional(),
   accessibility: z.string().optional().nullable(),
-  guides: z.array(z.string()),
-  languages: z.array(z.string()),
+  guides: z.array(guideSchema).optional(),
   meetingPoint: z.string().optional().nullable(),
   pickupLocations: z.array(z.string()),
   cancellationPolicy: z.string().min(1),
@@ -81,8 +96,16 @@ const productSchema = z.object({
   availabilityEndDate: z.string().transform(str => new Date(str)).optional(),
   blockedDates: z.array(z.object({date: z.string(), reason: z.string().optional()})).optional(),
   destinationId: z.string().nullable(),
-  experienceCategoryId: z.string().nullable(), 
+  experienceCategoryId: z.string().nullable(),
+  accessibilityFeatures: z.array(z.string().min(1)).optional().default([]),
+  wheelchairAccessible: z.string().min(1).default('no').optional(),
+  strollerAccessible:  z.string().min(1).default('no').optional(),
+  serviceAnimalsAllowed:  z.string().min(1).default('no').optional(),
+  publicTransportAccess: z.string().min(1).default('no').optional(),
+  infantSeatsRequired:  z.string().min(1).default('no').optional(),
+  infantSeatsAvailable:  z.string().min(1).default('no').optional(),
 });
+
 
 // Get all products (public)
 router.get('/', async (req, res, next) => {
@@ -129,7 +152,12 @@ router.get('/', async (req, res, next) => {
             }
           },
         },
-        itineraries: { orderBy: { day: 'asc' } }
+        itineraries: {
+          orderBy: { day: 'asc' },
+          include: {
+            activities: true, // ✅ Fetch activities as a relation
+          }
+        },
       },
       take: limit ? parseInt(limit as string) : undefined,
       skip: offset ? parseInt(offset as string) : undefined,
@@ -253,7 +281,12 @@ router.get('/:id', async (req, res, next) => {
           orderBy: { startDate: 'asc' }
         },
         blockedDates: true,
-        itineraries: { orderBy: { day: 'asc' } },
+        itineraries: {
+          orderBy: { day: 'asc' },
+          include: {
+            activities: true, // ✅ Fetch activities as a relation
+          }
+        },
       }
     });
 
@@ -323,7 +356,17 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
   try {
     const data = productSchema.parse(req.body);
     console.log('Creating product with data:', data);
-    const { blockedDates = [], itinerary = [], packages = [], ...rest } = data;
+    const { blockedDates = [], itinerary = [], packages = [], accessibilityFeatures = [], ...rest } = data;
+
+    // Transform guides data if needed
+    if (data.guides) {0
+      data.guides = data.guides.map(guide => ({
+        language: guide.language,
+        inPerson: guide.inPerson || false,
+        audio: guide.audio || false,
+        written: guide.written || false
+      }));
+    }
 
     const slug = rest.title.toLowerCase().replace(/\s+/g, '-')
                      .replace(/[^a-z0-9-]/g, '');
@@ -334,6 +377,14 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
       const productData = {
         ...rest,
         slug,
+        accessibilityFeatures: accessibilityFeatures.filter((feature: string) => feature.trim() !== ''),
+        wheelchairAccessible: rest.wheelchairAccessible ?? 'no',
+        strollerAccessible: rest.strollerAccessible ?? 'no',
+        serviceAnimalsAllowed: rest.serviceAnimalsAllowed ?? 'no',
+        publicTransportAccess: rest.publicTransportAccess ?? 'no',
+        infantSeatsRequired: rest.infantSeatsRequired ?? 'no',
+        infantSeatsAvailable: rest.infantSeatsAvailable ?? 'no',
+        guides: data.guides || [],
         ...(blockedDates.length && {
           blockedDates: {
             create: blockedDates.map(b => ({
@@ -345,7 +396,22 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
         }),
         ...(itinerary.length && {
           itineraries: {
-            create: itinerary
+            create: itinerary.map(day => ({
+              day: day.day,
+              title: day.title,
+              description: day.description,
+              images: day.images,
+              activities: {
+                create: (day.activities || []).map(act => ({
+                  location: act.location,
+                  isStop: act.isStop ?? false,
+                  stopDuration: act.stopDuration,
+                  inclusions: act.inclusions ?? [],
+                  exclusions: act.exclusions ?? [],
+                  order: act.order ?? 0,
+                }))
+              }
+            }))
           }
         })
       };
@@ -391,6 +457,8 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
               name: pkg.name,
               description: pkg.description,
               basePrice: pkg.basePrice,
+              discountType: pkg.discountType,
+              discountValue: pkg.discountValue,
               currency: pkg.currency || 'INR',
               inclusions: pkg.inclusions,
               maxPeople: pkg.maxPeople,
@@ -456,7 +524,12 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
             }
           },
           blockedDates: true,
-          itineraries: { orderBy: { day: 'asc' } }
+          itineraries: {
+            orderBy: { day: 'asc' },
+            include: {
+              activities: true, // ✅ Fetch activities as a relation
+            }
+          },
         }
       });
     });
@@ -511,6 +584,16 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
     
     const { blockedDates, itinerary, packages, ...rest } = data;
 
+    // Transform guides data if needed
+    if (data.guides) {
+      data.guides = data.guides.map(guide => ({
+        language: guide.language,
+        inPerson: guide.inPerson || false,
+        audio: guide.audio || false,
+        written: guide.written || false
+      }));
+    }
+
     const product = await prisma.$transaction(async (tx) => {
       if (rest.type === 'EXPERIENCE' && rest.experienceCategoryId) {
         rest.experienceCategoryId = rest.experienceCategoryId;
@@ -522,6 +605,7 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
         where: { id: req.params.id },
         data: {
           ...rest,
+          guides: data.guides || [],
           ...(rest.title && { 
             slug: rest.title.toLowerCase()
                       .replace(/\s+/g, '-')
@@ -547,11 +631,32 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
 
       // Handle itinerary update
       if (itinerary) {
+        await tx.itineraryActivity.deleteMany({
+          where: { itinerary: { productId: req.params.id } }
+        });
         await tx.itinerary.deleteMany({ where: { productId: req.params.id } });
         if (itinerary.length > 0) {
-          await tx.itinerary.createMany({
-            data: itinerary.map(d => ({ ...d, productId: req.params.id }))
-          });
+          for (const day of itinerary) {
+            await tx.itinerary.create({
+              data: {
+                productId: req.params.id,
+                day: day.day,
+                title: day.title,
+                description: day.description,
+                images: day.images,
+                activities: {
+                  create: (day.activities || []).map(act => ({
+                    location: act.location,
+                    isStop: act.isStop ?? false,
+                    stopDuration: act.stopDuration,
+                    inclusions: act.inclusions ?? [],
+                    exclusions: act.exclusions ?? [],
+                    order: act.order ?? 0,
+                  }))
+                }
+              }
+            });
+          }
         }
       }
 
@@ -568,6 +673,8 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
               name: pkg.name,
               description: pkg.description,
               basePrice: pkg.basePrice,
+              discountValue: pkg.discountValue,
+              discountType: pkg.discountType,
               currency: pkg.currency ?? 'INR',
               inclusions: pkg.inclusions,
               maxPeople: pkg.maxPeople,
@@ -633,7 +740,12 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
             }
           },
           blockedDates: true,
-          itineraries: { orderBy: { day: 'asc' } }
+          itineraries: {
+            orderBy: { day: 'asc' },
+            include: {
+              activities: true, // ✅ Fetch activities as a relation
+            }
+          },
         }
       });
     });
@@ -709,7 +821,11 @@ router.post('/:id/clone', authenticate, authorize(['ADMIN', 'EDITOR']), async (r
             }
           }
         }, 
-        itineraries: true 
+        itineraries: {
+          include: {
+            activities: true, // ✅ Fetch activities as a relation
+          }
+        },
       }
     });
 
@@ -795,18 +911,34 @@ router.post('/:id/clone', authenticate, authorize(['ADMIN', 'EDITOR']), async (r
         }
       }
 
-      // Clone itineraries
       for (const day of itineraries) {
-        await tx.itinerary.create({
+        const createdItinerary = await tx.itinerary.create({
           data: {
             productId: clonedProduct.id,
             day: day.day,
             title: day.title,
             description: day.description,
-            activities: day.activities,
-            images: day.images
+            images: day.images,
           }
         });
+      
+        // Clone activities for this itinerary day
+        const activities = await prisma.itineraryActivity.findMany({
+          where: { itineraryId: day.id }
+        });
+        if (activities.length > 0) {
+          await tx.itineraryActivity.createMany({
+            data: activities.map(act => ({
+              itineraryId: createdItinerary.id,
+              location: act.location,
+              isStop: act.isStop,
+              stopDuration: act.stopDuration,
+              inclusions: act.inclusions,
+              exclusions: act.exclusions,
+              order: act.order,
+            }))
+          });
+        }
       }
 
       // Return the complete cloned product
@@ -823,7 +955,11 @@ router.post('/:id/clone', authenticate, authorize(['ADMIN', 'EDITOR']), async (r
               }
             }
           }, 
-          itineraries: true 
+          itineraries: {
+            include: {
+              activities: true, // ✅ Fetch activities as a relation
+            }
+          },
         }
       });
     });

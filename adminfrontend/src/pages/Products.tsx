@@ -11,7 +11,8 @@ import {
   MapPin,
   Clock,
   Users,
-  Package
+  Package,
+  Baby,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import type { Productprop } from '@/types.ts';
@@ -256,8 +257,42 @@ export const Products = () => {
                   <Users className="h-3 w-3 mr-1" />
                   {product.capacity} capacity
                 </div>
+                {product.difficulty && (
+                  <div className="flex items-center text-sm text-gray-600">
+                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
+                      {product.difficulty}
+                    </span>
+                  </div>
+                )}
               </div>
-              
+
+              {/* Accessibility Indicators */}
+              {(product.wheelchairAccessible === 'yes' || product.strollerAccessible === 'yes' || product.serviceAnimalsAllowed === 'yes' || (Array.isArray(product.accessibilityFeatures) && product.accessibilityFeatures.length > 0)) && (
+                <div className="flex items-center space-x-2 mb-3">
+                  {product.wheelchairAccessible === 'yes' && (
+                    <div className="flex items-center text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">
+                      Wheelchair
+                    </div>
+                  )}
+                  {product.strollerAccessible === 'yes' && (
+                    <div className="flex items-center text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
+                      <Baby className="h-3 w-3 mr-1" />
+                      Stroller
+                    </div>
+                  )}
+                  {product.serviceAnimalsAllowed === 'yes' && (
+                    <div className="text-xs text-purple-600 bg-purple-50 px-2 py-1 rounded-full">
+                      Service Animal
+                    </div>
+                  )}
+                  {Array.isArray(product.accessibilityFeatures) && product.accessibilityFeatures.length > 0 && (
+                    <div className="text-xs text-indigo-600 bg-indigo-50 px-2 py-1 rounded-full">
+                      +{product.accessibilityFeatures.length} Features
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <span className="text-sm text-gray-600">

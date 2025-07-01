@@ -11,7 +11,8 @@ const availabilitySchema = z.object({
   startDate: z.string().transform(str => new Date(str)),
   endDate: z.string().transform(str => new Date(str)).optional().nullable(),
   status: z.enum(['AVAILABLE', 'SOLD_OUT', 'NOT_OPERATING']),
-  booked: z.number().min(0).optional()
+  booked: z.number().min(0).optional(),
+  accessibilityFeatures: z.array(z.string().min(1, 'Accessibility feature cannot be empty')).optional().default([])
 });
 
 // Get availability for a product
@@ -65,7 +66,12 @@ router.get('/product/:productId', async (req, res, next) => {
       where,
       include: {
         product: {
-          select: { id: true, title: true, productCode: true }
+          select: { 
+            id: true, 
+            title: true, 
+            productCode: true,
+            accessibilityFeatures: true // Include new accessibility features
+          }
         },
         package: {
           select: { id: true, name: true, maxPeople: true }

@@ -48,8 +48,14 @@ model Product {
   tags        String[]
   difficulty  String?
   healthRestrictions String[]
-  accessibility String?
-  guides      String[]
+  accessibilityFeatures String[] // New field for multiple accessibility options
+    wheelchairAccessible String
+  strollerAccessible String
+  serviceAnimalsAllowed String
+  publicTransportAccess String
+  infantSeatsRequired String
+  infantSeatsAvailable String
+  guides      Json?
   languages   String[]
   meetingPoint String?
   pickupLocations String[]
@@ -80,7 +86,7 @@ model Itinerary {
   day         Int
   title       String
   description String
-  activities  String[]
+  activities  ItineraryActivity[]
   images      String[]
 
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
@@ -88,7 +94,23 @@ model Itinerary {
   @@map("itineraries")
 }
 
-// Fixed Prisma Schema
+model ItineraryActivity {
+  id          String   @id @default(cuid())
+  itineraryId String
+  location    String
+  isStop      Boolean  @default(false)
+  stopDuration Int?    // Stop duration in minutes
+  inclusions  String[]
+  exclusions  String[]
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  itinerary Itinerary @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+
+  @@map("itinerary_activities")
+}
+
 model Package {
   id          String @id @default(cuid())
   productId   String

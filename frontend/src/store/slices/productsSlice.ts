@@ -9,6 +9,17 @@ interface ItineraryDay {
 }
 
 interface Product {
+  guides: boolean;
+  wheelchairAccessible: any;
+  strollerAccessible: any;
+  serviceAnimalsAllowed: any;
+  publicTransportAccess: any;
+  infantSeatsRequired: any;
+  infantSeatsAvailable: any;
+  accessibilityFeatures: boolean;
+  difficulty: any;
+  pickupLocations: boolean;
+  meetingPoint: any;
   cancellationPolicy: string;
   id: string;
   title: string;

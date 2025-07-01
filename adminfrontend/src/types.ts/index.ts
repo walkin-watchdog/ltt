@@ -1,9 +1,23 @@
+export interface ItineraryActivity {
+  id?: string;
+  title: string;
+  description: string;
+  location: string;
+  duration?: number; // Duration in minutes
+  isStop: boolean;
+  stopDuration?: number; // Stop duration in minutes
+  inclusions: string[];
+  exclusions: string[];
+  order: number;
+}
+
 export interface ItineraryDay {
+  id?: string;
   day: number;
   title: string;
   description: string;
-  activities?: string[];
-  images?: string[];
+  activities: ItineraryActivity[];
+  images: string[];
 }
 
 export interface PackageOption {
@@ -36,6 +50,17 @@ export interface Review {
 }
 
 export interface Product {
+  healthRestrictions: boolean;
+  guides: boolean;
+  infantSeatsRequired: any;
+  infantSeatsAvailable: any;
+  pickupLocations(pickupLocations: any): unknown;
+  meetingPoint: boolean;
+  wheelchairAccessible: string;
+  strollerAccessible: string;
+  serviceAnimalsAllowed: string;
+  publicTransportAccess: string;
+  accessibilityNotes: any;
   id: string;
   title: string;
   productCode: string;
@@ -61,6 +86,7 @@ export interface Product {
   availabilityStatus: 'AVAILABLE' | 'SOLD_OUT' | 'NOT_OPERATING';
   nextAvailableDate?: string;
   availableDates?: string[];
+  accessibilityFeatures?: string[]; // New field for accessibility features array
 }
 
 export interface AvailabilityProp {
@@ -82,7 +108,6 @@ export interface BlockedDate {
   createdAt: string;
   product: Product;
 }
-
 
 export interface AbandonedCartProp {
   id: string;
@@ -134,7 +159,6 @@ export interface BookingProp {
   };
 }
 
-
 export interface DashboardStats {
   overview: {
     totalProducts: number;
@@ -185,7 +209,7 @@ export interface ProductFormData {
   highlights: string[];
   inclusions: string[];
   exclusions: string[];
-  itinerary?: any;
+  itinerary?: ItineraryDay[];
   tags: string[];
   
   // Location & Meeting
@@ -208,9 +232,22 @@ export interface ProductFormData {
   availabilityEndDate?: string;
   blockedDates?: BlockDate[];
   packages?: PackageOption[];
+  accessibilityFeatures?: string[]; // New field for accessibility features array
+  wheelchairAccessible: string
+  strollerAccessible: string
+  serviceAnimalsAllowed: string
+  publicTransportAccess: string
+  infantSeatsRequired: string
+  infantSeatsAvailable: string
+  accessibilityNotes: string
 }
 
 export interface Productprop {
+  difficulty: any;
+  wheelchairAccessible: string;
+  strollerAccessible: string;
+  serviceAnimalsAllowed: string;
+  accessibilityFeatures: boolean;
   discountPrice: any;
   id: string;
   title: string;
@@ -227,6 +264,7 @@ export interface Productprop {
     bookings: number;
   };
 }
+
 export interface TripRequest {
   id: string;
   name: string;
@@ -246,8 +284,6 @@ export interface TripRequest {
   createdAt: string;
 }
 
-// ...existing interfaces...
-
 export interface BlockDatesProps {
     saveError: string;
     selectedProduct: string;
@@ -261,7 +297,7 @@ export interface BlockDatesProps {
     setSaveError: (error: string) => void;
   }
 
-  export interface EditProps {
+export interface EditProps {
     saveError: string;
     setSaveError: (error: string) => void;
     products: Product[];

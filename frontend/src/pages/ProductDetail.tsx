@@ -1,13 +1,13 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { 
-  MapPin, 
-  Clock, 
-  Users, 
-  Star, 
-  Calendar, 
-  Check, 
+import {
+  MapPin,
+  Clock,
+  Users,
+  Star,
+  Calendar,
+  Check,
   X,
   ChevronLeft,
   ChevronRight,
@@ -16,9 +16,9 @@ import {
   CheckCircle
 } from 'lucide-react';
 import { AvailabilityModal } from '../components/common/AvailabilityModal';
-import { AvailabilityBar }   from '../components/common/AvailabilityBar';
+import { AvailabilityBar } from '../components/common/AvailabilityBar';
 import useMediaQuery from '@mui/material/useMediaQuery';
-import { toast } from 'react-hot-toast';   
+import { toast } from 'react-hot-toast';
 import type { RootState, AppDispatch } from '@/store/store';
 import { fetchProduct } from '../store/slices/productsSlice';
 import { SEOHead } from '../components/seo/SEOHead';
@@ -31,13 +31,13 @@ const calculateEffectivePrice = (basePrice: number, discountType?: string, disco
   if (!discountType || discountType === 'none' || !discountValue) {
     return basePrice;
   }
-  
+
   if (discountType === 'percentage') {
     return basePrice * (1 - (discountValue / 100));
   } else if (discountType === 'fixed') {
     return Math.max(0, basePrice - discountValue);
   }
-  
+
   return basePrice;
 };
 
@@ -59,8 +59,8 @@ export const ProductDetail = () => {
   const isMobile = useMediaQuery('(max-width:1023px)');
   const todayStr = new Date().toLocaleDateString('en-US');
   const [selectedDateStr, setSelectedDateStr] = useState(todayStr);
-  const [adultsCount,  setAdultsCount]  = useState(2);
-  const [childrenCount,setChildrenCount]= useState(0);
+  const [adultsCount, setAdultsCount] = useState(2);
+  const [childrenCount, setChildrenCount] = useState(0);
   const { email } = useSelector((state: RootState) => state.auth);
   const [abandonedCart, setAbandonedCart] = useState<any>(null);
   const [showRecoveryPrompt, setShowRecoveryPrompt] = useState(false);
@@ -134,7 +134,7 @@ export const ProductDetail = () => {
     } else {
       setSelectedTimeSlot(null);
     }
-    
+
     if (isMobile) {
       setShowAvail(false);
     }
@@ -147,7 +147,7 @@ export const ProductDetail = () => {
       // Check for recovery parameters in URL and sessionStorage
       const urlParams = new URLSearchParams(window.location.search);
       const isRecover = urlParams.get('recover') === 'true';
-      
+
       if (isRecover) {
         const recoveryData = sessionStorage.getItem('recover_cart');
         if (recoveryData) {
@@ -158,7 +158,7 @@ export const ProductDetail = () => {
               setSelectedDateStr(cartData.selectedDate || todayStr);
               setAdultsCount(cartData.adults || 2);
               setChildrenCount(cartData.children || 0);
-              
+
               // Store IDs to set after product loads
               sessionStorage.setItem('pending_recovery', JSON.stringify({
                 packageId: cartData.packageId,
@@ -172,7 +172,7 @@ export const ProductDetail = () => {
           }
         }
       }
-      
+
       dispatch(fetchProduct(id));
     }
   }, [dispatch, id]);
@@ -182,25 +182,25 @@ export const ProductDetail = () => {
       checkForAbandonedCart();
     }
   }, [id, email]);
-  
+
   // Find the cheapest package when product data loads
   useEffect(() => {
     if (!currentProduct || !currentProduct.packages || currentProduct.packages.length === 0) {
       return;
     }
-    
+
     // Apply pending recovery data if it exists
     const pendingRecovery = sessionStorage.getItem('pending_recovery');
     if (pendingRecovery) {
       try {
         const recoveryData = JSON.parse(pendingRecovery);
-        
+
         // Set selected package if it exists
         if (recoveryData.packageId) {
           const pkg = currentProduct.packages.find(p => p.id === recoveryData.packageId);
           if (pkg) {
             setSelectedPackage(pkg);
-            
+
             // Set selected slot and time slot after package is selected and slots are loaded
             setTimeout(() => {
               if (recoveryData.slotId && pkg.slots) {
@@ -208,10 +208,10 @@ export const ProductDetail = () => {
                 if (slot) {
                   setSelectedSlotId(recoveryData.slotId);
                   setSelectedSlot(slot);
-                  
-                  if (recoveryData.selectedTimeSlot && 
-                      Array.isArray(slot.Time) && 
-                      slot.Time.includes(recoveryData.selectedTimeSlot)) {
+
+                  if (recoveryData.selectedTimeSlot &&
+                    Array.isArray(slot.Time) &&
+                    slot.Time.includes(recoveryData.selectedTimeSlot)) {
                     setSelectedTimeSlot(recoveryData.selectedTimeSlot);
                   }
                 }
@@ -219,72 +219,72 @@ export const ProductDetail = () => {
             }, 500);
           }
         }
-        
+
         // Clear pending recovery after applying
         sessionStorage.removeItem('pending_recovery');
-        
+
       } catch (err) {
         console.error('Error applying recovery data:', err);
         sessionStorage.removeItem('pending_recovery');
       }
     }
-    
+
     let cheapest = currentProduct.packages[0];
     let lowestPrice = calculateEffectivePrice(
       cheapest.basePrice,
       cheapest.discountType,
       cheapest.discountValue
     );
-    
+
     for (const pkg of currentProduct.packages) {
       const effectivePrice = calculateEffectivePrice(
         pkg.basePrice,
         pkg.discountType,
         pkg.discountValue
       );
-      
+
       if (effectivePrice < lowestPrice) {
         cheapest = pkg;
         lowestPrice = effectivePrice;
       }
     }
-    
+
     setCheapestPackage(cheapest);
   }, [currentProduct]);
-  
+
   // Find the cheapest package when product data loads
   useEffect(() => {
     if (!currentProduct || !currentProduct.packages || currentProduct.packages.length === 0) {
       return;
     }
-    
+
     let cheapest = currentProduct.packages[0];
     let lowestPrice = calculateEffectivePrice(
       cheapest.basePrice,
       cheapest.discountType,
       cheapest.discountValue
     );
-    
+
     for (const pkg of currentProduct.packages) {
       const effectivePrice = calculateEffectivePrice(
         pkg.basePrice,
         pkg.discountType,
         pkg.discountValue
       );
-      
+
       if (effectivePrice < lowestPrice) {
         cheapest = pkg;
         lowestPrice = effectivePrice;
       }
     }
-    
+
     setCheapestPackage(cheapest);
   }, [currentProduct]);
-  
+
   // Fetch available slots when a package is selected
   useEffect(() => {
     if (!selectedPackage || !selectedDateStr) return;
-    
+
     const fetchSlots = async () => {
       setSlotsLoading(true);
       try {
@@ -292,12 +292,12 @@ export const ProductDetail = () => {
         const dayOfWeek = parse(selectedDateStr, 'MM/dd/yyyy', new Date()).toLocaleDateString('en-US', { weekday: 'long' });
         const base = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
         const res = await fetch(`${base}/availability/package/${selectedPackage.id}/slots?date=${iso}`);
-        
+
         if (res.ok) {
           const data = await res.json();
           if (data.slots && Array.isArray(data.slots)) {
             // Filter slots based on day of week
-            const filteredSlots = data.slots.filter((slot: { days: string | string[]; }) => 
+            const filteredSlots = data.slots.filter((slot: { days: string | string[]; }) =>
               Array.isArray(slot.days) && slot.days.includes(dayOfWeek)
             );
             setSlotsForPackage(filteredSlots);
@@ -319,10 +319,10 @@ export const ProductDetail = () => {
         setSlotsLoading(false);
       }
     };
-    
+
     fetchSlots();
   }, [selectedPackage, selectedDateStr]);
-  
+
   const checkForAbandonedCart = async () => {
     try {
       const savedCart = localStorage.getItem(`abandoned_cart_${id}_${email}`);
@@ -335,14 +335,14 @@ export const ProductDetail = () => {
       console.error('Error checking for abandoned cart:', error);
     }
   };
-  
+
   const handleRecoverCart = () => {
     if (abandonedCart) {
       navigate(`/book/${id}?recover=true`);
     }
     setShowRecoveryPrompt(false);
   };
-  
+
   const dismissRecoveryPrompt = () => {
     setShowRecoveryPrompt(false);
   };
@@ -405,7 +405,7 @@ export const ProductDetail = () => {
       icon: CheckCircle
     };
   };
-  
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -428,13 +428,13 @@ export const ProductDetail = () => {
   }
 
   const nextImage = () => {
-    setCurrentImageIndex((prev) => 
+    setCurrentImageIndex((prev) =>
       prev === currentProduct.images.length - 1 ? 0 : prev + 1
     );
   };
 
   const prevImage = () => {
-    setCurrentImageIndex((prev) => 
+    setCurrentImageIndex((prev) =>
       prev === 0 ? currentProduct.images.length - 1 : prev - 1
     );
   };
@@ -457,9 +457,9 @@ export const ProductDetail = () => {
   const durationParts = currentProduct.duration.match(/(\d+)\s*(hour|hours|day|days|week|weeks|night|nights)/i);
   const durationValue = durationParts ? Number(durationParts[1]) : 1;
   const unitMap: Record<string, 'HOUR' | 'DAY' | 'WEEK' | 'NIGHT'> = {
-    hour:  'HOUR',  hours:  'HOUR',
-    day:   'DAY',   days:   'DAY',
-    week:  'WEEK',  weeks:  'WEEK',
+    hour: 'HOUR', hours: 'HOUR',
+    day: 'DAY', days: 'DAY',
+    week: 'WEEK', weeks: 'WEEK',
     night: 'NIGHT', nights: 'NIGHT'
   };
 
@@ -498,10 +498,10 @@ export const ProductDetail = () => {
 
     aggregateRating: currentProduct.reviews?.length
       ? {
-          "@type": "AggregateRating",
-          ratingValue: averageRating.toFixed(1),
-          reviewCount: currentProduct.reviews.length
-        }
+        "@type": "AggregateRating",
+        ratingValue: averageRating.toFixed(1),
+        reviewCount: currentProduct.reviews.length
+      }
       : undefined,
 
     itinerary: itineraryList.length && {
@@ -521,7 +521,7 @@ export const ProductDetail = () => {
         image={currentProduct.images[0]}
         structuredData={structuredData}
       />
-  
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Abandoned Cart Recovery Prompt */}
         {showRecoveryPrompt && (
@@ -533,13 +533,13 @@ export const ProductDetail = () => {
               <div className="ml-3">
                 <p className="text-blue-700 font-medium">You have an unfinished booking for this product</p>
                 <div className="mt-2 flex items-center">
-                  <button 
+                  <button
                     onClick={handleRecoverCart}
                     className="mr-4 bg-blue-100 hover:bg-blue-200 text-blue-800 px-3 py-1 rounded text-sm"
                   >
                     Continue Booking
                   </button>
-                  <button 
+                  <button
                     onClick={dismissRecoveryPrompt}
                     className="text-blue-700 hover:text-blue-900 text-sm"
                   >
@@ -550,7 +550,7 @@ export const ProductDetail = () => {
             </div>
           </div>
         )}
-        
+
         {/* Image Gallery */}
         <div className="relative h-96 rounded-lg overflow-hidden">
           <img
@@ -580,14 +580,13 @@ export const ProductDetail = () => {
                 key={index}
                 aria-label={`Select image ${index + 1}`}
                 onClick={() => setCurrentImageIndex(index)}
-                className={`w-3 h-3 rounded-full ${
-                  index === currentImageIndex ? 'bg-white' : 'bg-white bg-opacity-50'
-                }`}
+                className={`w-3 h-3 rounded-full ${index === currentImageIndex ? 'bg-white' : 'bg-white bg-opacity-50'
+                  }`}
               />
             ))}
           </div>
         </div>
-        
+
         {/* Thumbnail Grid */}
         {currentProduct.images.length > 1 && (
           <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 mt-4">
@@ -595,9 +594,8 @@ export const ProductDetail = () => {
               <button
                 key={index}
                 onClick={() => setCurrentImageIndex(index)}
-                className={`h-20 rounded-lg overflow-hidden border-2 ${
-                  index === currentImageIndex ? 'border-[#ff914d]' : 'border-transparent'
-                }`}
+                className={`h-20 rounded-lg overflow-hidden border-2 ${index === currentImageIndex ? 'border-[#ff914d]' : 'border-transparent'
+                  }`}
               >
                 <img src={image} alt="" className="w-full h-full object-cover" />
               </button>
@@ -614,11 +612,10 @@ export const ProductDetail = () => {
                 <button
                   key={t}
                   onClick={() => handleTabClick(t)}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                    activeTab === t
-                      ? 'border-[#ff914d] text-[#ff914d]'
-                      : 'border-transparent text-gray-500 hover:text-gray-700'
-                  }`}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === t
+                    ? 'border-[#ff914d] text-[#ff914d]'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                    }`}
                 >
                   {{
                     overview: 'Overview',
@@ -631,7 +628,7 @@ export const ProductDetail = () => {
             </nav>
           </div>
           {/* Main Content */}
-          <div className="relative mb-8">  
+          <div className="relative mb-8">
             {/* Overview */}
             <div ref={overviewRef} className="bg-white rounded-lg shadow-sm p-6 mb-8 scroll-mt-20">
               {/* Product Info */}
@@ -642,9 +639,9 @@ export const ProductDetail = () => {
                 <div className="flex items-center space-x-2">
                   <button
                     onClick={() => {
-                    navigator.clipboard
-                      .writeText(window.location.href)
-                      .then(() => toast.success('Link copied!'));
+                      navigator.clipboard
+                        .writeText(window.location.href)
+                        .then(() => toast.success('Link copied!'));
                     }}
                     className="p-2 text-gray-400 hover:text-[#ff914d] transition-colors"
                   >
@@ -652,14 +649,14 @@ export const ProductDetail = () => {
                   </button>
                 </div>
               </div>
-  
+
               <h1 className="text-3xl font-bold text-gray-900 mb-4">{currentProduct.title}</h1>
-              
+
               {/* Availability Status */}
               {(() => {
                 const availability = getAvailabilityStatus();
                 const IconComponent = availability.icon;
-                
+
                 return (
                   <div className={`${availability.bgColor} ${availability.borderColor} border rounded-lg p-4 mb-6`}>
                     <div className="flex items-center">
@@ -688,7 +685,7 @@ export const ProductDetail = () => {
                   </div>
                 );
               })()}
-              
+
               <div className="flex items-center space-x-6 mb-6">
                 <div className="flex items-center">
                   <Star className="h-5 w-5 text-yellow-400 fill-current" />
@@ -708,11 +705,11 @@ export const ProductDetail = () => {
                   <span>Up to {currentProduct.capacity} people</span>
                 </div>
               </div>
-  
+
               <p className="text-gray-700 text-lg leading-relaxed mb-6">
                 {currentProduct.description}
               </p>
-  
+
               {/* Tags */}
               <div className="flex flex-wrap gap-2 mb-6">
                 {currentProduct.tags.map((tag, index) => (
@@ -724,71 +721,258 @@ export const ProductDetail = () => {
                   </span>
                 ))}
               </div>
-                              {currentProduct.healthRestrictions && Array.isArray(currentProduct.healthRestrictions) && currentProduct.healthRestrictions.length > 0 && (
-                  <div className="mb-6">
-                    <h3 className="text-md font-semibold text-gray-900 mb-2">Health Restrictions</h3>
-                    <ul className="list-disc list-inside text-gray-700 text-sm space-y-1">
-                      {currentProduct.healthRestrictions.map((restriction: string, idx: number) => (
-                        <li key={idx}>{restriction}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+              {currentProduct.healthRestrictions && Array.isArray(currentProduct.healthRestrictions) && currentProduct.healthRestrictions.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-md font-semibold text-gray-900 mb-2">Health Restrictions</h3>
+                  <ul className="list-disc list-inside text-gray-700 text-sm space-y-1">
+                    {currentProduct.healthRestrictions.map((restriction: string, idx: number) => (
+                      <li key={idx}>{restriction}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
-  
-            {/* Itinerary */}
-            {currentProduct.type === 'TOUR' &&
-            currentProduct.itineraries &&
-            currentProduct.itineraries.length > 0 && (
-              <div ref={itineraryRef} className="bg-white rounded-lg shadow-sm p-6 mb-8 scroll-mt-20">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Itinerary</h2>
-                <div className="space-y-8">
-                  {currentProduct.itineraries.map((day: any) => (
-                    <section
-                      key={day.day}
-                      className="border-l-4 border-[#ff914d] pl-4 space-y-4"
-                    >
-                      {/* Day header */}
-                      <header>
-                        <h3 className="font-semibold text-gray-900">
-                          Day&nbsp;{day.day}: {day.title}
-                        </h3>
-                        <p className="text-gray-700 mt-1">{day.description}</p>
-                      </header>
-  
-                      {/* Activities */}
-                      {day.activities && day.activities.length > 0 && (
-                        <div>
-                          <h4 className="text-sm font-medium text-gray-800 mb-1">
-                            Activities
-                          </h4>
-                          <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
-                            {day.activities.map((act: string, idx: number) => (
-                              <li key={idx}>{act}</li>
-                            ))}
-                          </ul>
+
+            {/* Guides & Languages */}
+            {currentProduct.guides && Array.isArray(currentProduct.guides) && currentProduct.guides.length > 0 && (
+              <div className="mb-6">
+                <h3 className="text-md font-semibold text-gray-900 mb-3">Available Guides</h3>
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="space-y-3">
+                    {currentProduct.guides.map((guide: any, idx: number) => (
+                      <div key={idx} className="flex items-center justify-between py-2 border-b border-gray-200 last:border-b-0">
+                        <div className="font-medium text-gray-900">{guide.language}</div>
+                        <div className="flex items-center space-x-4">
+                          {guide.inPerson && (
+                            <div className="flex items-center text-blue-600">
+                              <Users className="h-4 w-4 mr-1" />
+                              <span className="text-sm">In-person</span>
+                            </div>
+                          )}
+                          {guide.audio && (
+                            <div className="flex items-center text-green-600">
+                              <svg className="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v6.114a4 4 0 100 1.772V6.114l8-1.6v4.9a4 4 0 100 1.772V3z" />
+                              </svg>
+                              <span className="text-sm">Audio</span>
+                            </div>
+                          )}
+                          {guide.written && (
+                            <div className="flex items-center text-purple-600">
+                              <svg className="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+                              </svg>
+                              <span className="text-sm">Written</span>
+                            </div>
+                          )}
                         </div>
-                      )}
-  
-                      {/* Images */}
-                      {day.images && day.images.length > 0 && (
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                          {day.images.map((img: string, idx: number) => (
-                            <img
-                              key={idx}
-                              src={img}
-                              alt={`Day ${day.day} ${idx + 1}`}
-                              className="w-full h-32 object-cover rounded"
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </section>
-                  ))}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
-  
+
+            {/* Accessibility Features */}
+            <div className="mb-6">
+              <h3 className="text-md font-semibold text-gray-900 mb-3">Accessibility Information</h3>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Wheelchair Accessibility */}
+                  {currentProduct.wheelchairAccessible && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-700">Wheelchair Accessible:</span>
+                      <span className={`text-sm font-medium ${currentProduct.wheelchairAccessible === 'yes' ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                        {currentProduct.wheelchairAccessible === 'yes' ? 'Yes' : 'No'}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Stroller Accessibility */}
+                  {currentProduct.strollerAccessible && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-700">Stroller Friendly:</span>
+                      <span className={`text-sm font-medium ${currentProduct.strollerAccessible === 'yes' ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                        {currentProduct.strollerAccessible === 'yes' ? 'Yes' : 'No'}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Service Animals */}
+                  {currentProduct.serviceAnimalsAllowed && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-700">Service Animals:</span>
+                      <span className={`text-sm font-medium ${currentProduct.serviceAnimalsAllowed === 'yes' ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                        {currentProduct.serviceAnimalsAllowed === 'yes' ? 'Allowed' : 'Not Allowed'}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Public Transport Access */}
+                  {currentProduct.publicTransportAccess && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-700">Public Transport:</span>
+                      <span className={`text-sm font-medium ${currentProduct.publicTransportAccess === 'yes' ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                        {currentProduct.publicTransportAccess === 'yes' ? 'Accessible' : 'Limited Access'}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Infant Seating */}
+                  {currentProduct.infantSeatsRequired && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-700">Infant Seating:</span>
+                      <span className="text-sm font-medium text-gray-600">
+                        {currentProduct.infantSeatsRequired === 'yes' ? 'Must sit on laps' : 'Separate seating available'}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Infant Seats Available */}
+                  {currentProduct.infantSeatsAvailable && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-700">Infant Seats:</span>
+                      <span className={`text-sm font-medium ${currentProduct.infantSeatsAvailable === 'yes' ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                        {currentProduct.infantSeatsAvailable === 'yes' ? 'Available' : 'Not Available'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Additional Accessibility Features */}
+                {currentProduct.accessibilityFeatures &&
+                  Array.isArray(currentProduct.accessibilityFeatures) &&
+                  currentProduct.accessibilityFeatures.length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                      <h4 className="text-sm font-medium text-gray-800 mb-2">Additional Features:</h4>
+                      <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
+                        {currentProduct.accessibilityFeatures.map((feature: string, idx: number) => (
+                          <li key={idx}>{feature}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                {/* Physical Difficulty Level */}
+                {currentProduct.difficulty && (
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-700">Physical Difficulty:</span>
+                      <span className={`text-sm font-medium px-2 py-1 rounded-full ${currentProduct.difficulty === 'Easy' ? 'bg-green-100 text-green-800' :
+                          currentProduct.difficulty === 'Moderate' ? 'bg-yellow-100 text-yellow-800' :
+                            currentProduct.difficulty === 'Challenging' ? 'bg-red-100 text-red-800' :
+                              'bg-gray-100 text-gray-800'
+                        }`}>
+                        {currentProduct.difficulty}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Pickup Information */}
+            {((Array.isArray(currentProduct.pickupLocations) && currentProduct.pickupLocations.length > 0) || currentProduct.meetingPoint) && (
+              <div className="mb-6">
+                <h3 className="text-md font-semibold text-gray-900 mb-3">Pickup & Meeting Information</h3>
+                <div className="bg-gray-50 rounded-lg p-4">
+                  {currentProduct.meetingPoint && (
+                    <div className="mb-3">
+                      <h4 className="text-sm font-medium text-gray-800 mb-1">Meeting Point:</h4>
+                      <p className="text-sm text-gray-700">{currentProduct.meetingPoint}</p>
+                    </div>
+                  )}
+
+                  {Array.isArray(currentProduct.pickupLocations) && currentProduct.pickupLocations.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-800 mb-2">Pickup Locations:</h4>
+                      <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
+                        {currentProduct.pickupLocations.map((location: string, idx: number) => (
+                          <li key={idx}>{location}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Itinerary */}
+            {currentProduct.type === 'TOUR' &&
+              currentProduct.itineraries &&
+              currentProduct.itineraries.length > 0 && (
+                <div ref={itineraryRef} className="bg-white rounded-lg shadow-sm p-6 mb-8 scroll-mt-20">
+                  <h2 className="text-xl font-bold text-gray-900 mb-4">Itinerary</h2>
+                  <div className="space-y-8">
+                    {currentProduct.itineraries.map((day: any) => (
+                      <section
+                        key={day.day}
+                        className="border-l-4 border-[#ff914d] pl-4 space-y-4"
+                      >
+                        {/* Day header */}
+                        <header>
+                          <h3 className="font-semibold text-gray-900">
+                            Day&nbsp;{day.day}: {day.title}
+                          </h3>
+                          <p className="text-gray-700 mt-1">{day.description}</p>
+                        </header>
+
+                        {/* Activities */}
+                        {day.activities && day.activities.length > 0 && (
+                          <div>
+                            <h4 className="text-sm font-medium text-gray-800 mb-1">
+                              Activities
+                            </h4>
+                            <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
+                              {day.activities.map((act: any, idx: number) => (
+                                <li key={idx}>
+                                  <span className="font-semibold">{act.location}</span>
+                                  {act.isStop && (
+                                    <span className="ml-2 text-blue-600">
+                                      (Stop{act.stopDuration ? ` - ${act.stopDuration} min` : ''})
+                                    </span>
+                                  )}
+                                  {/* Optionally show inclusions/exclusions */}
+                                  {act.inclusions && act.inclusions.length > 0 && (
+                                    <span className="ml-2 text-green-600">
+                                      Includes: {act.inclusions.join(', ')}
+                                    </span>
+                                  )}
+                                  {act.exclusions && act.exclusions.length > 0 && (
+                                    <span className="ml-2 text-red-600">
+                                      Excludes: {act.exclusions.join(', ')}
+                                    </span>
+                                  )}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {/* Images */}
+                        {day.images && day.images.length > 0 && (
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                            {day.images.map((img: string, idx: number) => (
+                              <img
+                                key={idx}
+                                src={img}
+                                alt={`Day ${day.day} ${idx + 1}`}
+                                className="w-full h-32 object-cover rounded"
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </section>
+                    ))}
+                  </div>
+                </div>
+              )}
+
             {/* Inclusions & Exclusions */}
             <div ref={inclusionsRef} className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 scroll-mt-20">
               {currentProduct.inclusions.length > 0 && (
@@ -804,7 +988,7 @@ export const ProductDetail = () => {
                   </ul>
                 </div>
               )}
-  
+
               {currentProduct.exclusions.length > 0 && (
                 <div className="bg-white rounded-lg shadow-sm p-6">
                   <h2 className="text-xl font-bold text-gray-900 mb-4">Not Included</h2>
@@ -819,7 +1003,7 @@ export const ProductDetail = () => {
                 </div>
               )}
             </div>
-  
+
             {/* Policies */}
             <div ref={policiesRef} className="bg-white rounded-lg shadow-sm p-6 mb-8 scroll-mt-20">
               <h2 className="text-xl font-bold text-gray-900 mb-4">Cancellation Policy</h2>
@@ -829,7 +1013,7 @@ export const ProductDetail = () => {
                 </p>
               </div>
             </div>
-  
+
             {/* Reviews */}
             {currentProduct.reviews && currentProduct.reviews.length > 0 && (
               <div className="bg-white rounded-lg shadow-sm p-6">
@@ -843,9 +1027,8 @@ export const ProductDetail = () => {
                           {[...Array(5)].map((_, i) => (
                             <Star
                               key={i}
-                              className={`h-4 w-4 ${
-                                i < review.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
-                              }`}
+                              className={`h-4 w-4 ${i < review.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
+                                }`}
                             />
                           ))}
                         </div>
@@ -856,14 +1039,14 @@ export const ProductDetail = () => {
                 </div>
               </div>
             )}
-  
+
             {/* External Reviews Widget */}
-            <ReviewsWidget 
+            <ReviewsWidget
               googlePlaceId={import.meta.env.VITE_GOOGLE_REVIEWS_PLACE_ID}
               tripadvisorBusinessId={import.meta.env.VITE_TRIPADS_API_KEY}
               className="mb-8"
             />
-          </div> 
+          </div>
         </div>
         {/* Booking Sidebar */}
         <div className="order-first mt-8 lg:order-none lg:mt-0 lg:col-span-1 relative">
@@ -873,11 +1056,11 @@ export const ProductDetail = () => {
                 <span className="text-sm text-gray-600">Price per person</span>
                 {cheapestPackage && cheapestPackage.discountType !== 'none' && cheapestPackage.discountValue > 0 && (
                   <span className="bg-[#ff914d] text-white px-2 py-1 rounded text-xs font-semibold">
-                    {cheapestPackage.discountType === 'percentage' ? 
-                      `${cheapestPackage.discountValue}% OFF` : 
-                      `Save ${cheapestPackage.currency === 'INR' ? '₹' : 
-                            cheapestPackage.currency === 'USD' ? '$' : 
-                            cheapestPackage.currency === 'EUR' ? '€' : '£'}${cheapestPackage.discountValue.toLocaleString()}`
+                    {cheapestPackage.discountType === 'percentage' ?
+                      `${cheapestPackage.discountValue}% OFF` :
+                      `Save ${cheapestPackage.currency === 'INR' ? '₹' :
+                        cheapestPackage.currency === 'USD' ? '$' :
+                          cheapestPackage.currency === 'EUR' ? '€' : '£'}${cheapestPackage.discountValue.toLocaleString()}`
                     }
                   </span>
                 )}
@@ -886,9 +1069,9 @@ export const ProductDetail = () => {
                 {cheapestPackage ? (
                   <>
                     <span className="text-3xl font-bold text-[#ff914d]">
-                      {cheapestPackage.currency === 'INR' ? '₹' : 
-                       cheapestPackage.currency === 'USD' ? '$' : 
-                       cheapestPackage.currency === 'EUR' ? '€' : '£'}
+                      {cheapestPackage.currency === 'INR' ? '₹' :
+                        cheapestPackage.currency === 'USD' ? '$' :
+                          cheapestPackage.currency === 'EUR' ? '€' : '£'}
                       {calculateEffectivePrice(
                         cheapestPackage.basePrice,
                         cheapestPackage.discountType,
@@ -897,9 +1080,9 @@ export const ProductDetail = () => {
                     </span>
                     {cheapestPackage && cheapestPackage.discountType !== 'none' && cheapestPackage.discountValue > 0 && (
                       <span className="text-lg text-gray-500 line-through ml-2">
-                        {cheapestPackage.currency === 'INR' ? '₹' : 
-                         cheapestPackage.currency === 'USD' ? '$' : 
-                         cheapestPackage.currency === 'EUR' ? '€' : '£'}
+                        {cheapestPackage.currency === 'INR' ? '₹' :
+                          cheapestPackage.currency === 'USD' ? '$' :
+                            cheapestPackage.currency === 'EUR' ? '€' : '£'}
                         {cheapestPackage.basePrice.toLocaleString()}
                       </span>
                     )}
@@ -917,7 +1100,7 @@ export const ProductDetail = () => {
                 </span>
               )}
             </div>
-  
+
             {/* check-availability */}
             <AvailabilityBar
               selectedDate={selectedDateStr}
@@ -926,14 +1109,14 @@ export const ProductDetail = () => {
               onChange={handleBarChange}
               onCheck={() => {
                 if (isMobile) { setShowAvail(true); return; }
-  
+
                 const iso = formatDate(parse(selectedDateStr, 'MM/dd/yyyy', new Date()), 'yyyy-MM-dd');
                 (async () => {
                   setCheckingAvail(true);
                   try {
                     const base = import.meta.env.VITE_API_URL || '';
-                    const res  = await fetch(
-                       `${base}/availability/product/${currentProduct.id}?startDate=${iso}&endDate=${iso}`,
+                    const res = await fetch(
+                      `${base}/availability/product/${currentProduct.id}?startDate=${iso}&endDate=${iso}`,
                     );
                     const json = await res.json();
                     const slot = json.availability?.find(
@@ -941,14 +1124,14 @@ export const ProductDetail = () => {
                         new Date(a.startDate) <= new Date(iso) &&
                         (!a.endDate || new Date(a.endDate) >= new Date(iso))
                     );
-                    
+
                     if (!slot) {
                       console.error('No availability found for the selected date');
                       setIsDateOk(false);
                       setAvailablePackages([]);
                       return;
                     }
-                    
+
                     if (slot.status !== 'AVAILABLE') {
                       setIsDateOk(false);
                       setAvailablePackages([]);
@@ -957,22 +1140,22 @@ export const ProductDetail = () => {
                       setIsDateOk(true);
                       setAvailablePackages(currentProduct.packages ?? []);
                     }
-                  } catch (error) { 
+                  } catch (error) {
                     console.error('Error checking availability:', error);
-                    setIsDateOk(false); 
+                    setIsDateOk(false);
                     setAvailablePackages([]);
-                  } finally { 
-                    setCheckingAvail(false); 
+                  } finally {
+                    setCheckingAvail(false);
                   }
                 })();
               }}
             />
-  
+
             {/* Booking Button */}
             {!isMobile && checkingAvail && (
               <p className="text-center text-gray-500 my-4">Checking availability…</p>
             )}
-  
+
             {!isMobile && isDateOk === false && !checkingAvail && !slotsLoading && (
               <p className="text-center text-red-600 my-4">
                 No time slots available for this date.
@@ -980,7 +1163,7 @@ export const ProductDetail = () => {
                 <span className="text-sm text-gray-500">Please try selecting another date.</span>
               </p>
             )}
-  
+
             {/* Package Selection */}
             {!isMobile && isDateOk && availablePackages.length > 0 && (
               <div className="mb-6">
@@ -990,11 +1173,10 @@ export const ProductDetail = () => {
                     <div
                       key={pkg.id}
                       onClick={() => handlePackageSelect(pkg.id)}
-                      className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
-                        selectedPackage?.id === pkg.id
-                          ? 'border-[#ff914d] bg-orange-50'
-                          : 'border-gray-200 hover:border-[#ff914d]'
-                      }`}
+                      className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${selectedPackage?.id === pkg.id
+                        ? 'border-[#ff914d] bg-orange-50'
+                        : 'border-gray-200 hover:border-[#ff914d]'
+                        }`}
                     >
                       <div className="flex justify-between items-start mb-2">
                         <h4 className="font-semibold text-gray-900">{pkg.name}</h4>
@@ -1007,7 +1189,7 @@ export const ProductDetail = () => {
                         )}
                       </div>
                       <p className="text-sm text-gray-600">{pkg.description}</p>
-                      
+
                       <div className="mt-2 flex flex-wrap gap-1">
                         {pkg.inclusions?.slice(0, 3).map((inc: string, idx: number) => (
                           <span key={idx} className="inline-block bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded">
@@ -1020,7 +1202,7 @@ export const ProductDetail = () => {
                           </span>
                         )}
                       </div>
-                      
+
                       <div className="mt-3 flex justify-between items-center">
                         <div className="font-bold text-[#ff914d]">
                           ₹{calculateEffectivePrice(
@@ -1042,12 +1224,12 @@ export const ProductDetail = () => {
                 </div>
               </div>
             )}
-  
+
             {/* Time Slot Selection */}
             {!isMobile && selectedPackage && (
               <div className="mb-4">
                 <h3 className="text-lg font-medium text-gray-900 mb-3">Select Time</h3>
-                
+
                 {slotsLoading ? (
                   <div className="flex justify-center py-4">
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#ff914d]"></div>
@@ -1061,16 +1243,15 @@ export const ProductDetail = () => {
                     {slotsForPackage.map((slot) => {
                       const availableSeats = slot.available - (slot.booked || 0);
                       const isDisabled = availableSeats < (adultsCount + childrenCount);
-                      
+
                       return (
-                        <div 
+                        <div
                           key={slot.id}
                           onClick={() => !isDisabled && handleSlotSelect(slot.id)}
-                          className={`border rounded-lg p-3 text-center cursor-pointer transition-colors ${
-                            false ? 'border-gray-200 bg-gray-50 cursor-not-allowed' :
-                            selectedSlotId === slot.id ? 'border-[#ff914d] bg-orange-50' : 
-                            'border-gray-200 hover:border-[#ff914d]'
-                          }`}
+                          className={`border rounded-lg p-3 text-center cursor-pointer transition-colors ${false ? 'border-gray-200 bg-gray-50 cursor-not-allowed' :
+                            selectedSlotId === slot.id ? 'border-[#ff914d] bg-orange-50' :
+                              'border-gray-200 hover:border-[#ff914d]'
+                            }`}
                         >
                           <div className="font-medium">
                             {Array.isArray(slot.Time) && slot.Time.length > 0 ? slot.Time[0] : 'No time specified'}
@@ -1082,7 +1263,7 @@ export const ProductDetail = () => {
                 )}
               </div>
             )}
-            
+
             {!isMobile && selectedSlot && selectedSlot.Time && selectedSlot.Time.length > 1 && (
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1104,7 +1285,7 @@ export const ProductDetail = () => {
                 </div>
               </div>
             )}
-  
+
             {/* Pricing info for selected package/slot */}
             {!isMobile && selectedPackage && selectedSlot && (
               <div className="mb-4 p-4 bg-gray-50 rounded-lg">
@@ -1112,64 +1293,64 @@ export const ProductDetail = () => {
                   <span className="text-sm text-gray-700">Adults:</span>
                   <span className="text-sm font-medium">
                     {adultsCount} × ₹
-                    {selectedSlot.adultTiers && selectedSlot.adultTiers.length > 0 
+                    {selectedSlot.adultTiers && selectedSlot.adultTiers.length > 0
                       ? selectedSlot.adultTiers[0].price.toLocaleString()
                       : calculateEffectivePrice(
-                          selectedPackage.basePrice,
-                          selectedPackage.discountType,
-                          selectedPackage.discountValue
-                        ).toLocaleString()
+                        selectedPackage.basePrice,
+                        selectedPackage.discountType,
+                        selectedPackage.discountValue
+                      ).toLocaleString()
                     }
                   </span>
                 </div>
-                
+
                 {childrenCount > 0 && (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-700">Children:</span>
-                  <span className="text-sm font-medium">
-                    {childrenCount} × ₹
-                    {selectedSlot.childTiers && selectedSlot.childTiers.length > 0 
-                      ? selectedSlot.childTiers[0].price.toLocaleString()
-                      : (calculateEffectivePrice(
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-700">Children:</span>
+                    <span className="text-sm font-medium">
+                      {childrenCount} × ₹
+                      {selectedSlot.childTiers && selectedSlot.childTiers.length > 0
+                        ? selectedSlot.childTiers[0].price.toLocaleString()
+                        : (calculateEffectivePrice(
                           selectedPackage.basePrice,
                           selectedPackage.discountType,
                           selectedPackage.discountValue
                         ) * 0.5).toLocaleString()
-                    }
-                  </span>
-                </div>
+                      }
+                    </span>
+                  </div>
                 )}
-                
+
                 <div className="mt-3 pt-2 border-t border-gray-200 flex justify-between items-center">
                   <span className="font-medium">Total:</span>
                   <span className="font-bold text-[#ff914d]">
-                    ₹{(adultsCount * (selectedSlot.adultTiers?.[0]?.price || selectedPackage.basePrice) + 
-                       childrenCount * (selectedSlot.childTiers?.[0]?.price || (selectedPackage.basePrice * 0.5))).toLocaleString()}
+                    ₹{(adultsCount * (selectedSlot.adultTiers?.[0]?.price || selectedPackage.basePrice) +
+                      childrenCount * (selectedSlot.childTiers?.[0]?.price || (selectedPackage.basePrice * 0.5))).toLocaleString()}
                   </span>
                 </div>
               </div>
             )}
-          
-          {/* Book Now Button */}
-          {selectedPackage && isDateOk && selectedSlot && (
-            <Link
-              to={
-                `/book/${currentProduct.id}` +
-                `?package=${selectedPackage.id}` +
-                `&slot=${selectedSlot.id}` +
-                `&date=${encodeURIComponent(selectedDateStr)}` +
-                `&adults=${adultsCount}` +
-                `&children=${childrenCount}`
-              }
-              className="w-full py-4 px-4 rounded-lg font-semibold transition-colors text-center block bg-[#ff914d] text-white hover:bg-[#e8823d] mb-4"
-            >
-              <span className="flex items-center justify-center">
-                <Calendar className="h-5 w-5 mr-2" />
-                Reserve Now
-              </span>
-            </Link>
-          )}
-  
+
+            {/* Book Now Button */}
+            {selectedPackage && isDateOk && selectedSlot && (
+              <Link
+                to={
+                  `/book/${currentProduct.id}` +
+                  `?package=${selectedPackage.id}` +
+                  `&slot=${selectedSlot.id}` +
+                  `&date=${encodeURIComponent(selectedDateStr)}` +
+                  `&adults=${adultsCount}` +
+                  `&children=${childrenCount}`
+                }
+                className="w-full py-4 px-4 rounded-lg font-semibold transition-colors text-center block bg-[#ff914d] text-white hover:bg-[#e8823d] mb-4"
+              >
+                <span className="flex items-center justify-center">
+                  <Calendar className="h-5 w-5 mr-2" />
+                  Reserve Now
+                </span>
+              </Link>
+            )}
+
             {/* share dropdown */}
             <div className="relative mt-4">
               <button
@@ -1184,13 +1365,13 @@ export const ProductDetail = () => {
                 Copy Link
               </button>
             </div>
-  
+
             <div className="mt-4 text-center">
               <p className="text-sm text-gray-600">
                 Free cancellation up to 24 hours before
               </p>
             </div>
-  
+
             {/* Contact */}
             <div className="mt-6 pt-6 border-t border-gray-200">
               <h3 className="font-semibold text-gray-900 mb-3">Need Help?</h3>

@@ -19,9 +19,10 @@ interface ExperienceCategoryModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSelect: (category: ExperienceCategory) => void;
+  onCreated?: () => void; // Add this
 }
 
-export const ExperienceCategoryModal = ({ isOpen, onClose, onSelect }: ExperienceCategoryModalProps) => {
+export const ExperienceCategoryModal = ({ isOpen, onClose, onSelect, onCreated}: ExperienceCategoryModalProps) => {
   const { token } = useAuth();
   const toast = useToast();
   const [categories, setCategories] = useState<ExperienceCategory[]>([]);
@@ -90,7 +91,7 @@ export const ExperienceCategoryModal = ({ isOpen, onClose, onSelect }: Experienc
         // Add to the list and select it
         setCategories([...categories, createdCategory]);
         onSelect(createdCategory);
-        
+        if (onCreated) onCreated();
         // Reset form and close it
         setNewCategory({
           name: '',

@@ -9,7 +9,6 @@ import { AvailabilityTab } from '../components/products/AvailabilityTab';
 import { Save, ArrowLeft, Eye } from 'lucide-react';
 import type { ProductFormData } from '@/types.ts';
 
-
 const tabs = [
   { id: 'content', name: 'Product Content', component: ProductContentTab },
   { id: 'schedule', name: 'Schedule & Price', component: SchedulePriceTab },
@@ -51,7 +50,16 @@ export const ProductForm = () => {
     availabilityStartDate: today,
     availabilityEndDate: undefined,
     blockedDates: [],
-    capacity: 0
+    capacity: 0,
+    accessibilityFeatures: [], // Add this new field
+    // Accessibility fields
+    wheelchairAccessible: '',
+    strollerAccessible: '',
+    serviceAnimalsAllowed: '',
+    publicTransportAccess: '',
+    infantSeatsRequired: '',
+    infantSeatsAvailable: '',
+    accessibilityNotes: '',
   });
 
   useEffect(() => {
@@ -72,6 +80,13 @@ export const ProductForm = () => {
       if (!formData.capacity || formData.capacity < 1) missing.push('Max Capacity');
       // Optionally require at least one image
       if (!formData.images || formData.images.length === 0) missing.push('At least one Image');
+      // Check for accessibility features if any accessibility options are selected
+      if (formData.wheelchairAccessible === 'yes' || 
+          formData.strollerAccessible === 'yes' || 
+          formData.serviceAnimalsAllowed === 'yes' || 
+          formData.publicTransportAccess === 'yes') {
+        // Optional: could require at least one accessibility feature to be described
+      }
       return missing;
     },
     schedule: (formData) => {

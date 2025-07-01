@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft, MapPin, Clock, Users, Star, Camera,
-  CheckCircle, XCircle, Calendar, AlertCircle
+  ArrowLeft, MapPin, Clock, Users, Star, 
+  CheckCircle, XCircle, Calendar, AlertCircle,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 import useMediaQuery from '@mui/material/useMediaQuery';
 
 import { useAuth } from '../contexts/AuthContext';
-import { AdminAvailabilityBar }   from '@/components/common/AdminAvailabilityBar';
+import { AdminAvailabilityBar } from '@/components/common/AdminAvailabilityBar';
 import { AdminAvailabilityModal } from '@/components/common/AdminAvailabilityModal';
 import type { Product, PackageOption } from '@/types.ts';
 import { formatDate, parse } from 'date-fns';
@@ -17,31 +18,31 @@ const calculateEffectivePrice = (basePrice: number, discountType?: string, disco
   if (!discountType || discountType === 'none' || !discountValue) {
     return basePrice;
   }
-  
+
   if (discountType === 'percentage') {
     return basePrice * (1 - (discountValue / 100));
   } else if (discountType === 'fixed') {
     return Math.max(0, basePrice - discountValue);
   }
-  
+
   return basePrice;
 };
 
 export const ProductPreview = () => {
-  const { id }    = useParams<{ id: string }>();
-  const navigate  = useNavigate();
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { token } = useAuth();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedImage, setSelectedImage] = useState(0);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [activeTab, setActiveTab] =
     useState<'overview' | 'itinerary' | 'inclusions' | 'policies'>('overview');
   const todayStr = new Date().toLocaleDateString('en-US');
   const [selectedDateStr, setSelectedDateStr] = useState(todayStr);
-  const [adultsCount,  setAdultsCount]   = useState(2);
-  const [childrenCount,setChildrenCount] = useState(0);
+  const [adultsCount, setAdultsCount] = useState(2);
+  const [childrenCount, setChildrenCount] = useState(0);
   const [checkingAvail, setCheckingAvail] = useState(false);
-  const [isDateOk,      setIsDateOk]      = useState<boolean | null>(null);
+  const [isDateOk, setIsDateOk] = useState<boolean | null>(null);
   const [availablePkgs, setAvailablePkgs] = useState<PackageOption[]>([]);
   const [selectedPackage, setSelectedPackage] = useState<PackageOption | null>(null);
   const [cheapestPackage, setCheapestPackage] = useState<PackageOption | null>(null);
@@ -60,7 +61,7 @@ export const ProductPreview = () => {
     (async () => {
       try {
         const base = import.meta.env.VITE_API_URL ?? 'http://localhost:3001/api';
-        const res  = await fetch(`${base}/products/${id}`, {
+        const res = await fetch(`${base}/products/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) throw new Error(`${res.status}: ${res.statusText}`);
@@ -72,33 +73,33 @@ export const ProductPreview = () => {
       }
     })();
   }, [id, token]);
-  
+
   // Find the cheapest package when product data loads
   useEffect(() => {
     if (!product || !product.packages || product.packages.length === 0) {
       return;
     }
-    
+
     let cheapest = product.packages[0];
     let lowestPrice = calculateEffectivePrice(
       cheapest.basePrice,
       cheapest.discountType,
       cheapest.discountValue
     );
-    
+
     for (const pkg of product.packages) {
       const effectivePrice = calculateEffectivePrice(
         pkg.basePrice,
         pkg.discountType,
         pkg.discountValue
       );
-      
+
       if (effectivePrice < lowestPrice) {
         cheapest = pkg;
         lowestPrice = effectivePrice;
       }
     }
-    
+
     setCheapestPackage(cheapest);
   }, [product]);
 
@@ -193,8 +194,7 @@ export const ProductPreview = () => {
     try {
       const date = parse(selectedDateStr, 'MM/dd/yyyy', new Date());
       const isoDate = formatDate(date, 'yyyy-MM-dd');
-      // const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'long' });
-    
+
       setCheckingAvail(true);
 
       (async () => {
@@ -202,9 +202,9 @@ export const ProductPreview = () => {
           const base = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
           const url = `${base}/availability/product/${product.id}?startDate=${isoDate}&endDate=${isoDate}`;
           console.log('Fetching availability from:', url);
-        
+
           const res = await fetch(url);
-        
+
           if (!res.ok) {
             console.error('Error fetching availability:', res.status, await res.text());
             setIsDateOk(false);
@@ -212,10 +212,10 @@ export const ProductPreview = () => {
             setCheckingAvail(false);
             return;
           }
-        
+
           const json = await res.json();
           console.log('Availability response:', json);
-        
+
           const slot = json.availability?.find(
             (a: any) =>
               new Date(a.startDate) <= new Date(isoDate) &&
@@ -229,7 +229,7 @@ export const ProductPreview = () => {
             setCheckingAvail(false);
             return;
           }
-        
+
           if (slot.status !== 'AVAILABLE') {
             console.log('Slot status is not AVAILABLE:', slot.status);
             setIsDateOk(false);
@@ -260,7 +260,7 @@ export const ProductPreview = () => {
   // Handle tab click with smooth scrolling
   const handleTabClick = (tab: 'overview' | 'itinerary' | 'inclusions' | 'policies') => {
     setActiveTab(tab);
-    
+
     const refs = {
       overview: overviewRef,
       itinerary: itineraryRef,
@@ -277,10 +277,23 @@ export const ProductPreview = () => {
     }
   };
 
+  // Image navigation functions
+  const nextImage = () => {
+    setCurrentImageIndex((prev) =>
+      prev === product!.images.length - 1 ? 0 : prev + 1
+    );
+  };
+
+  const prevImage = () => {
+    setCurrentImageIndex((prev) =>
+      prev === 0 ? product!.images.length - 1 : prev - 1
+    );
+  };
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#ff914d]" />
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#ff914d]"></div>
       </div>
     );
   }
@@ -303,7 +316,7 @@ export const ProductPreview = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* ---------- Header ---------- */}
+      {/* Header */}
       <header className="bg-white border-b px-6 py-4 flex items-center justify-between">
         <div className="flex items-center">
           <button
@@ -325,71 +338,80 @@ export const ProductPreview = () => {
         </button>
       </header>
 
-      {/* Status banner */}
+      
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Image Gallery - Updated to match ProductDetail */}
+        <div className="relative h-96 rounded-lg overflow-hidden mb-8">
+          <img
+            src={product.images[currentImageIndex] || 'https://images.pexels.com/photos/2132227/pexels-photo-2132227.jpeg'}
+            alt={product.title}
+            className="w-full h-full object-cover"
+          />
+          {product.images.length > 1 && (
+            <>
+              <button
+                onClick={prevImage}
+                className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-80 rounded-full p-2 hover:bg-opacity-100 transition-all"
+              >
+                <ChevronLeft className="h-6 w-6 text-gray-800" />
+              </button>
+              <button
+                onClick={nextImage}
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-80 rounded-full p-2 hover:bg-opacity-100 transition-all"
+              >
+                <ChevronRight className="h-6 w-6 text-gray-800" />
+              </button>
+            </>
+          )}
+          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
+            {product.images.map((_, index) => (
+              <button
+                key={index}
+                aria-label={`Select image ${index + 1}`}
+                onClick={() => setCurrentImageIndex(index)}
+                className={`w-3 h-3 rounded-full ${index === currentImageIndex ? 'bg-white' : 'bg-white bg-opacity-50'
+                  }`}
+              />
+            ))}
+          </div>
+        </div>
+        {/* Status banner */}
       <div className={`${bgColor} ${border} border-t-0 border-b px-6 py-3 flex items-center`}>
         <StatusIcon className={`h-5 w-5 mr-2 ${color}`} />
         <span className={`text-sm font-medium ${color}`}>{message}</span>
       </div>
 
-      {/* Body */}
+        {/* Thumbnail Grid */}
+        {product.images.length > 1 && (
+          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 mb-8">
+            {product.images.slice(0, 4).map((image, index) => (
+              <button
+                key={index}
+                onClick={() => setCurrentImageIndex(index)}
+                className={`h-20 rounded-lg overflow-hidden border-2 ${index === currentImageIndex ? 'border-[#ff914d]' : 'border-transparent'
+                  }`}
+              >
+                <img src={image} alt="" className="w-full h-full object-cover" />
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
         <section className="lg:col-span-2 space-y-8">
-          {/* Image gallery */}
-          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-            <div className="aspect-w-16 aspect-h-9 bg-gray-200">
-              {product.images?.length ? (
-                <img
-                  src={
-                    product.images?.[selectedImage] ??
-                    'https://images.pexels.com/photos/2132227/pexels-photo-2132227.jpeg'
-                  }
-                  alt={product.title}
-                  className="w-full h-96 object-cover"
-                />
-              ) : (
-                <div className="flex items-center justify-center h-96 bg-gray-200">
-                  <Camera className="h-12 w-12 text-gray-400" />
-                </div>
-              )}
-            </div>
-
-            {product.images.length > 1 && (
-              <div className="p-4 border-t">
-                <div className="flex space-x-2 overflow-x-auto">
-                  {product.images.map((img, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setSelectedImage(idx)}
-                      className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 ${
-                        selectedImage === idx
-                          ? 'border-[#ff914d]'
-                          : 'border-gray-200'
-                      }`}
-                    >
-                      <img
-                        src={img}
-                        alt={`${product.title} ${idx + 1}`}
-                        className="w-full h-full object-cover"
-                      />
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Navigation tabs - sticky */}
+          {/* Navigation tabs */}
           <div className="bg-white rounded-lg shadow-sm top-6 z-10">
             <nav className="border-b flex space-x-8 px-6">
               {(['overview', 'itinerary', 'inclusions', 'policies'] as const).map((t) => (
                 <button
                   key={t}
                   onClick={() => handleTabClick(t)}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                    activeTab === t
+                  className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === t
                       ? 'border-[#ff914d] text-[#ff914d]'
                       : 'border-transparent text-gray-500 hover:text-gray-700'
-                  }`}
+                    }`}
                 >
                   {{
                     overview: 'Overview',
@@ -402,7 +424,6 @@ export const ProductPreview = () => {
             </nav>
           </div>
 
-          {/* Content sections */}
           {/* Overview */}
           <div ref={overviewRef} className="bg-white rounded-lg shadow-sm p-6 scroll-mt-20">
             <div className="space-y-6">
@@ -430,8 +451,189 @@ export const ProductPreview = () => {
                   </ul>
                 </div>
               ) : null}
+
+              {/* Health Restrictions */}
+              {product.healthRestrictions && Array.isArray(product.healthRestrictions) && product.healthRestrictions.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Health Restrictions</h3>
+                  <ul className="list-disc list-inside text-gray-700 text-sm space-y-1">
+                    {product.healthRestrictions.map((restriction: string, idx: number) => (
+                      <li key={idx}>{restriction}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           </div>
+
+          {/* Guides & Languages */}
+          {product.guides && Array.isArray(product.guides) && product.guides.length > 0 && (
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Available Guides</h3>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="space-y-3">
+                  {product.guides.map((guide: any, idx: number) => (
+                    <div key={idx} className="flex items-center justify-between py-2 border-b border-gray-200 last:border-b-0">
+                      <div className="font-medium text-gray-900">{guide.language}</div>
+                      <div className="flex items-center space-x-4">
+                        {guide.inPerson && (
+                          <div className="flex items-center text-blue-600">
+                            <Users className="h-4 w-4 mr-1" />
+                            <span className="text-sm">In-person</span>
+                          </div>
+                        )}
+                        {guide.audio && (
+                          <div className="flex items-center text-green-600">
+                            <svg className="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v6.114a4 4 0 100 1.772V6.114l8-1.6v4.9a4 4 0 100 1.772V3z" />
+                            </svg>
+                            <span className="text-sm">Audio</span>
+                          </div>
+                        )}
+                        {guide.written && (
+                          <div className="flex items-center text-purple-600">
+                            <svg className="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+                            </svg>
+                            <span className="text-sm">Written</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Accessibility Features */}
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-3">Accessibility Information</h3>
+            <div className="bg-gray-50 rounded-lg p-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Wheelchair Accessibility */}
+                {product.wheelchairAccessible && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-700">Wheelchair Accessible:</span>
+                    <span className={`text-sm font-medium ${product.wheelchairAccessible === 'yes' ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                      {product.wheelchairAccessible === 'yes' ? 'Yes' : 'No'}
+                    </span>
+                  </div>
+                )}
+
+                {/* Stroller Accessibility */}
+                {product.strollerAccessible && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-700">Stroller Friendly:</span>
+                    <span className={`text-sm font-medium ${product.strollerAccessible === 'yes' ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                      {product.strollerAccessible === 'yes' ? 'Yes' : 'No'}
+                    </span>
+                  </div>
+                )}
+
+                {/* Service Animals */}
+                {product.serviceAnimalsAllowed && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-700">Service Animals:</span>
+                    <span className={`text-sm font-medium ${product.serviceAnimalsAllowed === 'yes' ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                      {product.serviceAnimalsAllowed === 'yes' ? 'Allowed' : 'Not Allowed'}
+                    </span>
+                  </div>
+                )}
+
+                {/* Public Transport Access */}
+                {product.publicTransportAccess && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-700">Public Transport:</span>
+                    <span className={`text-sm font-medium ${product.publicTransportAccess === 'yes' ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                      {product.publicTransportAccess === 'yes' ? 'Accessible' : 'Limited Access'}
+                    </span>
+                  </div>
+                )}
+
+                {/* Infant Seating */}
+                {product.infantSeatsRequired && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-700">Infant Seating:</span>
+                    <span className="text-sm font-medium text-gray-600">
+                      {product.infantSeatsRequired === 'yes' ? 'Must sit on laps' : 'Separate seating available'}
+                    </span>
+                  </div>
+                )}
+
+                {/* Infant Seats Available */}
+                {product.infantSeatsAvailable && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-700">Infant Seats:</span>
+                    <span className={`text-sm font-medium ${product.infantSeatsAvailable === 'yes' ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                      {product.infantSeatsAvailable === 'yes' ? 'Available' : 'Not Available'}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Additional Accessibility Features */}
+              {product.accessibilityFeatures &&
+                Array.isArray(product.accessibilityFeatures) &&
+                product.accessibilityFeatures.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <h4 className="text-sm font-medium text-gray-800 mb-2">Additional Features:</h4>
+                    <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
+                      {product.accessibilityFeatures.map((feature: string, idx: number) => (
+                        <li key={idx}>{feature}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+              {/* Physical Difficulty Level */}
+              {product.difficulty && (
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-700">Physical Difficulty:</span>
+                    <span className={`text-sm font-medium px-2 py-1 rounded-full ${product.difficulty === 'Easy' ? 'bg-green-100 text-green-800' :
+                        product.difficulty === 'Moderate' ? 'bg-yellow-100 text-yellow-800' :
+                          product.difficulty === 'Challenging' ? 'bg-red-100 text-red-800' :
+                            'bg-gray-100 text-gray-800'
+                      }`}>
+                      {product.difficulty}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Pickup Information */}
+          {((Array.isArray(product.pickupLocations) && product.pickupLocations.length > 0) || product.meetingPoint) && (
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Pickup & Meeting Information</h3>
+              <div className="bg-gray-50 rounded-lg p-4">
+                {product.meetingPoint && (
+                  <div className="mb-3">
+                    <h4 className="text-sm font-medium text-gray-800 mb-1">Meeting Point:</h4>
+                    <p className="text-sm text-gray-700">{product.meetingPoint}</p>
+                  </div>
+                )}
+
+                {Array.isArray(product.pickupLocations) && product.pickupLocations.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-800 mb-2">Pickup Locations:</h4>
+                    <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
+                      {product.pickupLocations.map((location: string, idx: number) => (
+                        <li key={idx}>{location}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Itinerary */}
           <div ref={itineraryRef} className="bg-white rounded-lg shadow-sm p-6 scroll-mt-20">
@@ -447,20 +649,33 @@ export const ProductPreview = () => {
                   {item.activities?.length ? (
                     <ul className="list-disc list-inside text-gray-600 text-sm space-y-1 mt-2">
                       {item.activities.map((act, i) => (
-                        <li key={i}>{act}</li>
+                        <li key={i}>
+                          <div>
+                            <span className="font-medium">{act.location}</span>
+                            {act.isStop && (
+                              <span className="ml-2 text-blue-600">
+                                (Stop{act.stopDuration ? ` - ${act.stopDuration} min` : ''})
+                              </span>
+                            )}
+                          </div>
+                          {act.inclusions && act.inclusions.length > 0 && (
+                            <div className="ml-4 text-green-700 text-xs">
+                              Includes: {act.inclusions.join(', ')}
+                            </div>
+                          )}
+                          {act.exclusions && act.exclusions.length > 0 && (
+                            <div className="ml-4 text-red-700 text-xs">
+                              Excludes: {act.exclusions.join(', ')}
+                            </div>
+                          )}
+                        </li>
                       ))}
                     </ul>
                   ) : null}
                 </div>
               ))
             ) : (
-              <p className="text-gray-500">
-                {adultsCount + childrenCount > 1 ? 's' : ''}.
-                <br />
-                <span className="text-sm text-gray-500">
-                  Try a different date or adjust participant count.
-                </span>
-              </p>
+              <p className="text-gray-500">No itinerary available for this product.</p>
             )}
           </div>
 
@@ -523,9 +738,9 @@ export const ProductPreview = () => {
                 {cheapestPackage ? (
                   <>
                     <span className="text-3xl font-bold text-[#ff914d]">
-                      {cheapestPackage.currency === 'INR' ? '₹' : 
-                      cheapestPackage.currency === 'USD' ? '$' : 
-                      cheapestPackage.currency === 'EUR' ? '€' : '£'}
+                      {cheapestPackage.currency === 'INR' ? '₹' :
+                        cheapestPackage.currency === 'USD' ? '$' :
+                          cheapestPackage.currency === 'EUR' ? '€' : '£'}
                       {calculateEffectivePrice(
                         cheapestPackage.basePrice,
                         cheapestPackage.discountType,
@@ -534,9 +749,9 @@ export const ProductPreview = () => {
                     </span>
                     {cheapestPackage && cheapestPackage.discountType !== 'none' && cheapestPackage.discountValue && cheapestPackage.discountValue > 0 && (
                       <span className="text-lg text-gray-500 line-through">
-                        {cheapestPackage.currency === 'INR' ? '₹' : 
-                        cheapestPackage.currency === 'USD' ? '$' : 
-                        cheapestPackage.currency === 'EUR' ? '€' : '£'}
+                        {cheapestPackage.currency === 'INR' ? '₹' :
+                          cheapestPackage.currency === 'USD' ? '$' :
+                            cheapestPackage.currency === 'EUR' ? '€' : '£'}
                         {cheapestPackage.basePrice.toLocaleString()}
                       </span>
                     )}
@@ -581,11 +796,10 @@ export const ProductPreview = () => {
                       <button
                         key={pkg.id}
                         onClick={() => handlePackageSelect(pkg.id)}
-                        className={`w-full flex items-center justify-between px-4 py-3 border rounded-lg ${
-                          selectedPackage?.id === pkg.id
+                        className={`w-full flex items-center justify-between px-4 py-3 border rounded-lg ${selectedPackage?.id === pkg.id
                             ? 'border-[#ff914d] bg-orange-50'
                             : 'border-gray-200 hover:border-[#ff914d]'
-                        }`}
+                          }`}
                       >
                         <span>
                           <p className="font-medium">{pkg.name}</p>
@@ -619,10 +833,13 @@ export const ProductPreview = () => {
               {product.difficulty && (
                 <div className="flex items-center text-sm text-gray-600">
                   <span className="font-medium mr-2">Difficulty:</span>
-                  {product.difficulty}
+                  <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">
+                    {product.difficulty}
+                  </span>
                 </div>
               )}
             </div>
+
 
             {/* Languages */}
             {product.languages?.length ? (
@@ -658,39 +875,6 @@ export const ProductPreview = () => {
               </div>
             ) : null}
 
-            {/* availability date grid */}
-            {product.availableDates?.length ? (
-              <div>
-                <h4 className="text-sm font-medium text-gray-900 mb-3 flex items-center">
-                  Availability
-                </h4>
-                <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
-                  {product.availableDates.slice(0, 10).map((d, i) => (
-                    <div
-                      key={i}
-                      className="bg-green-50 border border-green-200 rounded px-2 py-1 text-center"
-                    >
-                      <span className="text-xs font-medium text-green-800">
-                        {new Date(d).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                        })}
-                      </span>
-                    </div>
-                  ))}
-                  {product.availableDates.length > 10 && (
-                    <div className="bg-gray-50 border border-gray-200 rounded px-2 py-1 text-center">
-                      <span className="text-xs text-gray-600">
-                        +{product.availableDates.length - 10} more
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <p className={`text-sm ${color}`}>{message}</p>
-            )}
-
             {/* Static package list */}
             {product.packages?.length ? (
               <div>
@@ -701,9 +885,9 @@ export const ProductPreview = () => {
                       <div className="flex justify-between">
                         <h5 className="font-medium">{pkg.name}</h5>
                         <div className="text-[#ff914d] font-semibold">
-                          {pkg.currency === 'INR' ? '₹' : 
-                          pkg.currency === 'USD' ? '$' : 
-                          pkg.currency === 'EUR' ? '€' : '£'}
+                          {pkg.currency === 'INR' ? '₹' :
+                            pkg.currency === 'USD' ? '$' :
+                              pkg.currency === 'EUR' ? '€' : '£'}
                           {pkg.basePrice.toLocaleString()}
                         </div>
                       </div>
@@ -719,15 +903,15 @@ export const ProductPreview = () => {
               </div>
             ) : null}
 
-            {/* Disabled CTA */}
+            {/* Updated CTA button */}
             <button
               disabled
               className="w-full bg-[#ff914d]/60 text-white py-3 rounded-lg cursor-not-allowed mt-4"
             >
-              This product is not available on the selected date.
+              Preview Mode - Booking Disabled
             </button>
             <p className="text-xs text-gray-500 text-center">
-              <span className="text-gray-500 text-sm">Please try another date.</span>
+              This is a preview of how the product appears to customers
             </p>
           </div>
         </aside>

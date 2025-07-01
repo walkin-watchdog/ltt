@@ -19,9 +19,10 @@ interface DestinationModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSelect: (destination: Destination) => void;
+  onCreated?: () => void; 
 }
 
-export const DestinationModal = ({ isOpen, onClose, onSelect }: DestinationModalProps) => {
+export const DestinationModal = ({ isOpen, onClose, onSelect, onCreated }: DestinationModalProps) => {
   const { token } = useAuth();
   const toast = useToast();
   const [destinations, setDestinations] = useState<Destination[]>([]);
@@ -87,11 +88,12 @@ export const DestinationModal = ({ isOpen, onClose, onSelect }: DestinationModal
         const createdDestination = await response.json();
         toast({ message: 'Destination created successfully', type: 'success' });
         
-        // Add to the list and select it
         setDestinations([...destinations, createdDestination]);
         onSelect(createdDestination);
-        
-        // Reset form and close it
+
+        // Only call onCreated if provided
+        if (onCreated) onCreated();
+
         setNewDestination({
           name: '',
           tagline: '',
@@ -359,3 +361,4 @@ export const DestinationModal = ({ isOpen, onClose, onSelect }: DestinationModal
     </div>
   );
 };
+
