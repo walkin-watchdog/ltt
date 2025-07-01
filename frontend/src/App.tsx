@@ -75,7 +75,7 @@ function App() {
   }, [email]);
 
   useEffect(() => {
-    debouncedCheckRef.current = debounce(checkAbandonedCarts, 15_000);
+    debouncedCheckRef.current = debounce(checkAbandonedCarts, 2000);
     debouncedCheckRef.current()
     
     const handleStorageChange = (e: StorageEvent) => {

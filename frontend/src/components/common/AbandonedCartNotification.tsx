@@ -29,7 +29,7 @@ export const AbandonedCartNotification: React.FC<AbandonedCartNotificationProps>
   };
 
   const navigateToProduct = () => {
-    window.location.href = `/product/${cart.productId}?recover=true`;
+    window.location.href = `/book/${cart.productId}?recover=true`;
     
     // Store recovery parameters in sessionStorage for detailed state recovery
     sessionStorage.setItem('recover_cart', JSON.stringify({
