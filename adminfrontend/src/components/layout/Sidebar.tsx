@@ -46,10 +46,16 @@ export const Sidebar = () => {
     <div
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className={`bg-[#104c57] text-white flex flex-col min-h-screen transition-all duration-300 ${
-        isCollapsed ? 'w-16' : 'w-64'
-      }`}
+      className={`bg-[#104c57] text-white flex flex-col min-h-screen transition-all duration-300`}
     >
+      {isCollapsed && (
+        <div className="">
+          <div className="text-2xl w-16 mt-6 ml-4 font-bold flex-col items-center">
+            <span className="text-[#ff914d]">L</span>
+            <span className="text-white">TT</span>
+          </div>
+        </div>
+      )}
       {/* Header with Toggle Button */}
       <div className="p-6 border-b border-[#0d3d47] flex items-center justify-between">
         {!isCollapsed && (
