@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Calendar, ArrowRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
 
 interface AbandonedCartNotificationProps {
   cart: {
@@ -8,7 +7,7 @@ interface AbandonedCartNotificationProps {
     productTitle: string;
     packageId?: string;
     slotId?: string;
-    selectedTimeSlot?: string;
+    selectedTimeSlot?: any;
     adults?: number;
     children?: number;
     date: string;

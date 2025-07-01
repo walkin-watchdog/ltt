@@ -13,6 +13,7 @@ interface AbandonedCartData {
   adults: number;
   children: number;
   selectedDate: string;
+  selectedTimeSlot: string;
   totalAmount: number;
   updatedAt?: string | number;
   status?: 'open' | 'closed';
@@ -41,21 +42,19 @@ export const useAbandonedCart = (productId?: string) => {
         slotId      : data.slotId || null,
         customerData: {
           customerName : data.customerName,
-  // Store additional information about selected options in abandoned cart
           customerEmail: data.customerEmail,
           customerPhone: data.customerPhone,
           adults       : data.adults,
           children     : data.children,
           selectedDate : data.selectedDate,
           totalAmount  : data.totalAmount,
-        selectedTimeSlot: formData.selectedTimeSlot || null,
+          selectedTimeSlot: data.selectedTimeSlot || null,
         },
         updatedAt: new Date().toISOString()
       };
       await fetch(`${import.meta.env.VITE_API_URL}/abandoned-carts`, {
         method : 'POST',
         headers: { 'Content-Type':'application/json' },
-        productTitle: currentProduct.title,
         body   : JSON.stringify(body)
       });
     } catch (err) {
@@ -63,7 +62,7 @@ export const useAbandonedCart = (productId?: string) => {
     }
   };
 
-  const debouncedPost = useRef(debounce(postToServer, 30_000)).current;
+  const debouncedPost = useRef(debounce(postToServer, 3000)).current;
   const debouncedBroadcast = useRef(
     debounce((key: string, data: AbandonedCartData | null) => {
       window.dispatchEvent(

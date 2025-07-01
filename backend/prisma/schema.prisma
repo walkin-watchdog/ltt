@@ -36,6 +36,7 @@ model Product {
   slug        String      @unique
   description String
   type        ProductType
+  category    String?
   location    String
   duration    String
   capacity    Int

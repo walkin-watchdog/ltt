@@ -15,6 +15,7 @@ interface BookingFormData {
   adults: number;
   children: number;
   selectedPackage: any | null;
+  selectedTimeSlot: any | null;
   selectedSlot: any | null;
   customerName: string;
   customerEmail: string;
