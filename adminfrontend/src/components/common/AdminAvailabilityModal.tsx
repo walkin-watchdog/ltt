@@ -92,6 +92,9 @@ export const AdminAvailabilityModal = ({
     setPackages([]);
     setIsDateOk(null); // Reset availability status
     setSelectedSlotId(null); // Clear selected slot when date or package changes
+    if (step === 'slot') {
+      setSlotsLoading(true);
+    }
 
     const fetchAvailability = async () => {
       setLoading(true);
@@ -414,6 +417,7 @@ export const AdminAvailabilityModal = ({
                     key={pkg.id}
                     onClick={() => {
                       setSelectedPackageId(pkg.id);
+                      setSlotsLoading(true);
                       setStep('slot'); // Move to slot selection after package is chosen
                     }}
                     className={`w-full flex items-center justify-between px-4 py-3 border rounded-lg 
