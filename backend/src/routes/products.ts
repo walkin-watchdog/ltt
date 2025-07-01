@@ -41,7 +41,7 @@ const productSchema = z.object({
   productCode: z.string().min(1),
   description: z.string().min(1),
   type: z.enum(['TOUR', 'EXPERIENCE']),
-  category: z.string().min(1),
+  category: z.string().min(1).optional(),
   location: z.string().min(1),
   duration: z.string().min(1),
   capacity: z.number().min(1),
