@@ -1218,7 +1218,7 @@ export const ProductDetail = () => {
           }}
           productId={currentProduct.id}
           packages={currentProduct.packages ?? []}
-          selectedPackage={selectedPackage}
+          selectedPackageFromProp={selectedPackage}
           initialDate={selectedDateStr}
           initialAdults={adultsCount}
           initialChildren={childrenCount}

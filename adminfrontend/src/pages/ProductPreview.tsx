@@ -739,7 +739,7 @@ export const ProductPreview = () => {
           open={showAvail}
           productId={product.id}
           packages={product.packages ?? []}
-          selectedPackage={selectedPackage ?? undefined}
+          selectedPackageFromProp={selectedPackage ?? undefined}
           onClose={() => setShowAvail(false)}
           initialDate={selectedDateStr}
           initialAdults={adultsCount}
