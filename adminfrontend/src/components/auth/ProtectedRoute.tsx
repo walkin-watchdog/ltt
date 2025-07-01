@@ -19,7 +19,7 @@ export const ProtectedRoute = ({ children, requiredRoles }: ProtectedRouteProps)
   }
 
   if (!token || !user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login?expired=true" replace />;
   }
 
   if (requiredRoles && !requiredRoles.includes(user.role)) {

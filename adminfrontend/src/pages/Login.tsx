@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Navigate, useSearchParams } from 'react-router-dom';
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -9,8 +9,16 @@ export const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [searchParams] = useSearchParams();
   
   const { user, login } = useAuth();
+
+  useEffect(() => {
+    const expired = searchParams.get('expired');
+    if (expired === 'true') {
+      setError('Session expired. Please log in again.');
+    }
+  }, [searchParams]);
 
   if (user) {
     return <Navigate to="/" replace />;
