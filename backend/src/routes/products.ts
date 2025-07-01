@@ -41,7 +41,7 @@ const productSchema = z.object({
   productCode: z.string().min(1),
   description: z.string().min(1),
   type: z.enum(['TOUR', 'EXPERIENCE']),
-  category: z.string().min(1).optional(),
+  category: z.string().nullable().optional(),
   location: z.string().min(1),
   duration: z.string().min(1),
   capacity: z.number().min(1),
@@ -86,7 +86,6 @@ const productSchema = z.object({
   tags: z.array(z.string()),
   difficulty: z.string().optional().nullable(),
   healthRestrictions: z.array(z.string()).optional(),
-  accessibility: z.string().optional().nullable(),
   guides: z.array(guideSchema).optional(),
   meetingPoint: z.string().optional().nullable(),
   pickupLocations: z.array(z.string()),
@@ -155,7 +154,7 @@ router.get('/', async (req, res, next) => {
         itineraries: {
           orderBy: { day: 'asc' },
           include: {
-            activities: true, // ✅ Fetch activities as a relation
+            activities: true,
           }
         },
       },
@@ -201,7 +200,7 @@ router.get('/', async (req, res, next) => {
 
       if (availabilities.length > 0) {
         const availableDays = availabilities.filter(a => a.status === 'AVAILABLE');
-        const soldOutDays = availabilities.filter(a => a.status === 'SOLD_OUT' || a.booked >= (a.product?.capacity || 0));
+        const soldOutDays = availabilities.filter(a => a.status === 'SOLD_OUT');
         const notOperating = availabilities.filter(a => a.status === 'NOT_OPERATING');
 
         if (availableDays.length === 0 && soldOutDays.length > 0) {
@@ -284,7 +283,7 @@ router.get('/:id', async (req, res, next) => {
         itineraries: {
           orderBy: { day: 'asc' },
           include: {
-            activities: true, // ✅ Fetch activities as a relation
+            activities: true,
           }
         },
       }
@@ -859,7 +858,8 @@ router.post('/:id/clone', authenticate, authorize(['ADMIN', 'EDITOR']), async (r
           productCode: `${productData.productCode}-COPY`,
           slug: `${productData.slug}-copy`,
           createdAt: currentTime,
-          updatedAt: currentTime
+          updatedAt: currentTime,
+          guides: productData.guides || []
         }
       });
 

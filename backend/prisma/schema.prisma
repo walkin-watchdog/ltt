@@ -48,13 +48,13 @@ model Product {
   tags        String[]
   difficulty  String?
   healthRestrictions String[]
-  accessibilityFeatures String[] // New field for multiple accessibility options
-    wheelchairAccessible String
-  strollerAccessible String
-  serviceAnimalsAllowed String
-  publicTransportAccess String
-  infantSeatsRequired String
-  infantSeatsAvailable String
+  accessibilityFeatures String[]
+  wheelchairAccessible String      @default("no")
+  strollerAccessible String      @default("no")
+  serviceAnimalsAllowed String       @default("no")
+  publicTransportAccess String      @default("no")
+  infantSeatsRequired String      @default("no")
+  infantSeatsAvailable String      @default("no")
   guides      Json?
   languages   String[]
   meetingPoint String?

@@ -219,7 +219,6 @@ export interface ProductFormData {
   // Tour Details
   difficulty?: string;
   healthRestrictions?: string;
-  accessibility?: string;
   guides: string[];
   languages: string[];
   
