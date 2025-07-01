@@ -40,6 +40,11 @@ const forgotPasswordSchema = z.object({
   email: z.string().email()
 });
 
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(6),
+  newPassword:     z.string().min(6)
+});
+
 const resetPasswordSchema = z.object({
   token: z.string(),
   password: z.string().min(6)
@@ -213,6 +218,43 @@ router.post('/reset-password', async (req, res, next) => {
     next(error);
   }
 });
+
+router.post(
+  '/change-password',
+  authenticate,
+  async (req: AuthRequest, res, next) => {
+    try {
+      const { currentPassword, newPassword } = changePasswordSchema.parse(req.body);
+
+      const user = await prisma.user.findUnique({
+        where: { id: req.user!.id },
+        select: {
+          password: true
+        }
+      });
+
+      if (!user) {
+        return res.sendStatus(404);
+      }
+
+      const isMatch = await bcrypt.compare(currentPassword, user.password);
+      if (!isMatch) {
+        return res.status(400).json({ error: 'Current password is incorrect' });
+      }
+
+      const hashed = await bcrypt.hash(newPassword, 12);
+      await prisma.user.update({
+        where: { id: req.user!.id },
+        data:  { password: hashed }
+      });
+
+      res.json({ message: 'Password changed successfully' });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
 // Register (Admin only)
 router.post('/register', authenticate, async (req: AuthRequest, res, next) => {
   try {

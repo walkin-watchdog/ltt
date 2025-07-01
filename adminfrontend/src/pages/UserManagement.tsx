@@ -73,7 +73,7 @@ export const UserManagement = () => {
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/users`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/auth/users`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -167,7 +167,7 @@ export const UserManagement = () => {
           ...(formData.password ? { password: formData.password } : {})
         };
         
-        response = await fetch(`${import.meta.env.VITE_API_URL}/auth/users/${formData.id}`, {
+        response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/auth/users/${formData.id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -177,7 +177,7 @@ export const UserManagement = () => {
         });
       } else {
         // Create new user
-        response = await fetch(`${import.meta.env.VITE_API_URL}/auth/register`, {
+        response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/auth/register`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -210,7 +210,7 @@ export const UserManagement = () => {
 
   const handleDeleteUser = async (id: string) => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/users/${id}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/auth/users/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
