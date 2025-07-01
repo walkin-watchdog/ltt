@@ -225,6 +225,7 @@ export interface ProductFormData {
   // Policies
   cancellationPolicy: string;
   isActive: boolean;
+  isDraft: boolean;
   
   // Availability
   availabilityStartDate: string;
@@ -258,6 +259,7 @@ export interface Productprop {
   capacity: number;
   images: string[];
   isActive: boolean;
+  isDraft: boolean;
   createdAt: string;
   _count?: {
     bookings: number;

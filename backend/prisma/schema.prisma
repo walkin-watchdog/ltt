@@ -31,24 +31,24 @@ model User {
 
 model Product {
   id          String      @id @default(cuid())
-  title       String
-  productCode String      @unique
-  slug        String      @unique
-  description String
-  type        ProductType
+  title       String?     @default("")
+  productCode String?      @unique
+  slug        String?      @unique
+  description String?     @default("") 
+  type        ProductType? @default(TOUR)
   category    String?
-  location    String
-  duration    String
-  capacity    Int
-  highlights  String[]
-  inclusions  String[]
-  exclusions  String[]
+  location    String?     @default("")
+  duration    String?     @default("")
+  capacity    Int?     @default(1)
+  highlights  String[]     @default([])
+  inclusions  String[]     @default([])
+  exclusions  String[]     @default([])
   itineraries   Itinerary[]
-  images      String[]
-  tags        String[]
+  images      String[]     @default([])
+  tags        String[]     @default([])
   difficulty  String?
-  healthRestrictions String[]
-  accessibilityFeatures String[]
+  healthRestrictions String[]     @default([])
+  accessibilityFeatures String[]     @default([])
   wheelchairAccessible String      @default("no")
   strollerAccessible String      @default("no")
   serviceAnimalsAllowed String       @default("no")
@@ -56,11 +56,12 @@ model Product {
   infantSeatsRequired String      @default("no")
   infantSeatsAvailable String      @default("no")
   guides      Json?
-  languages   String[]
+  languages   String[]     @default([])
   meetingPoint String?
-  pickupLocations String[]
-  cancellationPolicy String
+  pickupLocations String[]     @default([])
+  cancellationPolicy String?     @default("")
   isActive    Boolean @default(true)
+  isDraft     Boolean @default(false)
   availabilityStartDate DateTime?
   availabilityEndDate   DateTime?
   destinationId String?
@@ -436,4 +437,37 @@ model ExperienceCategory {
   products    Product[]
   
   @@map("experience_categories")
+}
+
+model TeamMember {
+  id          String   @id @default(cuid())
+  name        String
+  jobTitle    String
+  description String
+  imageUrl    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model FAQ {
+  id       String   @id @default(cuid())
+  category String
+  question String
+  answer   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model JobPosting {
+  id             String   @id @default(cuid())
+  title          String
+  department     String
+  location       String
+  type           String
+  description    String
+  responsibilities String[]
+  requirements     String[]
+  benefits         String[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }

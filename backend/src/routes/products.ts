@@ -2,6 +2,17 @@ import express from 'express';
 import { z } from 'zod';
 import { prisma } from '../utils/prisma'
 import { authenticate, authorize } from '../middleware/auth';
+import { SitemapService } from '../services/sitemapService';
+
+// Add this function at the top level
+const generateSlug = (title: string): string => {
+  return title
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '')  // Remove non-word chars except spaces and hyphens
+    .replace(/\s+/g, '-')      // Replace spaces with hyphens
+    .replace(/-+/g, '-')       // Replace multiple hyphens with single hyphen
+    .trim();                    // Trim leading/trailing spaces
+};
 
 const router = express.Router();
 
@@ -91,6 +102,7 @@ const productSchema = z.object({
   pickupLocations: z.array(z.string()),
   cancellationPolicy: z.string().min(1),
   isActive: z.boolean().default(true),
+  isDraft: z.boolean().default(false),
   availabilityStartDate: z.string().transform(str => new Date(str)),
   availabilityEndDate: z.string().transform(str => new Date(str)).optional(),
   blockedDates: z.array(z.object({date: z.string(), reason: z.string().optional()})).optional(),
@@ -112,10 +124,25 @@ router.get('/', async (req, res, next) => {
     const { type, category, location, limit, offset, minPrice, maxPrice } = req.query;
 
     const where: any = {};
+    const { draft } = req.query;
 
     if (type) where.type = type;
     if (category) where.category = category;
     if (location) where.location = location;
+    
+    // Handle draft filtering
+    if (draft === 'draft') {
+      where.isDraft = true;
+    } else if (draft === 'published') {
+      where.isDraft = false;
+    }
+    // If draft is not specified or is 'all', don't filter by isDraft
+    
+    // Only show active products to regular users (non-admin requests)
+    if (!req.headers.authorization) {
+      where.isActive = true;
+      where.isDraft = false;  // Never show drafts to regular users
+    }
     
     // If price filtering is needed, we need to join with packages
     const priceFilter = minPrice || maxPrice;
@@ -353,9 +380,42 @@ router.get('/:id', async (req, res, next) => {
 // Create product (Admin/Editor only)
 router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, next) => {
   try {
-    const data = productSchema.parse(req.body);
+    let draft = { ...req.body };
+    for (const key in draft) {
+      const val = draft[key];
+      if (
+        (typeof val === 'string' && val.trim() === '') ||
+        (typeof val === 'number' && val === 0)
+      ) {
+        delete draft[key];
+      }
+    }
+    const data = draft
+      ? productSchema.partial().parse(draft)
+      : productSchema.parse(req.body);
     console.log('Creating product with data:', data);
-    const { blockedDates = [], itinerary = [], packages = [], accessibilityFeatures = [], ...rest } = data;
+    const { blockedDates = [], itinerary = [], packages = [], accessibilityFeatures = [], isDraft = false, ...rest } = data;
+
+    // Generate a slug from the title
+    const baseSlug = generateSlug(rest.title ?? `draft-${Date.now()}`);
+    
+    // Check if the slug already exists and make it unique if needed
+    let slug = baseSlug;
+    let slugExists = true;
+    let counter = 1;
+    
+    while (slugExists) {
+      const existingProduct = await prisma.product.findUnique({ 
+        where: { slug } 
+      });
+      
+      if (!existingProduct) {
+        slugExists = false;
+      } else {
+        slug = `${baseSlug}-${counter}`;
+        counter++;
+      }
+    }
 
     // Transform guides data if needed
     if (data.guides) {0
@@ -366,10 +426,7 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
         written: guide.written || false
       }));
     }
-
-    const slug = rest.title.toLowerCase().replace(/\s+/g, '-')
-                     .replace(/[^a-z0-9-]/g, '');
-
+    
     // Use transaction to ensure data consistency
     const product = await prisma.$transaction(async (tx) => {
       // Create the product first
@@ -382,7 +439,8 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
         serviceAnimalsAllowed: rest.serviceAnimalsAllowed ?? 'no',
         publicTransportAccess: rest.publicTransportAccess ?? 'no',
         infantSeatsRequired: rest.infantSeatsRequired ?? 'no',
-        infantSeatsAvailable: rest.infantSeatsAvailable ?? 'no',
+        infantSeatsAvailable: rest.infantSeatsAvailable ?? 'no', 
+        isDraft,
         guides: data.guides || [],
         ...(blockedDates.length && {
           blockedDates: {
@@ -569,6 +627,11 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
     
 
     res.status(201).json(product);
+    
+    // Regenerate sitemap after product creation
+    await SitemapService.generateSitemap().catch(err => 
+      console.error('Error regenerating sitemap after product creation:', err)
+    );
   } catch (error) {
     console.error('Error creating product:', error);
     next(error);
@@ -586,11 +649,39 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
     // Transform guides data if needed
     if (data.guides) {
       data.guides = data.guides.map(guide => ({
-        language: guide.language,
-        inPerson: guide.inPerson || false,
-        audio: guide.audio || false,
-        written: guide.written || false
+        language: guide.language, 
+        inPerson: guide.inPerson || false, 
+        audio: guide.audio || false, 
+        written: guide.written || false 
       }));
+    }
+
+    // Generate a slug if the title is being updated
+    let slug: string | undefined;
+    if (rest.title) {
+      const baseSlug = generateSlug(rest.title);
+      
+      // Check if the slug already exists (excluding the current product)
+      let tempSlug = baseSlug;
+      let slugExists = true;
+      let counter = 1;
+      
+      while (slugExists) {
+        const existingProduct = await prisma.product.findFirst({ 
+          where: { 
+            slug: tempSlug,
+            id: { not: req.params.id }
+          } 
+        });
+        
+        if (!existingProduct) {
+          slugExists = false;
+          slug = tempSlug;
+        } else {
+          tempSlug = `${baseSlug}-${counter}`;
+          counter++;
+        }
+      }
     }
 
     const product = await prisma.$transaction(async (tx) => {
@@ -602,14 +693,10 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
       // Update the main product data
       let updatedProduct = await tx.product.update({
         where: { id: req.params.id },
-        data: {
+        data: { 
           ...rest,
-          guides: data.guides || [],
-          ...(rest.title && { 
-            slug: rest.title.toLowerCase()
-                      .replace(/\s+/g, '-')
-                      .replace(/[^a-z0-9-]/g, '') 
-          }),
+          ...(slug && { slug }),  // Only include slug if it's been defined 
+          guides: data.guides || []
         }
       });
 
@@ -785,6 +872,11 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
     }
 
     res.json(product);
+    
+    // Regenerate sitemap after product update
+    await SitemapService.generateSitemap().catch(err => 
+      console.error('Error regenerating sitemap after product update:', err)
+    );
   } catch (error) {
     console.error('Error updating product:', error);
     next(error);
@@ -799,6 +891,120 @@ router.delete('/:id', authenticate, authorize(['ADMIN']), async (req, res, next)
     });
 
     res.status(204).send();
+    
+    // Regenerate sitemap after product deletion
+    await SitemapService.generateSitemap().catch(err => 
+      console.error('Error regenerating sitemap after product deletion:', err)
+    );
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get product by slug
+router.get('/by-slug/:slug', async (req, res, next) => {
+  try {
+    const { slug } = req.params;
+    console.log('Fetching product with slug:', slug);
+    
+    const product = await prisma.product.findUnique({
+      where: { slug },
+      include: {
+        packages: {
+          where: { isActive: true },
+          include: {
+            slots: {
+              include: {
+                adultTiers: true,
+                childTiers: true
+              }
+            }
+          }
+        },
+        reviews: {
+          where: { isApproved: true },
+          select: {
+            id: true,
+            name: true,
+            rating: true,
+            comment: true,
+            createdAt: true
+          }
+        },
+        availabilities: {
+          where: {
+            startDate: {
+              gte: new Date(new Date().setHours(0, 0, 0, 0))
+            }
+          },
+          orderBy: { startDate: 'asc' }
+        },
+        blockedDates: true,
+        itineraries: {
+          orderBy: { day: 'asc' },
+          include: {
+            activities: true,
+          }
+        },
+      }
+    });
+
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    // Add availability status
+    const availabilities = product.availabilities || [];
+    let availabilityStatus = 'AVAILABLE';
+    let nextAvailableDate = null; 
+    let availableDates: Date[] = [];
+    
+    // Calculate package prices and discounts
+    if (product.packages && product.packages.length > 0) {
+      for (const pkg of product.packages) {
+        // Use basePrice as the main price reference
+        const basePrice = pkg.basePrice;
+        
+        // Calculate discounted price if applicable
+        let effectivePrice = basePrice;
+        if (pkg.discountType === 'percentage' && pkg.discountValue) {
+          effectivePrice = basePrice - (basePrice * pkg.discountValue / 100);
+        } else if (pkg.discountType === 'fixed' && pkg.discountValue) {
+          effectivePrice = basePrice - pkg.discountValue;
+        }
+        
+        // Add these calculated fields to each package
+        pkg.effectivePrice = effectivePrice;
+        pkg.discountPercentage = pkg.discountType === 'percentage' ? pkg.discountValue : 
+          pkg.discountType === 'fixed' && basePrice > 0 ? (pkg.discountValue / basePrice) * 100 : 0;
+      }
+    }
+
+    if (availabilities.length > 0) {
+      const availableDays = availabilities.filter(a => a.status === 'AVAILABLE');
+      const soldOutDays = availabilities.filter(a => a.status === 'SOLD_OUT' || a.booked >= (product.capacity || 0));
+      const notOperating = availabilities.filter(a => a.status === 'NOT_OPERATING');
+
+      if (availableDays.length === 0 && soldOutDays.length > 0) {
+        availabilityStatus = 'SOLD_OUT';
+      } else if (availableDays.length === 0 && notOperating.length > 0) {
+        availabilityStatus = 'NOT_OPERATING';
+      }
+
+      if (availableDays.length > 0) {
+        nextAvailableDate = availableDays[0].startDate;
+        availableDates = availableDays.map(a => a.startDate);
+      }
+    }
+
+    const productWithAvailability = {
+      ...product,
+      availabilityStatus,
+      nextAvailableDate,
+      availableDates
+    };
+
+    res.json(productWithAvailability);
   } catch (error) {
     next(error);
   }
@@ -822,7 +1028,7 @@ router.post('/:id/clone', authenticate, authorize(['ADMIN', 'EDITOR']), async (r
         }, 
         itineraries: {
           include: {
-            activities: true, // ✅ Fetch activities as a relation
+            activities: true,
           }
         },
       }
@@ -834,9 +1040,27 @@ router.post('/:id/clone', authenticate, authorize(['ADMIN', 'EDITOR']), async (r
 
     const { packages, itineraries, ...productData } = originalProduct;
 
-    // Generate unique ID with LTC prefix
-    let newId: string;
+    // Generate a unique slug for the cloned product
+    const baseSlug = `${productData.slug}-copy`;
+    let slug = baseSlug;
+    let slugExists = true;
     let counter = 1;
+    
+    while (slugExists) {
+      const existingProduct = await prisma.product.findUnique({ 
+        where: { slug } 
+      });
+      
+      if (!existingProduct) {
+        slugExists = false;
+      } else {
+        slug = `${baseSlug}-${counter}`;
+        counter++;
+      }
+    }
+
+    let newId: string;
+    
     do {
       newId = `LTC${counter.toString().padStart(3, '0')}`;
       const existingProduct = await prisma.product.findUnique({
@@ -855,8 +1079,8 @@ router.post('/:id/clone', authenticate, authorize(['ADMIN', 'EDITOR']), async (r
           ...productData,
           id: newId,
           title: `${productData.title} (Copy)`,
-          productCode: `${productData.productCode}-COPY`,
-          slug: `${productData.slug}-copy`,
+          productCode: `${productData.productCode}-COPY`, 
+          slug, // Use the new unique slug
           createdAt: currentTime,
           updatedAt: currentTime,
           guides: productData.guides || []

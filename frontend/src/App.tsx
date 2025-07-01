@@ -31,6 +31,7 @@ import { Partnership } from './pages/Partnership';
 import { Careers } from './pages/Careers';
 import { FAQ } from './pages/FAQ';
 import { BookingFlow } from './pages/BookingFlow';
+import { NotFound } from './pages/NotFound';
 import { debounce } from './lib/utils';
 
 function App() {
@@ -127,6 +128,7 @@ function App() {
               <Route path="/careers" element={<Careers />} />
               <Route path="/faq" element={<FAQ />} />
               <Route path="/book/:productId" element={<BookingFlow />} />
+              <Route path="*" element={<NotFound />} />
             </Routes>
               </ErrorBoundary>
           </main>

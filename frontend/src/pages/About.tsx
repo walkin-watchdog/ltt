@@ -1,27 +1,37 @@
-import { Users, Award, Globe, Heart } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Users, Award, Globe, Heart, Loader } from 'lucide-react';
 import { SEOHead } from '../components/seo/SEOHead';
 
+interface TeamMember {
+  id: string;
+  name: string;
+  jobTitle: string;
+  description: string;
+  imageUrl?: string;
+}
+
 export const About = () => {
-  const teamMembers = [
-    {
-      name: 'Priya Sharma',
-      role: 'Founder & CEO',
-      image: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg',
-      bio: 'With over 15 years in luxury travel, Priya founded Luxé TimeTravel to create extraordinary experiences.'
-    },
-    {
-      name: 'Arjun Patel',
-      role: 'Head of Operations',
-      image: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg',
-      bio: 'Arjun ensures every detail of your journey is meticulously planned and flawlessly executed.'
-    },
-    {
-      name: 'Meera Singh',
-      role: 'Experience Designer',
-      image: 'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg',
-      bio: 'Meera curates unique experiences that showcase the authentic culture and heritage of each destination.'
-    }
-  ];
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTeamMembers = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/about`);
+        if (response.ok) {
+          const data = await response.json();
+          setTeamMembers(data);
+        }
+      } catch (error) {
+        console.error('Error fetching team members:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchTeamMembers();
+  }, []);
 
   const achievements = [
     { icon: Award, title: '500+ Happy Travelers', description: 'Consistently rated 5 stars by our guests' },
@@ -113,23 +123,42 @@ export const About = () => {
               The passionate individuals behind your extraordinary experiences
             </p>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {teamMembers.map((member, index) => (
-              <div key={index} className="bg-white rounded-lg shadow-lg overflow-hidden">
-                <img
-                  src={member.image}
-                  alt={member.name}
-                  className="w-full h-64 object-cover"
-                />
-                <div className="p-6">
-                  <h3 className="text-xl font-bold text-gray-900 mb-1">{member.name}</h3>
-                  <p className="text-[#ff914d] font-medium mb-3">{member.role}</p>
-                  <p className="text-gray-600 text-sm">{member.bio}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+
+         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+           {isLoading ? (
+             // Skeleton loading
+             [...Array(3)].map((_, index) => (
+               <div key={index} className="bg-white rounded-lg shadow-lg overflow-hidden animate-pulse">
+                 <div className="h-64 bg-gray-300"></div>
+                 <div className="p-6">
+                   <div className="h-6 bg-gray-300 rounded w-3/4 mb-2"></div>
+                   <div className="h-4 bg-gray-300 rounded w-1/2 mb-3"></div>
+                   <div className="h-16 bg-gray-300 rounded"></div>
+                 </div>
+               </div>
+             ))
+           ) : teamMembers.length > 0 ? (
+             teamMembers.map((member) => (
+               <div key={member.id} className="bg-white rounded-lg shadow-lg overflow-hidden">
+                 <img
+                   src={member.imageUrl || 'https://via.placeholder.com/300x300'}
+                   alt={member.name}
+                   className="w-full h-64 object-cover"
+                 />
+                 <div className="p-6">
+                   <h3 className="text-xl font-bold text-gray-900 mb-1">{member.name}</h3>
+                   <p className="text-[#ff914d] font-medium mb-3">{member.jobTitle}</p>
+                   <p className="text-sm text-gray-700">{member.description}</p>
+                 </div>
+               </div>
+             ))
+           ) : (
+             // Empty state
+             <div className="col-span-3 text-center py-8">
+               <p className="text-gray-500">Team information coming soon...</p>
+             </div>
+           )}
+         </div>
         </div>
       </section>
 

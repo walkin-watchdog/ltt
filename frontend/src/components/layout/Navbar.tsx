@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useEffect } from 'react';
 import { Link} from 'react-router-dom';
 import { Menu, X, ChevronDown, User } from 'lucide-react';
+import { GoogleTranslateWidget } from '../common/GoogleTranslateWidget';
+import { CurrencySelector } from '../common/CurrencySelector';
 import { Helmet } from 'react-helmet-async';
 
 export const Navbar = () => {
@@ -193,6 +195,7 @@ export const Navbar = () => {
                 </span>
               </a>
             </div>
+            <CurrencySelector />
           </div>
 
           {/* Mobile menu button */}
@@ -247,9 +250,16 @@ export const Navbar = () => {
               <Link to="/about" className="block px-3 py-2 text-gray-700">About</Link>
               <Link to="/contact" className="block px-3 py-2 text-gray-700">Contact Us</Link>
               <Link to="/blog" className="block px-3 py-2 text-gray-700">Blog</Link>
+              <div className="flex items-center justify-between px-3 py-2">
+                <span className="text-gray-700">Currency</span>
+                <CurrencySelector />
+              </div>
               <Link to="https://quaintspaces.in/" className="block px-3 py-2 text-gray-700">Luxé Stays</Link>
               <Link to="/plan-your-trip" className="block px-3 py-2 text-[#104c57] font-medium">Plan My Trip</Link>
               <a href={adminUrl} className="block px-3 py-2 text-[#ff914d] font-medium">Admin</a>
+              <div className="px-3 py-2">
+                <GoogleTranslateWidget />
+              </div>
             </div>
           </div>
         )}

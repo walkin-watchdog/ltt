@@ -1,132 +1,42 @@
 import { Briefcase, MapPin, Clock, Heart, Users, TrendingUp } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { SEOHead } from '../components/seo/SEOHead';
 
+interface JobPosting {
+  id: string;
+  title: string;
+  department: string;
+  location: string;
+  type: string;
+  description: string;
+  responsibilities: string[];
+  requirements: string[];
+  benefits: string[];
+}
+
 export const Careers = () => {
+  const [jobOpenings, setJobOpenings] = useState<JobPosting[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedJob, setSelectedJob] = useState<any>(null);
 
-  const jobOpenings = [
-    {
-      id: 1,
-      title: 'Senior Travel Consultant',
-      department: 'Sales & Operations',
-      location: 'New Delhi',
-      type: 'Full-time',
-      experience: '3-5 years',
-      description: 'We are looking for an experienced travel consultant to join our team and help create extraordinary travel experiences for our clients.',
-      responsibilities: [
-        'Consult with clients to understand their travel preferences and requirements',
-        'Design customized travel itineraries and experiences',
-        'Coordinate with suppliers and vendors for bookings',
-        'Provide exceptional customer service throughout the travel process',
-        'Build and maintain relationships with clients'
-      ],
-      requirements: [
-        'Bachelor\'s degree in Tourism, Hospitality, or related field',
-        '3-5 years of experience in luxury travel or hospitality industry',
-        'Excellent communication and interpersonal skills',
-        'Strong attention to detail and organizational abilities',
-        'Proficiency in travel booking systems and CRM software'
-      ],
-      benefits: [
-        'Competitive salary with performance bonuses',
-        'Health insurance and wellness benefits',
-        'Travel allowances and familiarization trips',
-        'Professional development opportunities',
-        'Flexible working arrangements'
-      ]
-    },
-    {
-      id: 2,
-      title: 'Marketing Manager - Digital',
-      department: 'Marketing',
-      location: 'New Delhi',
-      type: 'Full-time',
-      experience: '4-6 years',
-      description: 'Join our marketing team to develop and execute digital marketing strategies that showcase our luxury travel experiences.',
-      responsibilities: [
-        'Develop and implement comprehensive digital marketing strategies',
-        'Manage social media channels and content creation',
-        'Execute SEO/SEM campaigns and analyze performance',
-        'Collaborate with design team for marketing materials',
-        'Track and report on marketing KPIs and ROI'
-      ],
-      requirements: [
-        'Bachelor\'s degree in Marketing, Communications, or related field',
-        '4-6 years of experience in digital marketing',
-        'Expertise in Google Analytics, AdWords, and social media platforms',
-        'Strong analytical and project management skills',
-        'Experience in travel or hospitality industry preferred'
-      ],
-      benefits: [
-        'Competitive salary package',
-        'Creative freedom and autonomy',
-        'Learning and development budget',
-        'Remote work flexibility',
-        'Team travel experiences'
-      ]
-    },
-    {
-      id: 3,
-      title: 'Customer Experience Executive',
-      department: 'Customer Service',
-      location: 'New Delhi',
-      type: 'Full-time',
-      experience: '1-3 years',
-      description: 'Help us deliver exceptional customer experiences by managing client relationships and ensuring smooth travel operations.',
-      responsibilities: [
-        'Handle customer inquiries and provide travel assistance',
-        'Coordinate with tour guides and local operators',
-        'Resolve customer issues and complaints promptly',
-        'Maintain customer databases and travel records',
-        'Support booking and payment processes'
-      ],
-      requirements: [
-        'Bachelor\'s degree in any field',
-        '1-3 years of customer service experience',
-        'Excellent verbal and written communication skills',
-        'Multi-lingual abilities preferred (Hindi, English, others)',
-        'Problem-solving mindset and patience'
-      ],
-      benefits: [
-        'Attractive salary and incentives',
-        'Comprehensive training program',
-        'Career growth opportunities',
-        'Health and life insurance',
-        'Performance recognition programs'
-      ]
-    },
-    {
-      id: 4,
-      title: 'Business Development Manager',
-      department: 'Business Development',
-      location: 'Mumbai',
-      type: 'Full-time',
-      experience: '5-8 years',
-      description: 'Drive business growth by developing strategic partnerships and expanding our market presence in luxury travel segment.',
-      responsibilities: [
-        'Identify and pursue new business opportunities',
-        'Build relationships with hotels, suppliers, and partners',
-        'Negotiate contracts and partnership agreements',
-        'Develop market entry strategies for new destinations',
-        'Analyze market trends and competitive landscape'
-      ],
-      requirements: [
-        'MBA or Bachelor\'s degree in Business Administration',
-        '5-8 years of business development experience',
-        'Strong negotiation and relationship-building skills',
-        'Knowledge of luxury travel and hospitality industry',
-        'Willingness to travel extensively'
-      ],
-      benefits: [
-        'Executive compensation package',
-        'Stock options and equity participation',
-        'International travel opportunities',
-        'Executive healthcare benefits',
-        'Leadership development programs'
-      ]
-    }
-  ];
+  useEffect(() => {
+    const fetchJobs = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/jobs`);
+        if (response.ok) {
+          const data = await response.json();
+          setJobOpenings(data);
+        }
+      } catch (error) {
+        console.error('Error fetching jobs:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchJobs();
+  }, []);
 
   const companyValues = [
     {
@@ -216,39 +126,44 @@ export const Careers = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Job Listings */}
             <div className="space-y-4">
-              {jobOpenings.map((job) => (
-                <div
-                  key={job.id}
-                  onClick={() => setSelectedJob(job)}
-                  className={`bg-white rounded-lg shadow-sm border-2 p-6 cursor-pointer transition-colors ${
-                    selectedJob?.id === job.id ? 'border-[#ff914d]' : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <div className="flex justify-between items-start mb-4">
-                    <h3 className="text-xl font-bold text-gray-900">{job.title}</h3>
-                    <span className="bg-[#ff914d] text-white px-3 py-1 rounded-full text-sm font-medium">
-                      {job.type}
-                    </span>
-                  </div>
-                  
-                  <div className="space-y-2 mb-4">
-                    <div className="flex items-center text-gray-600">
-                      <Briefcase className="h-4 w-4 mr-2" />
-                      <span className="text-sm">{job.department}</span>
-                    </div>
-                    <div className="flex items-center text-gray-600">
-                      <MapPin className="h-4 w-4 mr-2" />
-                      <span className="text-sm">{job.location}</span>
-                    </div>
-                    <div className="flex items-center text-gray-600">
-                      <Clock className="h-4 w-4 mr-2" />
-                      <span className="text-sm">{job.experience} experience</span>
-                    </div>
-                  </div>
-                  
-                  <p className="text-gray-600 text-sm line-clamp-2">{job.description}</p>
+              {isLoading ? (
+                <div className="flex items-center justify-center h-64">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#ff914d]"></div>
                 </div>
-              ))}
+              ) : (
+                jobOpenings.map((job) => (
+                  <div
+                    key={job.id.toString()}
+                    onClick={() => setSelectedJob(job as any)}
+                    className={`bg-white rounded-lg shadow-sm border-2 p-6 cursor-pointer transition-colors ${
+                      selectedJob?.id === job.id ? 'border-[#ff914d]' : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex justify-between items-start mb-4">
+                      <h3 className="text-xl font-bold text-gray-900">{job.title}</h3>
+                      <span className="bg-[#ff914d] text-white px-3 py-1 rounded-full text-sm font-medium">
+                        {job.type}
+                      </span>
+                    </div>
+                    
+                    <div className="space-y-2 mb-4">
+                      <div className="flex items-center text-gray-600">
+                        <Briefcase className="h-4 w-4 mr-2" />
+                        <span className="text-sm">{job.department}</span>
+                      </div>
+                      <div className="flex items-center text-gray-600">
+                        <MapPin className="h-4 w-4 mr-2" />  
+                        <span className="text-sm">{job.location}</span>
+                      </div>
+                      <div className="flex items-center text-gray-600">
+                        <Clock className="h-4 w-4 mr-2" />  
+                        <span className="text-sm">{job.type}</span>
+                      </div>
+                    </div>
+                    <p className="text-gray-600 text-sm line-clamp-2">{job.description}</p>
+                  </div>
+                ))
+              )}
             </div>
 
             {/* Job Details */}
@@ -256,7 +171,6 @@ export const Careers = () => {
               {selectedJob ? (
                 <div className="bg-white rounded-lg shadow-lg p-6">
                   <h2 className="text-2xl font-bold text-gray-900 mb-4">{selectedJob.title}</h2>
-                  
                   <div className="grid grid-cols-2 gap-4 mb-6">
                     <div>
                       <span className="text-sm font-medium text-gray-500">Department:</span>
@@ -271,11 +185,10 @@ export const Careers = () => {
                       <p className="text-gray-900">{selectedJob.type}</p>
                     </div>
                     <div>
-                      <span className="text-sm font-medium text-gray-500">Experience:</span>
-                      <p className="text-gray-900">{selectedJob.experience}</p>
+                      <span className="text-sm font-medium text-gray-500">Location:</span>
+                      <p className="text-gray-900">{selectedJob.location}</p>
                     </div>
                   </div>
-
                   <div className="space-y-6">
                     <div>
                       <h3 className="font-semibold text-gray-900 mb-2">Job Description</h3>

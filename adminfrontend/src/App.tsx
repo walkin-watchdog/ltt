@@ -1,4 +1,5 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { store } from './store/store';
 import { AuthProvider } from './contexts/AuthContext';
@@ -21,6 +22,29 @@ import { ExperienceCategoriesAdmin } from './pages/ExperienceCategoriesAdmin';
 import { Requests } from './pages/Requests';
 import { ToasterProvider } from './components/ui/toaster';
 import { Gallery } from './pages/Gallery';
+import { ContentIndex } from './pages/content/ContentIndex';
+import { NotFound } from './pages/NotFound';
+import { GetStarted } from './pages/GetStarted';
+
+function AdminCheckRoute({ children }: { children: JSX.Element }) {
+  const [allowed, setAllowed] = useState(false);
+  const navigate = useNavigate();
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(
+          `${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/auth/check-admin`
+        );
+        const { exists } = await res.json();
+        if (exists) navigate('/404', { replace: true });
+        else setAllowed(true);
+      } catch {
+        setAllowed(true);
+      }
+    })();
+  }, [navigate]);
+  return allowed ? children : null;
+}
 
 function App() {
   return (
@@ -30,6 +54,14 @@ function App() {
           <Router>
             <div className="min-h-screen bg-gray-50">
               <Routes>
+                <Route
+                  path="/get-started"
+                  element={
+                    <AdminCheckRoute>
+                      <GetStarted />
+                    </AdminCheckRoute>
+                  }
+                />
                 <Route path="/login" element={<Login />} />
                 <Route path="/" element={
                   <ProtectedRoute>
@@ -129,6 +161,13 @@ function App() {
                     </Layout>
                   </ProtectedRoute>
                 } />
+                <Route path="/content" element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <ContentIndex />
+                    </Layout>
+                  </ProtectedRoute>
+                } />
                 <Route path="/gallery" element={
                   <ProtectedRoute>
                     <Layout>
@@ -143,7 +182,7 @@ function App() {
                     </Layout>
                   </ProtectedRoute>
                 } />
-                <Route path="*" element={<Navigate to="/" replace />} />
+                <Route path="*" element={<NotFound />} />
               </Routes>
             </div>
           </Router>

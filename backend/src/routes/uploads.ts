@@ -5,6 +5,7 @@ import {
   uploadDestinationImages,
   uploadExperienceImages,
   uploadItineraryImages,
+  uploadTeamImages,
   UploadService 
 } from '../services/uploadService';
 import { authenticate, authorize } from '../middleware/auth';
@@ -120,6 +121,32 @@ router.post('/experiences', authenticate, authorize(['ADMIN', 'EDITOR']), upload
 });
 
 router.post('/itinerary', authenticate, authorize(['ADMIN', 'EDITOR']), uploadItineraryImages.array('images', 10), async (req, res, next) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ error: 'No images provided' });
+    }
+
+    const files = req.files as Express.Multer.File[];
+    const uploadResults = [];
+
+    for (const file of files) {
+      uploadResults.push({
+        publicId: (file as any).filename,
+        url: (file as any).path,
+        originalName: file.originalname,
+      });
+    }
+
+    res.json({
+      success: true,
+      images: uploadResults,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/team', authenticate, authorize(['ADMIN', 'EDITOR']), uploadTeamImages.array('images', 10), async (req, res, next) => {
   try {
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ error: 'No images provided' });

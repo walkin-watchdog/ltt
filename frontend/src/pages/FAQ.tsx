@@ -1,10 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp, Search, HelpCircle } from 'lucide-react';
 import { SEOHead } from '../components/seo/SEOHead';
+
+interface FAQ {
+  id: string;
+  category: string;
+  question: string;
+  answer: string;
+}
 
 export const FAQ = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [openItems, setOpenItems] = useState<number[]>([]);
+  const [faqCategories, setFaqCategories] = useState<{category: string; questions: FAQ[]}[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const toggleItem = (index: number) => {
     setOpenItems(prev => 
@@ -14,113 +23,41 @@ export const FAQ = () => {
     );
   };
 
-  const faqCategories = [
-    {
-      category: 'Booking & Reservations',
-      questions: [
-        {
-          question: 'How do I book a tour or experience?',
-          answer: 'You can book directly through our website by selecting your preferred tour, choosing dates, and completing the secure online payment process. Alternatively, you can call us at +91 98765 43210 or email info@luxetimetravel.com for assistance.'
-        },
-        {
-          question: 'Can I modify or cancel my booking?',
-          answer: 'Yes, you can modify or cancel your booking up to 24 hours before the scheduled tour time for a full refund. Cancellations made within 24 hours may be subject to cancellation fees as per our cancellation policy.'
-        },
-        {
-          question: 'How far in advance should I book?',
-          answer: 'We recommend booking at least 1-2 weeks in advance to ensure availability, especially during peak tourist seasons (October to March). However, we do accept last-minute bookings subject to availability.'
-        },
-        {
-          question: 'Do you accept group bookings?',
-          answer: 'Absolutely! We offer special group rates for 10 or more people. Contact us directly for customized group packages and special pricing.'
+  useEffect(() => {
+    const fetchFAQs = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/faqs`);
+        if (response.ok) {
+          const data: FAQ[] = await response.json();
+          
+          // Group FAQs by category
+          const groupedFAQs = data.reduce((acc: {category: string; questions: FAQ[]}[], faq) => {
+            const existingCategory = acc.find(c => c.category === faq.category);
+            
+            if (existingCategory) {
+              existingCategory.questions.push(faq);
+            } else {
+              acc.push({
+                category: faq.category,
+                questions: [faq]
+              });
+            }
+            
+            return acc;
+          }, []);
+          
+          setFaqCategories(groupedFAQs);
         }
-      ]
-    },
-    {
-      category: 'Payment & Pricing',
-      questions: [
-        {
-          question: 'What payment methods do you accept?',
-          answer: 'We accept major credit cards (Visa, MasterCard, American Express), debit cards, UPI, net banking, and digital wallets through our secure Razorpay payment gateway.'
-        },
-        {
-          question: 'Are there any hidden fees?',
-          answer: 'No, we believe in transparent pricing. All costs including taxes, guide fees, and entrance tickets (where mentioned) are included in the displayed price. Any additional costs will be clearly mentioned in the tour description.'
-        },
-        {
-          question: 'Do you offer partial payment options?',
-          answer: 'Yes, for tours above ₹10,000, you can pay 50% at the time of booking and the remaining amount 48 hours before the tour date.'
-        },
-        {
-          question: 'What is your refund policy?',
-          answer: 'Full refunds are provided for cancellations made 24+ hours before the tour. Cancellations within 24 hours receive a 50% refund, and no refunds for no-shows. Weather-related cancellations receive full refunds.'
-        }
-      ]
-    },
-    {
-      category: 'Tour Details',
-      questions: [
-        {
-          question: 'What is included in the tour price?',
-          answer: 'Tour prices typically include professional guide services, transportation (as mentioned), entrance fees to monuments/attractions (where specified), and refreshments (if mentioned). Specific inclusions are listed on each tour page.'
-        },
-        {
-          question: 'What should I bring on the tour?',
-          answer: 'We recommend comfortable walking shoes, weather-appropriate clothing, sunscreen, a hat, and a water bottle. For specific tours, additional items may be recommended in your booking confirmation email.'
-        },
-        {
-          question: 'Are your tours suitable for children?',
-          answer: 'Most of our tours are family-friendly and suitable for children above 5 years. We offer special rates for children (50% discount for ages 5-12). Please check individual tour descriptions for age recommendations.'
-        },
-        {
-          question: 'Do you provide pick-up and drop-off services?',
-          answer: 'Yes, we offer pick-up and drop-off services for most tours within the city limits. Exact pick-up points and times will be confirmed in your booking voucher.'
-        }
-      ]
-    },
-    {
-      category: 'Health & Safety',
-      questions: [
-        {
-          question: 'What safety measures do you have in place?',
-          answer: 'We maintain high safety standards including regular vehicle maintenance, trained and licensed guides, first aid kits, emergency contacts, and comprehensive insurance coverage. All tours follow local safety guidelines.'
-        },
-        {
-          question: 'Are there any health restrictions for tours?',
-          answer: 'Some tours may have physical requirements such as walking long distances or climbing stairs. Specific health restrictions and fitness levels are mentioned in tour descriptions. Please consult your doctor if you have any medical concerns.'
-        },
-        {
-          question: 'What happens in case of bad weather?',
-          answer: 'Tours may be modified or rescheduled due to severe weather conditions for safety reasons. In such cases, we offer full refunds or alternative tour dates at no extra cost.'
-        },
-        {
-          question: 'Do you have insurance coverage?',
-          answer: 'Yes, all our tours are covered by comprehensive travel insurance. However, we recommend that travelers also have their own travel insurance for additional coverage.'
-        }
-      ]
-    },
-    {
-      category: 'Customization & Special Requests',
-      questions: [
-        {
-          question: 'Can you customize tours according to my preferences?',
-          answer: 'Absolutely! We specialize in creating personalized experiences. Contact us with your preferences, interests, and requirements, and our team will design a custom itinerary just for you.'
-        },
-        {
-          question: 'Do you accommodate dietary restrictions?',
-          answer: 'Yes, we can accommodate various dietary requirements including vegetarian, vegan, gluten-free, and other special dietary needs. Please inform us at the time of booking.'
-        },
-        {
-          question: 'Can you arrange accommodation?',
-          answer: 'Yes, we can help arrange accommodation ranging from heritage hotels to luxury resorts. Contact us for personalized accommodation recommendations and bookings.'
-        },
-        {
-          question: 'Do you offer multi-day tour packages?',
-          answer: 'Yes, we offer comprehensive multi-day packages covering multiple destinations. These include accommodation, meals, transportation, and guided tours. Check our destinations page or contact us for custom packages.'
-        }
-      ]
-    }
-  ];
+      } catch (error) {
+        console.error('Error fetching FAQs:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchFAQs();
+  }, []);
 
   const allQuestions = faqCategories.flatMap((category, categoryIndex) =>
     category.questions.map((q, qIndex) => ({
@@ -230,42 +167,48 @@ export const FAQ = () => {
         ) : (
           /* Categories */
           <div className="space-y-8">
-            {faqCategories.map((category, categoryIndex) => (
-              <div key={categoryIndex} className="bg-white rounded-lg shadow-sm overflow-hidden">
-                <div className="bg-[#104c57] text-white px-6 py-4">
-                  <h2 className="text-xl font-bold">{category.category}</h2>
-                </div>
-                <div className="divide-y divide-gray-200">
-                  {category.questions.map((item, qIndex) => {
-                    const globalIndex = categoryIndex * 100 + qIndex;
-                    return (
-                      <div key={qIndex}>
-                        <button
-                          onClick={() => toggleItem(globalIndex)}
-                          className="w-full text-left p-6 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:ring-inset transition-colors"
-                        >
-                          <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-medium text-gray-900">
-                              {item.question}
-                            </h3>
-                            {openItems.includes(globalIndex) ? (
-                              <ChevronUp className="h-5 w-5 text-gray-500 flex-shrink-0 ml-4" />
-                            ) : (
-                              <ChevronDown className="h-5 w-5 text-gray-500 flex-shrink-0 ml-4" />
-                            )}
-                          </div>
-                        </button>
-                        {openItems.includes(globalIndex) && (
-                          <div className="px-6 pb-6">
-                            <p className="text-gray-700 leading-relaxed">{item.answer}</p>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
+            {isLoading ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#ff914d]"></div>
               </div>
-            ))}
+            ) : 
+              faqCategories.map((category, categoryIndex) => (
+                <div key={categoryIndex} className="bg-white rounded-lg shadow-sm overflow-hidden">
+                  <div className="bg-[#104c57] text-white px-6 py-4">
+                    <h2 className="text-xl font-bold">{category.category}</h2>
+                  </div>
+                  <div className="divide-y divide-gray-200">
+                    {category.questions.map((item, qIndex) => {
+                      const globalIndex = categoryIndex * 100 + qIndex;
+                      return (
+                        <div key={qIndex}>
+                          <button
+                            onClick={() => toggleItem(globalIndex)}
+                            className="w-full text-left p-6 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:ring-inset transition-colors"
+                          >
+                            <div className="flex items-center justify-between">
+                              <h3 className="text-lg font-medium text-gray-900">
+                                {item.question}
+                              </h3>
+                              {openItems.includes(globalIndex) ? (
+                                <ChevronUp className="h-5 w-5 text-gray-500 flex-shrink-0 ml-4" />
+                              ) : (
+                                <ChevronDown className="h-5 w-5 text-gray-500 flex-shrink-0 ml-4" />
+                              )}
+                            </div>
+                          </button>
+                          {openItems.includes(globalIndex) && (
+                            <div className="px-6 pb-6">
+                              <p className="text-gray-700 leading-relaxed">{item.answer}</p>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))
+            }
           </div>
         )}
 

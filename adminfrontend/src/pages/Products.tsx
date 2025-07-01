@@ -26,6 +26,7 @@ export const Products = () => {
   const [filterType, setFilterType] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [filterDestination, setFilterDestination] = useState('');
+  const [draftFilter, setDraftFilter] = useState<'all' | 'published' | 'draft'>('all');
   const { token, user } = useAuth();
   const navigate = useNavigate();
 
@@ -42,7 +43,7 @@ export const Products = () => {
     }
     
     fetchProducts();
-  }, [token, searchParams]);
+  }, [token, draftFilter, searchParams]);
 
   useEffect(() => {
     filterProducts();
@@ -50,7 +51,9 @@ export const Products = () => {
 
   const fetchProducts = async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/products`, {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/products?draft=${draftFilter}`,
+        {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -151,6 +154,34 @@ export const Products = () => {
       {/* Filters */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setDraftFilter('all')}
+              className={`px-3 py-2 rounded-md text-sm font-medium ${
+                draftFilter === 'all' ? 'bg-[#104c57] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              All Products
+            </button>
+            <button
+              onClick={() => setDraftFilter('published')}
+              className={`px-3 py-2 rounded-md text-sm font-medium ${
+                draftFilter === 'published' ? 'bg-[#104c57] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Published
+            </button>
+            <button
+              onClick={() => setDraftFilter('draft')}
+              className={`px-3 py-2 rounded-md text-sm font-medium ${
+                draftFilter === 'draft' ? 'bg-[#104c57] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Drafts
+            </button>
+          </div>
+
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
@@ -232,7 +263,12 @@ export const Products = () => {
             <div className="p-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-gray-500">{product.productCode}</span>
-                <span className={`w-2 h-2 rounded-full ${product.isActive ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                <div className="flex items-center space-x-2">
+                  <span className={`w-2 h-2 rounded-full ${product.isActive ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                  {product.isDraft && (
+                    <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">Draft</span>
+                  )}
+                </div>
               </div>
               
               <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">

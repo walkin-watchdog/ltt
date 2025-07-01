@@ -158,6 +158,7 @@ export const ProductDetail = () => {
               setSelectedDateStr(cartData.selectedDate || todayStr);
               setAdultsCount(cartData.adults || 2);
               setChildrenCount(cartData.children || 0);
+              setSelectedTimeSlot(cartData.selectedTimeSlot);
 
               // Store IDs to set after product loads
               sessionStorage.setItem('pending_recovery', JSON.stringify({

@@ -3,16 +3,15 @@ import { useState } from 'react';
 import { 
   Home, 
   Package, 
-  MapPin, 
+  MapPin,
+  FileText,
   Tag, 
   Ticket,
   Mail, 
   Calendar, 
   BookOpen, 
   MessageSquare, 
-  ShoppingCart, 
-  Menu, 
-  X, 
+  ShoppingCart,
   UsersIcon,
   Pin,
   PinOff
@@ -25,6 +24,7 @@ const navigation = [
   { name: 'Products', href: '/products', icon: Package },
   { name: 'Destinations', href: '/destinations-admin', icon: MapPin },
   { name: 'Experience Categories', href: '/experience-categories', icon: Tag },
+  { name: 'Content', href: '/content', icon: FileText },
   { name: 'Coupons', href: '/coupons', icon: Ticket },
   { name: 'Availability', href: '/availability', icon: Calendar },
   { name: 'Gallery', href: '/gallery', icon: Image },
@@ -111,47 +111,6 @@ export const Sidebar = () => {
           })}
         </ul>
       </nav>
-
-      {/* User Info & Logout */}
-      {/* <div className="p-4 border-t border-[#0d3d47] bg-[#104c57]">
-        {!isCollapsed ? (
-          <>
-            <div className="flex items-center mb-4 bg-[#0d3d47] rounded-lg p-3">
-              <div className="bg-[#ff914d] rounded-full h-10 w-10 flex items-center justify-center shadow">
-                <span className="text-white font-semibold text-lg">
-                  {user?.name?.charAt(0).toUpperCase()}
-                </span>
-              </div>
-              <div className="ml-3">
-                <p className="text-sm font-semibold text-white">{user?.name}</p>
-                <p className="text-xs text-gray-300">{user?.role}</p>
-              </div>
-            </div>
-            <button
-              onClick={logout}
-              className="flex items-center w-full px-4 py-2 text-sm text-white bg-[#0d3d47] hover:bg-[#ff914d] hover:text-white rounded-lg transition-colors font-medium"
-            >
-              <LogOut className="mr-3 h-4 w-4" />
-              Logout
-            </button>
-          </>
-        ) : (
-          <div className="flex flex-col items-center space-y-4">
-            <div className="bg-[#ff914d] rounded-full h-10 w-10 flex items-center justify-center shadow">
-              <span className="text-white font-semibold text-lg">
-                {user?.name?.charAt(0).toUpperCase()}
-              </span>
-            </div>
-            <button
-              onClick={logout}
-              className="p-2 text-white bg-[#0d3d47] hover:bg-[#ff914d] hover:text-white rounded-lg transition-colors"
-              title="Logout"
-            >
-              <LogOut className="h-4 w-4" />
-            </button>
-          </div>
-        )}
-      </div> */}
     </div>
   );
 };

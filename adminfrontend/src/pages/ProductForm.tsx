@@ -47,6 +47,7 @@ export const ProductForm = () => {
     experienceCategoryId: '',
     cancellationPolicy: '',
     isActive: true,
+    isDraft: false,
     availabilityStartDate: today,
     availabilityEndDate: undefined,
     blockedDates: [],
@@ -108,7 +109,7 @@ export const ProductForm = () => {
     // Only validate when moving forward
     const currentIndex = tabs.findIndex(tab => tab.id === activeTab);
     const nextIndex = tabs.findIndex(tab => tab.id === nextTab);
-    if (nextIndex > currentIndex) {
+    if (nextIndex > currentIndex && !formData.isDraft) {
       const validate = tabValidations[activeTab];
       if (validate) {
         const missingFields = validate(formData);
@@ -197,28 +198,29 @@ export const ProductForm = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
-
+    if (!formData.isDraft) {
     // Validate form data
-    if (!formData.title || !formData.productCode || !formData.description|| 
-        !formData.location || !formData.duration) {
-      toast({ message: "Please fill out all required fields in the Product Content tab", type: "error" });
-      setActiveTab('content');
-      setIsSaving(false);
-      return;
-    }
+      if (!formData.title || !formData.productCode || !formData.description|| 
+          !formData.location || !formData.duration) {
+        toast({ message: "Please fill out all required fields in the Product Content tab", type: "error" });
+        setActiveTab('content');
+        setIsSaving(false);
+        return;
+      }
 
-    if (!formData.packages || formData.packages.length === 0) {
-      toast({ message: "You must add at least one package option", type: "error" });
-      setActiveTab('schedule');
-      setIsSaving(false);
-      return;
-    }
+      if (!formData.packages || formData.packages.length === 0) {
+        toast({ message: "You must add at least one package option", type: "error" });
+        setActiveTab('schedule');
+        setIsSaving(false);
+        return;
+      }
 
-    if (!formData.cancellationPolicy) {
-      toast({ message: "Cancellation policy is required in the Booking Details tab", type: "error" });
-      setActiveTab('booking');
-      setIsSaving(false);
-      return;
+      if (!formData.cancellationPolicy) {
+        toast({ message: "Cancellation policy is required in the Booking Details tab", type: "error" });
+        setActiveTab('booking');
+        setIsSaving(false);
+        return;
+      }
     }
     console.log('Submitting form data:', formData);
 
@@ -304,6 +306,24 @@ export const ProductForm = () => {
             </h1>
             <p className="text-gray-600 mt-2">
               {isEdit ? 'Update product details and settings' : 'Add a new tour or experience to your platform'}
+              <div className="flex items-center space-x-2 ml-6">
+                <span className="text-sm font-medium text-gray-700">Draft:</span>
+                <button
+                  onClick={() => updateFormData({ isDraft: !formData.isDraft })}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    formData.isDraft ? 'bg-yellow-400' : 'bg-gray-200'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      formData.isDraft ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+                <span className={`text-sm font-medium ${formData.isDraft ? 'text-yellow-800' : 'text-gray-500'}`}>
+                  {formData.isDraft ? 'Draft' : 'Published'}
+                </span>
+              </div>
             </p>
           </div>
         </div>

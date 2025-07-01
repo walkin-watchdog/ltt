@@ -255,6 +255,47 @@ router.post(
   }
 );
 
+router.post('/register-first', async (req: AuthRequest, res, next) => {
+  try {
+    const userCount = await prisma.user.count();
+    if (userCount > 0) {
+      return res.status(403).json({ error: 'Initial registration is closed.' });
+    }
+
+    const { email, password, name, role } = registerSchema.parse(req.body);
+
+    const existingUser = await prisma.user.findUnique({
+      where: { email }
+    });
+
+    if (existingUser) {
+      return res.status(400).json({ error: 'User already exists' });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    const user = await prisma.user.create({
+      data: {
+        email,
+        password: hashedPassword,
+        name,
+        role: role || 'VIEWER'
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        createdAt: true
+      }
+    });
+
+    res.status(201).json(user);
+  } catch (error) {
+    next(error);
+  }
+});
+
 // Register (Admin only)
 router.post('/register', authenticate, async (req: AuthRequest, res, next) => {
   try {
@@ -319,7 +360,13 @@ router.get('/me', authenticate, async (req: AuthRequest, res, next) => {
 // Get all users (Admin only)
 router.get('/users', authenticate, authorize(['ADMIN']), async (req: AuthRequest, res, next) => {
   try {
+    const { role } = req.query;
+    
+    const where: any = {};
+    if (role) where.role = role;
+
     const users = await prisma.user.findMany({
+      where,
       select: {
         id: true,
         email: true,
@@ -336,6 +383,18 @@ router.get('/users', authenticate, authorize(['ADMIN']), async (req: AuthRequest
   }
 });
 
+// Check if admin exists (public endpoint)
+router.get('/check-admin', async (req, res, next) => {
+  try {
+    const adminCount = await prisma.user.count({
+      where: { role: 'ADMIN' }
+    });
+    
+    res.json({ exists: adminCount > 0 });
+  } catch (error) {
+    next(error);
+  }
+});
 // Get user by ID (Admin only)
 router.get('/users/:id', authenticate, authorize(['ADMIN']), async (req: AuthRequest, res, next) => {
   try {

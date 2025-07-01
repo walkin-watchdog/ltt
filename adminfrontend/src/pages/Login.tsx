@@ -1,17 +1,41 @@
 import { useState, useEffect } from 'react';
-import { Navigate, useSearchParams } from 'react-router-dom';
+import { Navigate, useSearchParams, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 export const Login = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isCheckingAdmin, setIsCheckingAdmin] = useState(true);
   const [searchParams] = useSearchParams();
   
   const { user, login } = useAuth();
+  const navigate = useNavigate();
+
+  // Check if any admin exists
+  useEffect(() => {
+    const checkForAdminUsers = async () => {
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/auth/check-admin`);
+        if (response.ok) {
+          const data = await response.json();
+          if (!data.exists) {
+            navigate('/get-started');
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('Error checking for admin users:', error);
+      } finally {
+        setIsCheckingAdmin(false);
+      }
+    };
+    
+    checkForAdminUsers();
+  }, [navigate]);
 
   useEffect(() => {
     const expired = searchParams.get('expired');
@@ -22,6 +46,14 @@ export const Login = () => {
 
   if (user) {
     return <Navigate to="/" replace />;
+  }
+
+  if (isCheckingAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#ff914d]"></div>
+      </div>
+    );
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
