@@ -29,7 +29,7 @@ import { PriceDisplay } from '../components/common/PriceDisplay';
 import { SEOHead } from '../components/seo/SEOHead';
 import { ReviewsWidget } from '../components/reviews/ReviewsWidget';
 import { formatDate, parse } from 'date-fns';
-import { setStep } from '@/store/slices/bookingSlice';
+import { setStep } from '../store/slices/bookingSlice';
 
 // Helper function to calculate the effective price after discount
 const calculateEffectivePrice = (basePrice: number, discountType?: string, discountValue?: number) => {

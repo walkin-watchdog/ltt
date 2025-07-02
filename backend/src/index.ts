@@ -31,6 +31,7 @@ import experienceCategoryRoutes from './routes/experienceCategories';
 import reviewsRoutes from './routes/reviews';
 import paypalPaymentRoutes from './routes/paypalPayments';
 import currencyRoutes from './routes/currency';
+import translate from 'google-translate-api-x';
 
 dotenv.config();
 
@@ -114,6 +115,22 @@ app.get('/sitemap.xml', async (req, res, next) => {
     res.send(sitemap);
   } catch (error) {
     next(error);
+  }
+});
+
+app.post('/api/translate', async (req, res) => {
+  const { text, to } = req.body;
+  try {
+    const result = await translate(text, { to });
+    if (Array.isArray(result)) {
+      res.json({ text: result.map(r => r.text).join(' ') });
+    } else if ('text' in result) {
+      res.json({ text: result.text });
+    } else {
+      res.status(500).json({ error: 'Unexpected translation response format' });
+    }
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' });
   }
 });
 

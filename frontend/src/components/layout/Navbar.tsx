@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { useEffect } from 'react';
 import { Link} from 'react-router-dom';
 import { Menu, X, ChevronDown, User } from 'lucide-react';
-import { GoogleTranslateWidget } from '../common/GoogleTranslateWidget';
 import { CurrencySelector } from '../common/CurrencySelector';
 import { Helmet } from 'react-helmet-async';
+import { TranslatedText } from '../common/TranslatedText';
+import { LanguageSelector } from '../common/LanguageSelector';
 
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -72,7 +73,7 @@ export const Navbar = () => {
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
+          <div className="hidden md:flex items-center space-x-6">
             
             {/* Destinations Dropdown */}
             <div 
@@ -181,7 +182,7 @@ export const Navbar = () => {
               to="/plan-your-trip"
               className="bg-[#104c57] text-white font-bold px-6 py-2 hover:bg-[#e8823d] transition-colors"
             >
-              Plan My Trip
+              <TranslatedText text="Plan My Trip" />
             </Link>
 
             {/* Login */}
@@ -196,6 +197,7 @@ export const Navbar = () => {
               </a>
             </div>
             <CurrencySelector />
+            <LanguageSelector />
           </div>
 
           {/* Mobile menu button */}
@@ -255,11 +257,8 @@ export const Navbar = () => {
                 <CurrencySelector />
               </div>
               <Link to="https://quaintspaces.in/" className="block px-3 py-2 text-gray-700">Luxé Stays</Link>
-              <Link to="/plan-your-trip" className="block px-3 py-2 text-[#104c57] font-medium">Plan My Trip</Link>
+              <Link to="/plan-your-trip" className="block px-3 py-2 text-[#104c57] font-medium"><TranslatedText text="Plan My Trip" /></Link>
               <a href={adminUrl} className="block px-3 py-2 text-[#ff914d] font-medium">Admin</a>
-              <div className="px-3 py-2">
-                <GoogleTranslateWidget />
-              </div>
             </div>
           </div>
         )}

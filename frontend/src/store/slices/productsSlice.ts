@@ -89,8 +89,8 @@ const getErrorMessage = async (response: Response) => {
 };
 
 export const fetchProducts = createAsyncThunk<
-   Product[],           //   ⬅️  return type
-   Partial<ProductsFilter> // ⬅️  argument type
+   Product[],
+   Partial<ProductsFilter>
  >(
    'products/fetchProducts',
    async (filters = {}) => {

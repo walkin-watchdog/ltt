@@ -1,3 +1,4 @@
+import { TranslationProvider } from './contexts/TranslationContext';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSelector } from 'react-redux';
@@ -101,48 +102,50 @@ function App() {
   return (
     <ErrorBoundary>
     <HelmetProvider>
-      <Router>
-          <GoogleAnalytics />
-        <div className="min-h-screen bg-background">
-          <Navbar />
-          <main>
-              <ErrorBoundary>
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/destinations" element={<Destinations />} />
-              <Route path="/destinations/:city" element={<DestinationCity />} />
-              <Route path="/experiences" element={<Experiences />} />
-              <Route path="/experiences/:category" element={<ExperienceCategory />} />
-              <Route path="/blog" element={<Blog />} />
-              <Route path="/blog/:slug" element={<BlogPost />} />
-              <Route path="/blog/category/:slug" element={<BlogCategory />} />
-              <Route path="/blog/tag/:slug" element={<BlogTag />} />
-              <Route path="/product/:id" element={<ProductDetail />} />
-             <Route path="/p/:slug" element={<ProductDetail />} />
-              <Route path="/offers" element={<SpecialOffers />} />
-              <Route path="/plan-your-trip" element={<PlanYourTrip />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/sustainable-travel" element={<SustainableTravel />} />
-              <Route path="/policies" element={<Policies />} />
-              <Route path="/partnership" element={<Partnership />} />
-              <Route path="/careers" element={<Careers />} />
-              <Route path="/faq" element={<FAQ />} />
-              <Route path="/book/:productId" element={<BookingFlow />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-              </ErrorBoundary>
-          </main>
-          <Footer />
-          <WhatsAppWidget />
-          {abandonedCart && (
-            <AbandonedCartNotification 
-              cart={abandonedCart} 
-              onDismiss={() => setAbandonedCart(null)} 
-            />
-          )}
-        </div>
-      </Router>
+      <TranslationProvider>
+        <Router>
+            <GoogleAnalytics />
+          <div className="min-h-screen bg-background">
+            <Navbar />
+            <main>
+                <ErrorBoundary>
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/destinations" element={<Destinations />} />
+                <Route path="/destinations/:city" element={<DestinationCity />} />
+                <Route path="/experiences" element={<Experiences />} />
+                <Route path="/experiences/:category" element={<ExperienceCategory />} />
+                <Route path="/blog" element={<Blog />} />
+                <Route path="/blog/:slug" element={<BlogPost />} />
+                <Route path="/blog/category/:slug" element={<BlogCategory />} />
+                <Route path="/blog/tag/:slug" element={<BlogTag />} />
+                <Route path="/product/:id" element={<ProductDetail />} />
+              <Route path="/p/:slug" element={<ProductDetail />} />
+                <Route path="/offers" element={<SpecialOffers />} />
+                <Route path="/plan-your-trip" element={<PlanYourTrip />} />
+                <Route path="/contact" element={<Contact />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/sustainable-travel" element={<SustainableTravel />} />
+                <Route path="/policies" element={<Policies />} />
+                <Route path="/partnership" element={<Partnership />} />
+                <Route path="/careers" element={<Careers />} />
+                <Route path="/faq" element={<FAQ />} />
+                <Route path="/book/:productId" element={<BookingFlow />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+                </ErrorBoundary>
+            </main>
+            <Footer />
+            <WhatsAppWidget />
+            {abandonedCart && (
+              <AbandonedCartNotification 
+                cart={abandonedCart} 
+                onDismiss={() => setAbandonedCart(null)} 
+              />
+            )}
+          </div>
+        </Router>
+      </TranslationProvider>
     </HelmetProvider>
     </ErrorBoundary>
   );
