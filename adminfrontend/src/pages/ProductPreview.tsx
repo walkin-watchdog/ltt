@@ -8,9 +8,9 @@ import {
 import useMediaQuery from '@mui/material/useMediaQuery';
 
 import { useAuth } from '../contexts/AuthContext';
-import { AdminAvailabilityBar } from '@/components/common/AdminAvailabilityBar';
-import { AdminAvailabilityModal } from '@/components/common/AdminAvailabilityModal';
-import type { Product, PackageOption } from '@/types.ts';
+import { AdminAvailabilityBar } from '../components/common/AdminAvailabilityBar';
+import { AdminAvailabilityModal } from '../components/common/AdminAvailabilityModal';
+import type { Product, PackageOption } from '../types.ts';
 import { formatDate, parse } from 'date-fns';
 
 // Helper function to calculate the effective price after discount

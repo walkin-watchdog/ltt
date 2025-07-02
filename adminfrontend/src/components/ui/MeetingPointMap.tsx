@@ -2,7 +2,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { GoogleMap, Marker, InfoWindow } from '@react-google-maps/api';
 import { Plus, X, AlertCircle } from 'lucide-react';
 import { useGoogleMaps } from '../../hooks/useGoogleMaps';
-import type { MeetingPoint } from '@/types.ts';
+import type { MeetingPoint } from '../../types.ts';
 
 interface MeetingPointMapProps {
     meetingPoints: MeetingPoint[];

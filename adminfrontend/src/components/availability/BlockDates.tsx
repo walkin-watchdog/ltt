@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Product, BlockDatesProps } from '@/types.ts';
+import type { Product, BlockDatesProps } from '../../types.ts';
 
 export const BlockDates: React.FC<BlockDatesProps> = ({
   saveError,

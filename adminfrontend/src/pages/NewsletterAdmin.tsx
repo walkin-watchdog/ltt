@@ -12,7 +12,7 @@ import {
   Filter,
   Trash2
 } from 'lucide-react';
-import { useToast } from '@/components/ui/toaster';
+import { useToast } from '../components/ui/toaster';
 
 interface Subscriber {
   id: string;

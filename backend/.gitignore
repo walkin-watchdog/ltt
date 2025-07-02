@@ -5,6 +5,3 @@ logs
 package-lock.json
 prisma/migrations/
 tsconfig.tsbuildinfo
-
-# remove from ignore later
-src/create-admin.ts

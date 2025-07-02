@@ -15,7 +15,7 @@ import {
   Baby,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import type { Productprop } from '@/types.ts';
+import type { Productprop } from '../types.ts';
 
 export const Products = () => {
   const [products, setProducts] = useState<Productprop[]>([]);

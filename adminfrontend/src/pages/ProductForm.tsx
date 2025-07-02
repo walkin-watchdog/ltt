@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useToast } from '@/components/ui/toaster';
+import { useToast } from '../components/ui/toaster';
 import { useAuth } from '../contexts/AuthContext';
 import { ProductContentTab } from '../components/products/ProductContentTab';
 import { SchedulePriceTab } from '../components/products/SchedulePriceTab';
 import { BookingDetailsTab } from '../components/products/BookingDetailsTab';
 import { AvailabilityTab } from '../components/products/AvailabilityTab';
 import { Save, ArrowLeft, Eye } from 'lucide-react';
-import type { ProductFormData } from '@/types.ts';
+import type { ProductFormData } from '../types.ts';
 
 const tabs = [
   { id: 'content', name: 'Product Content', component: ProductContentTab },
@@ -398,7 +398,7 @@ export const ProductForm = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 ${!isEdit && formData.isDraft ? 'bg-yellow-50 border border-yellow-300 p-4 rounded-lg' : ''}`}>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center">
@@ -416,54 +416,69 @@ export const ProductForm = () => {
               {isEdit
                 ? 'Update product details and settings'
                 : 'Add a new tour or experience to your platform'}
-              <div className="flex items-center space-x-2 ml-6">
-                <span className="text-sm font-medium text-gray-700">Draft:</span>
-                <button
-                  onClick={() => updateFormData({ isDraft: !formData.isDraft })}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    formData.isDraft ? 'bg-yellow-400' : 'bg-gray-200'
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      formData.isDraft ? 'translate-x-6' : 'translate-x-1'
-                    }`}
-                  />
-                </button>
-                <span
-                  className={`text-sm font-medium ${
-                    formData.isDraft ? 'text-yellow-800' : 'text-gray-500'
-                  }`}
-                >
-                  {formData.isDraft ? 'Draft' : 'Published'}
-                </span>
-              </div>
             </p>
           </div>
         </div>
         <div className="flex items-center space-x-3">
+          {/* Draft Toggle */}
+          <div className="flex items-center space-x-2">
+            {!isEdit && (
+                <>
+                  <span
+                    className={`text-sm font-medium ${
+                      formData.isDraft ? 'text-yellow-800' : 'text-gray-500'
+                    }`}
+                  >
+                    Draft
+                  </span>
+                  <button
+                    onClick={() =>
+                        updateFormData({
+                          isDraft: !formData.isDraft,
+                          ...( !formData.isDraft
+                              ? { isActive: false }
+                              : { isActive: true }
+                          ),
+                        })
+                      }
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      formData.isDraft ? 'bg-[#ff914d]' : 'bg-gray-200'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        formData.isDraft ? 'translate-x-1' : 'translate-x-6'
+                      }`}
+                    />
+                  </button>
+                </>
+              )}
+          </div>
           {/* Status Toggle */}
           <div className="flex items-center space-x-2">
-            <span className="text-sm font-medium text-gray-700">Status:</span>
-            <button
-              onClick={() => updateFormData({ isActive: !formData.isActive })}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                formData.isActive ? 'bg-[#ff914d]' : 'bg-gray-200'
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  formData.isActive ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
-            <span
-              className={`text-sm font-medium ${
-                formData.isActive ? 'text-green-600' : 'text-gray-500'
-              }`}
-            >
-              {formData.isActive ? 'Active' : 'Inactive'}
-            </span>
+            {formData.isDraft ? null : (
+              <>
+                <span
+                  className={`text-sm font-medium ${
+                    formData.isActive ? 'text-green-600' : 'text-gray-500'
+                  }`}
+                >
+                  {formData.isActive ? 'Active' : 'Inactive'}
+                </span>
+                <button
+                  onClick={() => updateFormData({ isActive: !formData.isActive })}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    formData.isActive ? 'bg-[#ff914d]' : 'bg-gray-200'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      formData.isActive ? 'translate-x-1' : 'translate-x-6'
+                    }`}
+                  />
+                </button>
+              </>
+            )}
           </div>
           {isEdit && (
             <button
@@ -481,7 +496,13 @@ export const ProductForm = () => {
             className="flex items-center px-6 py-2 bg-[#ff914d] text-white rounded-lg hover:bg-[#e8823d] transition-colors disabled:opacity-50"
           >
             <Save className="h-4 w-4 mr-2" />
-            {isSaving ? 'Saving...' : isEdit ? 'Update Product' : 'Create Product'}
+            {isSaving
+              ? 'Saving...'
+              : isEdit
+              ? 'Update Product'
+              : formData.isDraft
+              ? 'Save Draft'
+              : 'Create Product'}
           </button>
         </div>
       </div>

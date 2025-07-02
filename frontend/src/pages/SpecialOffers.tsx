@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { MapPin, Clock, Star, Percent, Tag, Calendar, AlertCircle, Search } from 'lucide-react';
-import type { RootState, AppDispatch } from '@/store/store';
+import type { RootState, AppDispatch } from '../store/store';
 import { NewsletterSubscription } from '../components/common/NewsletterSubscription';
 import { SEOHead } from '../components/seo/SEOHead';
 

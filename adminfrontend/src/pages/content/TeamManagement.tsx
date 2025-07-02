@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { 
   Plus, 
   Edit, 
@@ -9,8 +9,8 @@ import {
   X,
   Check 
 } from 'lucide-react';
-import { useToast } from '@/components/ui/toaster';
-import { ImageUploader } from '@/components/gallery/ImageUploader';
+import { useToast } from '../../components/ui/toaster';
+import { ImageUploader } from '../../components/gallery/ImageUploader';
 
 interface TeamMember {
   id: string;

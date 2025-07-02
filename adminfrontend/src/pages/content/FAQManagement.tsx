@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { 
   Plus, 
   Edit, 
@@ -9,7 +9,7 @@ import {
   X,
   Check 
 } from 'lucide-react';
-import { useToast } from '@/components/ui/toaster';
+import { useToast } from '../../components/ui/toaster';
 
 interface FAQ {
   id: string;
@@ -54,7 +54,7 @@ export const FAQManagement = () => {
         setFaqs(data);
         
         // Extract unique categories
-        const uniqueCategories = Array.from(new Set(data.map((faq: FAQ) => faq.category)));
+        const uniqueCategories = Array.from(new Set(data.map((faq: FAQ) => faq.category))) as string[];
         setCategories(uniqueCategories);
       }
     } catch (error) {

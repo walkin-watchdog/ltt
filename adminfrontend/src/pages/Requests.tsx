@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Search, Filter, Calendar, MapPin, Users, DollarSign, Download, Eye } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import type { TripRequest } from '@/types.ts';
+import type { TripRequest } from '../types.ts';
 
 
 export const Requests = () => {

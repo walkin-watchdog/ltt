@@ -5,7 +5,7 @@ import { Star, Clock, Users, MapPin } from 'lucide-react';
 import { fetchProducts } from '../store/slices/productsSlice';
 import { PriceDisplay } from '../components/common/PriceDisplay';
 import { NewsletterSubscription } from '../components/common/NewsletterSubscription';
-import type { AppDispatch, RootState } from '@/store/store';
+import type { AppDispatch, RootState } from '../store/store';
 import { Helmet } from 'react-helmet-async';
 
 export const Home = () => {

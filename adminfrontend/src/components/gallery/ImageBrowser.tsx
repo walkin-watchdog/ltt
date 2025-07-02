@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { Search, X, FolderOpen, Loader, Plus, Check, Trash } from 'lucide-react';
-import { useToast } from '@/components/ui/toaster';
-import { formatBytes } from '@/lib/utils';
+import { Search, X, FolderOpen, Loader, Check, Trash } from 'lucide-react';
+import { useToast } from '../ui/toaster';
+import { formatBytes } from '../../lib/utils';
 
 interface ImageBrowserProps {
   isOpen: boolean;

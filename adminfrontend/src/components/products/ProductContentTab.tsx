@@ -86,6 +86,7 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
   const [isLoadingDestinations, setIsLoadingDestinations] = useState(false);
   const [isLoadingCategories, setIsLoadingCategories] = useState(false);
   const [pickupOption, setPickupOption] = useState(formData.pickupOption || '');
+  const isDraft = formData.isDraft;
 
   const healthRestrictionOptions = [
     "Not recommended for travelers with back problems",
@@ -216,7 +217,7 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
     const currentTabIndex = contentTabs.findIndex(tab => tab.id === activeContentTab);
     const newTabIndex = contentTabs.findIndex(tab => tab.id === newTabId);
 
-    if (newTabIndex > currentTabIndex) {
+    if (newTabIndex > currentTabIndex && !isDraft) {
       // Validate all previous tabs including current one
       for (let i = 0; i <= currentTabIndex; i++) {
         const tabToValidate = contentTabs[i].id;

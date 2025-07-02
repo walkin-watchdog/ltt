@@ -4,7 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { Calendar, User, CreditCard, CheckCircle, Phone, Mail, MapPin, CalendarIcon } from 'lucide-react';
 import { useAbandonedCart } from '../hooks/useAbandonedCart';
 import { PriceDisplay } from '../components/common/PriceDisplay';
-import type { RootState, AppDispatch } from '@/store/store';
+import type { RootState, AppDispatch } from '../store/store';
 import { fetchProduct } from '../store/slices/productsSlice';
 import { createBooking } from '../store/slices/bookingSlice';
 import { trackBookingStart } from '../components/analytics/GoogleAnalytics';

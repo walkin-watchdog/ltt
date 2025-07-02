@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { X, Save, Plus } from 'lucide-react';
-import { useToast } from '@/components/ui/toaster';
+import { useToast } from '../ui/toaster';
 import { ImageUploader } from '../gallery/ImageUploader';
 
 interface Destination {

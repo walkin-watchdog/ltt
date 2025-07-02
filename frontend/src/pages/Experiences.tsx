@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { MapPin, Clock, Star, Users } from 'lucide-react';
-import type { RootState, AppDispatch } from '@/store/store';
+import type { RootState, AppDispatch } from '../store/store';
 import { PriceDisplay } from '../components/common/PriceDisplay';
 import { fetchProducts } from '../store/slices/productsSlice';
 import { SEOHead } from '../components/seo/SEOHead';

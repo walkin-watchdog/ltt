@@ -1,7 +1,7 @@
 import  { useState, useRef, useEffect } from 'react';
 import { MapPin, Plus, X, Edit2, AlertCircle } from 'lucide-react';
 import { useGoogleMaps } from '../../hooks/useGoogleMaps';
-import type { EndPoint } from '@/types.ts';
+import type { EndPoint } from '../../types.ts';
 
 
 interface EndPointMapProps {

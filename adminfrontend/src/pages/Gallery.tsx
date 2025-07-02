@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Image, Trash2, Search, Upload, FolderOpen, Filter, Plus, X, Check, Loader } from 'lucide-react';
-import { useToast } from '@/components/ui/toaster';
+import { Image, Trash2, Search, Upload, FolderOpen, Check, Loader } from 'lucide-react';
+import { useToast } from '../components/ui/toaster';
 import axios from 'axios';
-import { formatBytes } from '@/lib/utils';
+import { formatBytes } from '../lib/utils';
 
 export const Gallery = () => {
   const { token } = useAuth();

@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { Upload, X, Image as ImageIcon, Loader, ArrowUp, ArrowDown } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { useToast } from '@/components/ui/toaster';
+import { useToast } from '../ui/toaster';
 import axios from 'axios';
 import { ImageBrowser } from './ImageBrowser';
 

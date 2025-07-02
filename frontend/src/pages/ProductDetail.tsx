@@ -23,7 +23,7 @@ import { AvailabilityModal } from '../components/common/AvailabilityModal';
 import { AvailabilityBar } from '../components/common/AvailabilityBar';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { toast } from 'react-hot-toast';
-import type { RootState, AppDispatch } from '@/store/store';
+import type { RootState, AppDispatch } from '../store/store';
 import { fetchProduct, fetchProductBySlug } from '../store/slices/productsSlice';
 import { PriceDisplay } from '../components/common/PriceDisplay';
 import { SEOHead } from '../components/seo/SEOHead';
@@ -709,22 +709,22 @@ export const ProductDetail = () => {
                   <span>Up to {currentProduct.capacity} people</span>
                 </div>
                 {currentProduct.phonenumber && (
-  <div className="flex items-center text-sm text-gray-600">
-    <span className="font-medium mr-2">Phone:</span>
-    <a href={`tel:${currentProduct.phonenumber}`} className="text-blue-700 underline">
-      {currentProduct.phonenumber}
-    </a>
-    {currentProduct.tourType && (
-  <div className="flex items-center text-sm text-gray-600">
-    <span className="font-medium mr-2">Tour Type:</span>
-    <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded-full text-xs capitalize">
-      {currentProduct.tourType}
-    </span>
-  </div>
-)}
-  </div>
-  
-)}
+                  <div className="flex items-center text-sm text-gray-600">
+                    <span className="font-medium mr-2">Phone:</span>
+                    <a href={`tel:${currentProduct.phonenumber}`} className="text-blue-700 underline">
+                      {currentProduct.phonenumber}
+                    </a>
+                    {currentProduct.tourType && (
+                  <div className="flex items-center text-sm text-gray-600">
+                    <span className="font-medium mr-2">Tour Type:</span>
+                    <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded-full text-xs capitalize">
+                      {currentProduct.tourType}
+                    </span>
+                  </div>
+                )}
+                  </div>
+                  
+                )}
               </div>
 
               <p className="text-gray-700 text-lg leading-relaxed mb-6">

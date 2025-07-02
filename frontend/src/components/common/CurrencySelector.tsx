@@ -89,14 +89,14 @@ export const CurrencySelector = ({ className = '' }: CurrencySelectorProps) => {
           aria-haspopup="true"
           aria-expanded={isOpen}
         >
-          <DollarSign className="h-4 w-4" />
+          
           <span>{getCurrencySymbol(selectedCurrency)}</span>
           <ChevronDown className="h-4 w-4" />
         </button>
         
         {isOpen && (
           <div 
-            className="origin-top-right absolute right-0 mt-2 w-40 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50"
+            className="origin-top-right absolute right-0 mt-5 w-40 shadow-lg bg-white z-50"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="py-1" role="menu" aria-orientation="vertical">
@@ -109,8 +109,8 @@ export const CurrencySelector = ({ className = '' }: CurrencySelectorProps) => {
                     onClick={() => handleCurrencyChange(currency)}
                     className={`block w-full text-left px-4 py-2 text-sm ${
                       selectedCurrency === currency 
-                        ? 'bg-gray-100 text-[#ff914d] font-medium' 
-                        : 'text-gray-700 hover:bg-gray-100'
+                        ? 'text-[#ff914d] font-bold' 
+                        : 'text-gray-700 hover:font-bold hover:text-[#ff914d]'
                     }`}
                     role="menuitem"
                   >

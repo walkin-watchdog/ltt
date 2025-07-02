@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { 
   Plus, 
   Edit, 
@@ -11,7 +11,7 @@ import {
   MapPin,
   Users
 } from 'lucide-react';
-import { useToast } from '@/components/ui/toaster';
+import { useToast } from '../../components/ui/toaster';
 
 interface JobPosting {
   id: string;

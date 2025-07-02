@@ -5,7 +5,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { MapPin, Clock, Star } from 'lucide-react';
 import { fetchProducts } from '../store/slices/productsSlice';
 import { PriceDisplay } from '../components/common/PriceDisplay';
-import type { AppDispatch, RootState } from '@/store/store';
+import type { AppDispatch, RootState } from '../store/store';
 
 export const Destinations = () => {
   const dispatch = useDispatch<AppDispatch>();

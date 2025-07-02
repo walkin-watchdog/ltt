@@ -1,5 +1,5 @@
-import { useAuth } from "@/contexts/AuthContext";
-import type { EditProps } from "@/types.ts";
+import { useAuth } from "../../contexts/AuthContext";
+import type { EditProps } from "../../types.ts";
 
 export const EditModel: React.FC<EditProps> = ({
 saveError,
