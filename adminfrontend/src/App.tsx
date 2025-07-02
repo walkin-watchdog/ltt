@@ -26,7 +26,7 @@ import { ContentIndex } from './pages/content/ContentIndex';
 import { NotFound } from './pages/NotFound';
 import { GetStarted } from './pages/GetStarted';
 
-function AdminCheckRoute({ children }: { children: JSX.Element }) {
+function AdminCheckRoute({ children }: { children: React.ReactElement }) {
   const [allowed, setAllowed] = useState(false);
   const navigate = useNavigate();
   useEffect(() => {

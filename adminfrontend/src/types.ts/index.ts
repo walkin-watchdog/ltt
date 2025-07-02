@@ -248,14 +248,14 @@ export interface ProductFormData {
   infantSeatsAvailable: string
   accessibilityNotes: string
 
-pickupOption: string;
-allowTravelersPickupPoint: boolean;
-pickupStartTime?: string;
-additionalPickupDetails?: string;
-pickupLocationDetails: LocationDetail[];
-pickupStartTimeValue?: number;
-pickupStartTimeUnit?: 'minutes' | 'hours';
-meetingPoints: MeetingDetail[];
+  pickupOption: string;
+  allowTravelersPickupPoint: boolean;
+  pickupStartTime?: string;
+  additionalPickupDetails?: string;
+  pickupLocationDetails: LocationDetail[];
+  pickupStartTimeValue?: number;
+  pickupStartTimeUnit?: 'minutes' | 'hours';
+  meetingPoints: MeetingDetail[];
 }
 
 interface LocationDetail {

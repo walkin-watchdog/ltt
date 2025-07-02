@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { isTokenExpired } from '../../utils/auth';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -18,8 +19,10 @@ export const ProtectedRoute = ({ children, requiredRoles }: ProtectedRouteProps)
     );
   }
 
-  if (!token || !user) {
-    return <Navigate to="/login?expired=true" replace />;
+  const wasTokenPresent = Boolean(token && user);
+  if (!token || !user || isTokenExpired(token)) {
+    if (wasTokenPresent) sessionStorage.removeItem('admin_token');
+    return <Navigate to={`/login${wasTokenPresent ? '?expired=true' : ''}`} replace />;
   }
 
   if (requiredRoles && !requiredRoles.includes(user.role)) {

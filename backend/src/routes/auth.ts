@@ -7,8 +7,7 @@ import { Prisma } from '@prisma/client';
 import { authenticate, AuthRequest, authorize } from '../middleware/auth';
 import { EmailService } from '../services/emailService';
 import crypto from 'crypto';
-import { signAccess, signRefresh } from '../utils/jwt';
-import { verifyRefresh, RefreshPayload } from '../utils/jwt';
+import { signAccess, signRefresh, verifyRefresh, RefreshPayload } from '../utils/jwt';
 
 const router = express.Router();
 
@@ -106,7 +105,7 @@ router.post('/refresh', async (req, res) => {
     httpOnly : true,
     sameSite : 'strict',
     secure   : process.env.NODE_ENV === 'production',
-    maxAge   : 30 * 24 * 60 * 60 * 1000,
+    maxAge   : 60 * 60 * 24 * 7 * 1000,
   });
   res.json({ access });
 });
@@ -153,7 +152,7 @@ router.post('/forgot-password', forgotLimiter, async (req, res, next) => {
     // Generate reset token
     const resetTokenPlain  = crypto.randomBytes(32).toString('hex');
     const resetToken       = crypto.createHash('sha256').update(resetTokenPlain).digest('hex');
-    const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour
+    const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
     // Store reset token (you might want to add these fields to User model)
     await prisma.user.update({

@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import type { ReactNode } from 'react';
+import { isTokenExpired, isTokenNearExpiry } from '../utils/auth';
+import { useCallback, type ReactNode, } from 'react';
 
 interface User {
   id: string;
@@ -17,6 +18,7 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const TOKEN_KEY = 'admin_token';
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -36,6 +38,105 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     sessionStorage.getItem('admin_token')
   );
   const [isLoading, setIsLoading] = useState(true);
+
+  const login = async (email: string, password: string) => {
+    try {
+      console.log('Logging in with:', { email, password });
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/auth/login`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Login failed');
+      }
+
+      const { access, user: loggedInUser } = await response.json();
+      setUser(loggedInUser);
+      setToken(access);
+      sessionStorage.setItem('admin_token', access);
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  const logout = useCallback(async () => {
+    try {
+      await fetch(
+        `${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/auth/logout`,
+        { method: 'POST', credentials: 'include' }
+      );
+    } catch (_) {
+    }
+    setUser(null);
+    setToken(null);
+    sessionStorage.removeItem('admin_token');
+  }, []);;
+
+  useEffect(() => {
+    const bc = new BroadcastChannel('token_refresh');
+    bc.onmessage = ({ data }) => {
+      if (data.type === 'TOKEN_REFRESHED') {
+        const fresh = sessionStorage.getItem(TOKEN_KEY);
+        if (fresh) {
+          setToken(fresh);
+        }
+      }
+    };
+    return () => bc.close();
+  }, []);
+
+  useEffect(() => {
+    const API = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+    let mounted = true;
+
+    const interval = setInterval(async () => {
+      if (!token || isTokenExpired(token)) {
+        return;
+      }
+
+      if (isTokenNearExpiry(token, 5)) {
+        let attempts = 0;
+        const maxAttempts = 3;
+        const baseDelay = 1000;
+
+        const attemptRefresh = async (): Promise<void> => {
+          try {
+            const res = await fetch(`${API}/auth/refresh`, {
+              method: 'POST',
+              credentials: 'include',
+            });
+            if (!res.ok) throw new Error('refresh_failed');
+            const { access } = await res.json();
+            if (!mounted) return;
+            setToken(access);
+            sessionStorage.setItem(TOKEN_KEY, access);
+            // let other tabs know
+            new BroadcastChannel('token_refresh').postMessage({ type: 'TOKEN_REFRESHED' });
+          } catch (err) {
+            if (++attempts < maxAttempts) {
+              await new Promise((r) => setTimeout(r, baseDelay * 2 ** attempts));
+              return attemptRefresh();
+            }
+            console.error('Max refresh attempts reached', err);
+            logout();
+          }
+        };
+
+        attemptRefresh();
+      }
+    }, 60_000);
+
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, [token, logout]);
 
   useEffect(() => {
     const initAuth = async () => {
@@ -68,45 +169,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
     initAuth();
   }, []);
-
-  const login = async (email: string, password: string) => {
-    try {
-      console.log('Logging in with:', { email, password });
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/auth/login`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Login failed');
-      }
-
-      const { access, user: loggedInUser } = await response.json();
-      setUser(loggedInUser);
-      setToken(access);
-      sessionStorage.setItem('admin_token', access);
-    } catch (error) {
-      throw error;
-    }
-  };
-
-  const logout = async () => {
-    try {
-      await fetch(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/auth/logout`,
-        { method: 'POST', credentials: 'include' }
-      );
-    } catch (_) {
-    }
-    setUser(null);
-    setToken(null);
-    sessionStorage.removeItem('admin_token');
-  };
 
   useEffect(() => {
     const API = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
@@ -144,26 +206,25 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         });
 
       let res = await doFetch();
-
-      if (res.status !== 401 || String(input).endsWith('/auth/refresh')) return res;
-
-      const r = await rawFetch(`${API}/auth/refresh`, {
-        method: 'POST',
-        credentials: 'include',
-      });
-
-      if (r.ok) {
-        const { access } = await r.json();
-        setToken(access);
-        sessionStorage.setItem('admin_token', access);
-        res = await doFetch({ headers: { Authorization: `Bearer ${access}` } });
-        if (res.status !== 401) return res;
+      if (res.status === 401 && !String(input).endsWith('/auth/refresh')) {
+        const r = await rawFetch(`${API}/auth/refresh`, {
+          method: 'POST',
+          credentials: 'include',
+        });
+        if (r.ok) {
+          const { access } = await r.json();
+          setToken(access);
+          sessionStorage.setItem(TOKEN_KEY, access);
+          const bc = new BroadcastChannel('token_refresh');
+          bc.postMessage({ type: 'TOKEN_REFRESHED' });
+          bc.close();
+          res = await doFetch({ headers: { Authorization: `Bearer ${access}` } });
+          if (res.status !== 401) return res;
+        }
+        await logout();
       }
-
-      await logout();
       return res;
     };
-
     return () => {
       (window as any).fetch = rawFetch;
     };
