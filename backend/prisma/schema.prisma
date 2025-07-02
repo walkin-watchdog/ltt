@@ -60,6 +60,7 @@ model Product {
   meetingPoint String?
   meetingPoints Json[] @default([]) 
   doesTourEndAtMeetingPoint Boolean @default(false) 
+ endPoints Json @default("[]") // Add this new field for end locations
   pickupLocations String[]     @default([])
   // New pickup-related fields
   pickupOption String

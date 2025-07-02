@@ -50,6 +50,7 @@ export interface Review {
 }
 
 export interface Product {
+  endPoints(endPoints: any): unknown;
   pickupLocationDetails(pickupLocationDetails: any): unknown;
   pickupOption: boolean;
   allowTravelersPickupPoint: any;
@@ -254,6 +255,7 @@ additionalPickupDetails?: string;
 pickupLocationDetails: LocationDetail[];
 pickupStartTimeValue?: number;
 pickupStartTimeUnit?: 'minutes' | 'hours';
+meetingPoints: MeetingDetail[];
 }
 
 interface LocationDetail {
@@ -261,6 +263,14 @@ interface LocationDetail {
   lat: number;
   lng: number;
   radius: number;
+  placeId?: string;
+}
+
+interface MeetingDetail {
+  address: string;
+  lat: number;
+  lng: number;
+  description?: string;
   placeId?: string;
 }
 

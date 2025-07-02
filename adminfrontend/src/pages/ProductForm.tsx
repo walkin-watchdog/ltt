@@ -68,6 +68,7 @@ export const ProductForm = () => {
     pickupLocationDetails: [],
     pickupStartTimeValue: 0,
     pickupStartTimeUnit: 'minutes',
+    meetingPoints: [],
   });
 
   useEffect(() => {
@@ -75,6 +76,7 @@ export const ProductForm = () => {
       fetchProduct();
     }
   }, [id, isEdit]);
+
   const tabValidations: Record<string, (formData: any) => string[]> = {
     content: (formData) => {
       const missing: string[] = [];
@@ -83,16 +85,18 @@ export const ProductForm = () => {
       if (!formData.description) missing.push('Description');
       if (!formData.type) missing.push('Type');
       if (!formData.location) missing.push('Location');
-      if (formData.type=='EXPERIENCE'&&!formData.category) missing.push('Category');
+      if (formData.type == 'EXPERIENCE' && !formData.category) missing.push('Category');
       if (!formData.duration) missing.push('Duration');
       if (!formData.capacity || formData.capacity < 1) missing.push('Max Capacity');
       // Optionally require at least one image
       if (!formData.images || formData.images.length === 0) missing.push('At least one Image');
       // Check for accessibility features if any accessibility options are selected
-      if (formData.wheelchairAccessible === 'yes' || 
-          formData.strollerAccessible === 'yes' || 
-          formData.serviceAnimalsAllowed === 'yes' || 
-          formData.publicTransportAccess === 'yes') {
+      if (
+        formData.wheelchairAccessible === 'yes' ||
+        formData.strollerAccessible === 'yes' ||
+        formData.serviceAnimalsAllowed === 'yes' ||
+        formData.publicTransportAccess === 'yes'
+      ) {
         // Optional: could require at least one accessibility feature to be described
       }
       return missing;
@@ -106,7 +110,28 @@ export const ProductForm = () => {
     booking: (formData) => {
       const missing: string[] = [];
       if (!formData.cancellationPolicy) missing.push('Cancellation Policy');
-      // Add more checks as needed
+
+      // Validate pickup configuration
+      if (!formData.pickupOption) missing.push('Pickup Option');
+
+      // If meeting points are required, check for them
+      if (
+        (formData.pickupOption === 'We can pick up travelers or meet them at a meeting point' ||
+          formData.pickupOption === 'No, we meet all travelers at a meeting point') &&
+        !formData.meetingPoint &&
+        (!formData.meetingPoints || formData.meetingPoints.length === 0)
+      ) {
+        missing.push('At least one Meeting Point');
+      }
+
+      // If tour doesn't end at meeting point, require end points
+      if (
+        formData.doesTourEndAtMeetingPoint === false &&
+        (!formData.endPoints || formData.endPoints.length === 0)
+      ) {
+        missing.push('At least one End Location (since tour doesn\'t end at meeting point)');
+      }
+
       return missing;
     },
     availability: () => [],
@@ -114,8 +139,8 @@ export const ProductForm = () => {
 
   const handleTabChange = (nextTab: string) => {
     // Only validate when moving forward
-    const currentIndex = tabs.findIndex(tab => tab.id === activeTab);
-    const nextIndex = tabs.findIndex(tab => tab.id === nextTab);
+    const currentIndex = tabs.findIndex((tab) => tab.id === activeTab);
+    const nextIndex = tabs.findIndex((tab) => tab.id === nextTab);
     if (nextIndex > currentIndex && !formData.isDraft) {
       const validate = tabValidations[activeTab];
       if (validate) {
@@ -123,7 +148,7 @@ export const ProductForm = () => {
         if (missingFields.length > 0) {
           toast({
             message: `Please fill out: ${missingFields.join(', ')}`,
-            type: 'error'
+            type: 'error',
           });
           return; // Block tab change
         }
@@ -143,21 +168,21 @@ export const ProductForm = () => {
               times: slot.Time || [], // Time array from slot
               days: slot.days || [],
               adultTiers: slot.adultTiers || [],
-              childTiers: slot.childTiers || []
+              childTiers: slot.childTiers || [],
             };
           });
-          
+
           return {
             ...pkg,
-            slotConfigs: slotConfigs
+            slotConfigs: slotConfigs,
           };
         }
         return pkg;
       });
-      
+
       return {
         ...product,
-        packages: transformedPackages
+        packages: transformedPackages,
       };
     }
     return product;
@@ -166,33 +191,48 @@ export const ProductForm = () => {
   const fetchProduct = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/products/${id}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/products/${id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
       if (response.ok) {
         const product = await response.json();
-        // Transform the product data to include slotConfigs based on slots data
         const transformedProduct = transformProductDataForForm(product);
-        
+
         const startDate = transformedProduct.availabilityStartDate?.split('T')[0] || '';
-        const endDate   = transformedProduct.availabilityEndDate   ? transformedProduct.availabilityEndDate.split('T')[0] : undefined;
+        const endDate = transformedProduct.availabilityEndDate
+          ? transformedProduct.availabilityEndDate.split('T')[0]
+          : undefined;
 
         const blockedDates = (product.blockedDates || []).map((b: any) => ({
-          id:     b.id,
-          date:   b.date.split('T')[0],
-          reason: b.reason
+          id: b.id,
+          date: b.date.split('T')[0],
+          reason: b.reason,
         }));
-        
+
+        // --- Split pickupStartTime into value and unit ---
+        let pickupStartTimeValue = 0;
+        let pickupStartTimeUnit = 'minutes';
+        if (transformedProduct.pickupStartTime) {
+          const [value, unit] = transformedProduct.pickupStartTime.split(' ');
+          pickupStartTimeValue = Number(value) || 0;
+          pickupStartTimeUnit = unit || 'minutes';
+        }
+
         const formattedData = {
           ...transformedProduct,
           availabilityStartDate: startDate,
-          availabilityEndDate:   endDate   || undefined,
-          blockedDates
+          availabilityEndDate: endDate || undefined,
+          blockedDates,
+          pickupStartTimeValue,
+          pickupStartTimeUnit,
         };
-        
+
         setFormData(formattedData);
       }
     } catch (error) {
@@ -206,24 +246,35 @@ export const ProductForm = () => {
     e.preventDefault();
     setIsSaving(true);
     if (!formData.isDraft) {
-    // Validate form data
-      if (!formData.title || !formData.productCode || !formData.description|| 
-          !formData.location || !formData.duration) {
-        toast({ message: "Please fill out all required fields in the Product Content tab", type: "error" });
+      // Validate form data
+      if (
+        !formData.title ||
+        !formData.productCode ||
+        !formData.description ||
+        !formData.location ||
+        !formData.duration
+      ) {
+        toast({
+          message: 'Please fill out all required fields in the Product Content tab',
+          type: 'error',
+        });
         setActiveTab('content');
         setIsSaving(false);
         return;
       }
 
       if (!formData.packages || formData.packages.length === 0) {
-        toast({ message: "You must add at least one package option", type: "error" });
+        toast({ message: 'You must add at least one package option', type: 'error' });
         setActiveTab('schedule');
         setIsSaving(false);
         return;
       }
 
       if (!formData.cancellationPolicy) {
-        toast({ message: "Cancellation policy is required in the Booking Details tab", type: "error" });
+        toast({
+          message: 'Cancellation policy is required in the Booking Details tab',
+          type: 'error',
+        });
         setActiveTab('booking');
         setIsSaving(false);
         return;
@@ -234,13 +285,14 @@ export const ProductForm = () => {
     const payload = {
       ...formData,
       pickupStartTime:
-        formData.pickupStartTimeValue && formData.pickupStartTimeUnit
+        formData.pickupStartTimeValue !== undefined && formData.pickupStartTimeUnit
           ? `${formData.pickupStartTimeValue} ${formData.pickupStartTimeUnit}`
           : '',
     };
-
+    console.log(formData.pickupStartTimeUnit, formData.pickupStartTimeValue);
+    console.log(formData.pickupStartTime);
     try {
-      const url = isEdit 
+      const url = isEdit
         ? `${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/products/${id}`
         : `${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/products`;
 
@@ -250,25 +302,27 @@ export const ProductForm = () => {
         method,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(payload),
       });
 
       if (response.status === 400) {
         const errorData = await response.json();
-        let errorMessage = "Validation Error";
-        
+        let errorMessage = 'Validation Error';
+
         if (errorData.error && typeof errorData.error === 'string') {
           errorMessage = errorData.error;
         } else if (errorData.message && typeof errorData.message === 'string') {
           errorMessage = errorData.message;
         } else if (errorData.details) {
-          errorMessage = "Validation errors: " + Object.keys(errorData.details).map(key => 
-            `${key} - ${errorData.details[key]}`
-          ).join(", ");
+          errorMessage =
+            'Validation errors: ' +
+            Object.keys(errorData.details)
+              .map((key) => `${key} - ${errorData.details[key]}`)
+              .join(', ');
         }
-        
+
         toast({ message: errorMessage, type: 'error' });
         return;
       } else if (!response.ok) {
@@ -276,14 +330,13 @@ export const ProductForm = () => {
         throw new Error(error.error || error.message || 'Server error');
       }
       toast({ message: isEdit ? 'Product updated' : 'Product created', type: 'success' });
-            
+
       navigate('/products');
-      
     } catch (error) {
       console.error('Error saving product:', error);
-      toast({ 
-        message: error instanceof Error ? error.message : 'Failed to save product', 
-        type: 'error' 
+      toast({
+        message: error instanceof Error ? error.message : 'Failed to save product',
+        type: 'error',
       });
     } finally {
       setIsSaving(false);
@@ -291,10 +344,10 @@ export const ProductForm = () => {
   };
 
   const updateFormData = (updates: Partial<ProductFormData>) => {
-    setFormData(prev => ({ ...prev, ...updates }));
+    setFormData((prev) => ({ ...prev, ...updates }));
   };
 
-  const ActiveTabComponent = tabs.find(tab => tab.id === activeTab)?.component;
+  const ActiveTabComponent = tabs.find((tab) => tab.id === activeTab)?.component;
 
   if (isLoading) {
     return (
@@ -320,7 +373,9 @@ export const ProductForm = () => {
               {isEdit ? 'Edit Product' : 'Create New Product'}
             </h1>
             <p className="text-gray-600 mt-2">
-              {isEdit ? 'Update product details and settings' : 'Add a new tour or experience to your platform'}
+              {isEdit
+                ? 'Update product details and settings'
+                : 'Add a new tour or experience to your platform'}
               <div className="flex items-center space-x-2 ml-6">
                 <span className="text-sm font-medium text-gray-700">Draft:</span>
                 <button
@@ -335,7 +390,11 @@ export const ProductForm = () => {
                     }`}
                   />
                 </button>
-                <span className={`text-sm font-medium ${formData.isDraft ? 'text-yellow-800' : 'text-gray-500'}`}>
+                <span
+                  className={`text-sm font-medium ${
+                    formData.isDraft ? 'text-yellow-800' : 'text-gray-500'
+                  }`}
+                >
                   {formData.isDraft ? 'Draft' : 'Published'}
                 </span>
               </div>
@@ -358,20 +417,24 @@ export const ProductForm = () => {
                 }`}
               />
             </button>
-            <span className={`text-sm font-medium ${formData.isActive ? 'text-green-600' : 'text-gray-500'}`}>
+            <span
+              className={`text-sm font-medium ${
+                formData.isActive ? 'text-green-600' : 'text-gray-500'
+              }`}
+            >
               {formData.isActive ? 'Active' : 'Inactive'}
             </span>
           </div>
           {isEdit && (
-  <button
-    className="flex items-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-    onClick={() => navigate(`/products/${id}/preview`)}
-    type="button"
-  >
-    <Eye className="h-4 w-4 mr-2" />
-    Preview
-  </button>
-)}
+            <button
+              className="flex items-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              onClick={() => navigate(`/products/${id}/preview`)}
+              type="button"
+            >
+              <Eye className="h-4 w-4 mr-2" />
+              Preview
+            </button>
+          )}
           <button
             onClick={handleSubmit}
             disabled={isSaving}

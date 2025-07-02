@@ -7,6 +7,7 @@ import { ExperienceCategoryModal } from './ExperienceCategoryModal';
 import { useToast } from '../ui/toaster';
 import { PickupLocationMap } from '../ui/PickupLocationMap';
 import { MeetingPointMap } from '../ui/MeetingPointMap';
+import { EndPointMap } from '../ui/EndPointMap';
 
 interface ItineraryDay {
   day: number;
@@ -211,15 +212,19 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
   };
 
   const handleTabChange = (newTabId: string) => {
+    // If trying to move forward, validate current tab
     const currentTabIndex = contentTabs.findIndex(tab => tab.id === activeContentTab);
     const newTabIndex = contentTabs.findIndex(tab => tab.id === newTabId);
 
     if (newTabIndex > currentTabIndex) {
+      // Validate all previous tabs including current one
       for (let i = 0; i <= currentTabIndex; i++) {
         const tabToValidate = contentTabs[i].id;
+        if (!validateTabWithToast(tabToValidate)) {
+          return;
+        }
       }
     }
-
     setActiveContentTab(newTabId);
   };
 
@@ -816,7 +821,11 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                           name="doesTourEndAtMeetingPoint"
                           value="true"
                           checked={formData.doesTourEndAtMeetingPoint === true}
-                          onChange={() => updateFormData({ doesTourEndAtMeetingPoint: true })}
+                          onChange={() => {
+                            updateFormData({ doesTourEndAtMeetingPoint: true });
+                            // Clear end points when tour ends at meeting point
+                            updateFormData({ endPoints: [] });
+                          }}
                           className="h-4 w-4 text-[#ff914d] focus:ring-[#ff914d] border-gray-300"
                         />
                         <span className="text-sm text-gray-700">Yes - Tour ends back at meeting point(s)</span>
@@ -834,6 +843,16 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                       </label>
                     </div>
                   </div>
+
+                  {/* End Points Section - Show when tour doesn't end at meeting point */}
+                  {formData.doesTourEndAtMeetingPoint === false && (
+                    <div className="mt-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                      <EndPointMap
+                        endPoints={formData.endPoints || []}
+                        onEndPointsChange={endPoints => updateFormData({ endPoints })}
+                      />
+                    </div>
+                  )}
                 </>
               )}
 

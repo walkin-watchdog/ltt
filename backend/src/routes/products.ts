@@ -107,6 +107,13 @@ const productSchema = z.object({
     placeId: z.string().optional(),
   })).optional().default([]),
   doesTourEndAtMeetingPoint: z.boolean().optional().default(false),
+  endPoints: z.array(z.object({
+    address: z.string(),
+    description: z.string().optional(),
+    lat: z.number(),
+    lng: z.number(),
+    placeId: z.string().optional(),
+  })).optional().default([]),
   pickupLocations: z.array(z.string()),
   pickupOption: z.string(),
   allowTravelersPickupPoint: z.boolean().optional().default(false),
@@ -343,6 +350,10 @@ router.get('/:id', async (req, res, next) => {
       parsedProduct.meetingPoints = [];
     }
 
+    if (!parsedProduct.endPoints) {
+      parsedProduct.endPoints = [];
+    }
+
     const availabilities = product.availabilities || [];
     let availabilityStatus = 'AVAILABLE';
     let nextAvailableDate = null; 
@@ -473,6 +484,7 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
         ...rest,
         slug,
         meetingPoint: meetingPointData,
+        endPoints: data.endPoints || [],
         accessibilityFeatures: accessibilityFeatures.filter((feature: string) => feature.trim() !== ''),
         wheelchairAccessible: rest.wheelchairAccessible ?? 'no',
         strollerAccessible: rest.strollerAccessible ?? 'no',
@@ -727,6 +739,7 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
         data: { 
           ...rest,
           meetingPoint: meetingPointData,
+          endPoints: data.endPoints || [],
           ...(slug && { slug }),
           guides: data.guides || []
         }
@@ -988,6 +1001,10 @@ router.get('/by-slug/:slug', async (req, res, next) => {
       parsedProduct.meetingPoints = [];
     }
 
+    if (!parsedProduct.endPoints) {
+      parsedProduct.endPoints = [];
+    }
+
     const availabilities = product.availabilities || [];
     let availabilityStatus = 'AVAILABLE';
     let nextAvailableDate = null; 
@@ -1143,6 +1160,9 @@ router.post('/:id/clone', authenticate, authorize(['ADMIN', 'EDITOR']), async (r
         : [],
       pickupLocations: Array.isArray(productData.pickupLocations)
         ? productData.pickupLocations.filter(item => item !== null && item !== '')
+        : [],
+      endPoints: Array.isArray(productData.endPoints) 
+        ? productData.endPoints.filter(item => item !== null)
         : [],
     };
 

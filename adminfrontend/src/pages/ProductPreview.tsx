@@ -727,6 +727,23 @@ export const ProductPreview = () => {
         </div>
       )}
 
+{Array.isArray(product.endPoints) && product.endPoints.length > 0 && (
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-3">End Point Locations</h3>
+          <div className="bg-gray-50 rounded-lg p-4">
+            <ul className="space-y-2">
+              {product.endPoints.map((loc: any, idx: number) => (
+                <li key={idx} className="bg-white rounded-md p-3 border border-gray-200">
+                  <div className="font-medium text-sm text-gray-800">{loc.address}</div>
+                  {loc.description && loc.description.trim() !== '' && (
+                    <div className="text-xs text-gray-700 mt-1">{loc.description}</div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
     </div>
   </div>
 )}

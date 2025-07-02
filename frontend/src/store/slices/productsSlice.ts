@@ -9,6 +9,13 @@ interface ItineraryDay {
 }
 
 interface Product {
+  pickupLocationDetails(pickupLocationDetails: any): unknown;
+  pickupOption: boolean;
+  allowTravelersPickupPoint: any;
+  meetingPoints(meetingPoints: any): unknown;
+  pickupStartTime: any;
+  doesTourEndAtMeetingPoint: undefined;
+  endPoints(endPoints: any): unknown;
   guides: boolean;
   wheelchairAccessible: any;
   strollerAccessible: any;
