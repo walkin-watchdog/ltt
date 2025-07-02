@@ -99,7 +99,26 @@ const productSchema = z.object({
   healthRestrictions: z.array(z.string()).optional(),
   guides: z.array(guideSchema).optional(),
   meetingPoint: z.string().optional().nullable(),
+  meetingPoints: z.array(z.object({
+    address: z.string(),
+    description: z.string().optional(),
+    lat: z.number(),
+    lng: z.number(),
+    placeId: z.string().optional(),
+  })).optional().default([]),
+  doesTourEndAtMeetingPoint: z.boolean().optional().default(false),
   pickupLocations: z.array(z.string()),
+  pickupOption: z.string(),
+  allowTravelersPickupPoint: z.boolean().optional().default(false),
+  pickupStartTime: z.string().optional().nullable(),
+  additionalPickupDetails: z.string().optional().nullable(),
+  pickupLocationDetails: z.array(z.object({
+    address: z.string(),
+    lat: z.number(),
+    lng: z.number(),
+    radius: z.number().optional().default(1), // in km
+    placeId: z.string().optional(),
+  })).optional().default([]),
   cancellationPolicy: z.string().min(1),
   isActive: z.boolean().default(true),
   isDraft: z.boolean().default(false),
@@ -117,7 +136,6 @@ const productSchema = z.object({
   infantSeatsAvailable:  z.string().min(1).default('no').optional(),
 });
 
-
 // Get all products (public)
 router.get('/', async (req, res, next) => {
   try {
@@ -130,21 +148,17 @@ router.get('/', async (req, res, next) => {
     if (category) where.category = category;
     if (location) where.location = location;
     
-    // Handle draft filtering
     if (draft === 'draft') {
       where.isDraft = true;
     } else if (draft === 'published') {
       where.isDraft = false;
     }
-    // If draft is not specified or is 'all', don't filter by isDraft
     
-    // Only show active products to regular users (non-admin requests)
     if (!req.headers.authorization) {
       where.isActive = true;
-      where.isDraft = false;  // Never show drafts to regular users
+      where.isDraft = false;
     }
     
-    // If price filtering is needed, we need to join with packages
     const priceFilter = minPrice || maxPrice;
 
     const products = await prisma.product.findMany({
@@ -190,23 +204,19 @@ router.get('/', async (req, res, next) => {
       orderBy: { createdAt: 'desc' }
     });
 
-    // Add availability status to each product
     let productsWithAvailability = products.map(product => {
       const availabilities = product.availabilities;
       let availabilityStatus = 'AVAILABLE'; 
       let nextAvailableDate = null;
       let availableDates: Date[] = [];
       
-      // Find the cheapest package price
       let lowestPrice: number | null = null;
       let lowestDiscountedPrice: number | null = null;
       
       if (product.packages && product.packages.length > 0) {
         for (const pkg of product.packages) {
-          // Use basePrice as the main price reference
           const basePrice = pkg.basePrice;
           
-          // Calculate discounted price if applicable
           let discountedPrice = basePrice;
           if (pkg.discountType === 'percentage' && pkg.discountValue) {
             discountedPrice = basePrice - (basePrice * pkg.discountValue / 100);
@@ -214,7 +224,6 @@ router.get('/', async (req, res, next) => {
             discountedPrice = basePrice - pkg.discountValue;
           }
           
-          // Track lowest prices
           if (lowestPrice === null || basePrice < lowestPrice) {
             lowestPrice = basePrice;
           }
@@ -252,7 +261,6 @@ router.get('/', async (req, res, next) => {
       };
     });
     
-    // Apply price filtering if needed
     if (priceFilter) {
       productsWithAvailability = productsWithAvailability.filter(product => {
         const price = product.lowestDiscountedPackagePrice || product.lowestPackagePrice;
@@ -320,19 +328,30 @@ router.get('/:id', async (req, res, next) => {
       return res.status(404).json({ error: 'Product not found' });
     }
 
-    // Add availability status
+    let parsedProduct = { ...product };
+    if (product.meetingPoint) {
+      try {
+        const parsed = JSON.parse(product.meetingPoint);
+        if (Array.isArray(parsed)) {
+          parsedProduct.meetingPoints = parsed;
+          parsedProduct.meetingPoint = null;
+        }
+      } catch {
+        parsedProduct.meetingPoints = [];
+      }
+    } else {
+      parsedProduct.meetingPoints = [];
+    }
+
     const availabilities = product.availabilities || [];
     let availabilityStatus = 'AVAILABLE';
     let nextAvailableDate = null; 
     let availableDates: Date[] = [];
     
-    // Calculate package prices and discounts
     if (product.packages && product.packages.length > 0) {
       for (const pkg of product.packages) {
-        // Use basePrice as the main price reference
         const basePrice = pkg.basePrice;
         
-        // Calculate discounted price if applicable
         let effectivePrice = basePrice;
         if (pkg.discountType === 'percentage' && pkg.discountValue) {
           effectivePrice = basePrice - (basePrice * pkg.discountValue / 100);
@@ -340,7 +359,6 @@ router.get('/:id', async (req, res, next) => {
           effectivePrice = basePrice - pkg.discountValue;
         }
         
-        // Add these calculated fields to each package
         pkg.effectivePrice = effectivePrice;
         pkg.discountPercentage = pkg.discountType === 'percentage' ? pkg.discountValue : 
           pkg.discountType === 'fixed' && basePrice > 0 ? (pkg.discountValue / basePrice) * 100 : 0;
@@ -365,7 +383,7 @@ router.get('/:id', async (req, res, next) => {
     }
 
     const productWithAvailability = {
-      ...product,
+      ...parsedProduct,
       availabilityStatus,
       nextAvailableDate,
       availableDates
@@ -396,10 +414,8 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
     console.log('Creating product with data:', data);
     const { blockedDates = [], itinerary = [], packages = [], accessibilityFeatures = [], isDraft = false, ...rest } = data;
 
-    // Generate a slug from the title
     const baseSlug = generateSlug(rest.title ?? `draft-${Date.now()}`);
     
-    // Check if the slug already exists and make it unique if needed
     let slug = baseSlug;
     let slugExists = true;
     let counter = 1;
@@ -417,8 +433,7 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
       }
     }
 
-    // Transform guides data if needed
-    if (data.guides) {0
+    if (data.guides) {
       data.guides = data.guides.map(guide => ({
         language: guide.language,
         inPerson: guide.inPerson || false,
@@ -427,12 +442,37 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
       }));
     }
     
-    // Use transaction to ensure data consistency
+    const cleanNullValues = (obj: any): any => {
+      const cleaned = { ...obj };
+      
+      if (cleaned.destinationId === null) cleaned.destinationId = undefined;
+      if (cleaned.experienceCategoryId === null) cleaned.experienceCategoryId = undefined;
+      
+      if (cleaned.itineraries?.create) {
+        cleaned.itineraries.create = cleaned.itineraries.create.map((day: any) => ({
+          ...day,
+          activities: {
+            create: (day.activities?.create || []).map((act: any) => ({
+              ...act,
+              stopDuration: act.stopDuration == null ? undefined : act.stopDuration,
+            })),
+          },
+        }));
+      }
+      
+      return cleaned;
+    };
+
     const product = await prisma.$transaction(async (tx) => {
-      // Create the product first
+      let meetingPointData = rest.meetingPoint;
+      if (data.meetingPoints && data.meetingPoints.length > 0) {
+        meetingPointData = JSON.stringify(data.meetingPoints);
+      }
+      
       const productData = {
         ...rest,
         slug,
+        meetingPoint: meetingPointData,
         accessibilityFeatures: accessibilityFeatures.filter((feature: string) => feature.trim() !== ''),
         wheelchairAccessible: rest.wheelchairAccessible ?? 'no',
         strollerAccessible: rest.strollerAccessible ?? 'no',
@@ -473,7 +513,6 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
         })
       };
       
-      // Only set experienceCategoryId for EXPERIENCE type
       if (rest.type === 'EXPERIENCE' && rest.experienceCategoryId) {
         productData.experienceCategoryId = rest.experienceCategoryId;
       } else {
@@ -481,7 +520,7 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
       }
       
       const createdProduct = await tx.product.create({
-        data: productData
+        data: cleanNullValues(productData)
       });
 
       if (createdProduct.destinationId) {
@@ -505,7 +544,6 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
         });
       }
 
-      // Create packages separately if they exist
       if (packages.length > 0) {
         for (const pkg of packages) {
           const createdPackage = await tx.package.create({
@@ -525,7 +563,6 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
             }
           });
 
-          // Create slots for this package
           if (pkg.slotConfigs && pkg.slotConfigs.length > 0) {
             for (const slotConfig of pkg.slotConfigs) {
               const createdSlot = await tx.packageSlot.create({
@@ -536,7 +573,6 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
                 }
               });
 
-              // Create adult tiers for this slot
               if (slotConfig.adultTiers && slotConfig.adultTiers.length > 0) {
                 await tx.slotAdultTier.createMany({
                   data: slotConfig.adultTiers.map(tier => ({
@@ -549,7 +585,6 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
                 });
               }
 
-              // Create child tiers for this slot
               if (slotConfig.childTiers && slotConfig.childTiers.length > 0) {
                 await tx.slotChildTier.createMany({
                   data: slotConfig.childTiers.map(tier => ({
@@ -566,7 +601,6 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
         }
       }
 
-      // Return the product with all related data
       return await tx.product.findUniqueOrThrow({
         where: { id: createdProduct.id },
         include: {
@@ -584,14 +618,13 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
           itineraries: {
             orderBy: { day: 'asc' },
             include: {
-              activities: true, // ✅ Fetch activities as a relation
+              activities: true,
             }
           },
         }
       });
     });
 
-    // Auto-create availability records for the date range
     if (data.availabilityStartDate) {
       const startDate = new Date(data.availabilityStartDate);
       const endDate = data.availabilityEndDate || null;
@@ -624,11 +657,8 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
       }
     }
 
-    
-
     res.status(201).json(product);
     
-    // Regenerate sitemap after product creation
     await SitemapService.generateSitemap().catch(err => 
       console.error('Error regenerating sitemap after product creation:', err)
     );
@@ -641,12 +671,10 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
 // Update product (Admin/Editor only)
 router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, next) => {
   try {
-    // Parse the request body with the schema that handles string-to-number conversion
     let data = productSchema.partial().parse(req.body);
     
     const { blockedDates, itinerary, packages, ...rest } = data;
 
-    // Transform guides data if needed
     if (data.guides) {
       data.guides = data.guides.map(guide => ({
         language: guide.language, 
@@ -656,12 +684,10 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
       }));
     }
 
-    // Generate a slug if the title is being updated
     let slug: string | undefined;
     if (rest.title) {
       const baseSlug = generateSlug(rest.title);
       
-      // Check if the slug already exists (excluding the current product)
       let tempSlug = baseSlug;
       let slugExists = true;
       let counter = 1;
@@ -690,17 +716,22 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
       } else {
         rest.experienceCategoryId = null;
       }
-      // Update the main product data
+
+      let meetingPointData = rest.meetingPoint;
+      if (data.meetingPoints && data.meetingPoints.length > 0) {
+        meetingPointData = JSON.stringify(data.meetingPoints);
+      }
+      
       let updatedProduct = await tx.product.update({
         where: { id: req.params.id },
         data: { 
           ...rest,
-          ...(slug && { slug }),  // Only include slug if it's been defined 
+          meetingPoint: meetingPointData,
+          ...(slug && { slug }),
           guides: data.guides || []
         }
       });
 
-      // Handle blocked dates update
       if (blockedDates && Array.isArray(blockedDates)) {
         await tx.blockedDate.deleteMany({ where: { productId: req.params.id } });
         if (blockedDates.length > 0) {
@@ -715,7 +746,6 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
         }
       }
 
-      // Handle itinerary update
       if (itinerary) {
         await tx.itineraryActivity.deleteMany({
           where: { itinerary: { productId: req.params.id } }
@@ -746,12 +776,9 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
         }
       }
 
-      // Handle packages update (most complex part)
       if (packages && Array.isArray(packages)) {
-        // Delete existing packages and their related data (cascade should handle slots and tiers)
         await tx.package.deleteMany({ where: { productId: req.params.id } });
         
-        // Create new packages
         for (const pkg of packages) {
           const createdPackage = await tx.package.create({
             data: {
@@ -770,7 +797,6 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
             }
           });
 
-          // Create slots for this package
           if (pkg.slotConfigs && pkg.slotConfigs.length > 0) {
             for (const slotConfig of pkg.slotConfigs) {
               const createdSlot = await tx.packageSlot.create({
@@ -781,7 +807,6 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
                 }
               });
 
-              // Create adult tiers for this slot
               if (slotConfig.adultTiers && slotConfig.adultTiers.length > 0) {
                 await tx.slotAdultTier.createMany({
                   data: slotConfig.adultTiers.map(tier => ({
@@ -794,7 +819,6 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
                 });
               }
 
-              // Create child tiers for this slot
               if (slotConfig.childTiers && slotConfig.childTiers.length > 0) {
                 await tx.slotChildTier.createMany({
                   data: slotConfig.childTiers.map(tier => ({
@@ -811,7 +835,6 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
         }
       }
 
-      // Return updated product with all relations
       return await tx.product.findUniqueOrThrow({
         where: { id: req.params.id },
         include: {
@@ -829,14 +852,13 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
           itineraries: {
             orderBy: { day: 'asc' },
             include: {
-              activities: true, // ✅ Fetch activities as a relation
+              activities: true,
             }
           },
         }
       });
     });
 
-    // Update availability if date range changed
     if (data.availabilityStartDate !== undefined || data.availabilityEndDate !== undefined) {
       await prisma.availability.deleteMany({ where: { productId: product.id } });
 
@@ -873,7 +895,6 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
 
     res.json(product);
     
-    // Regenerate sitemap after product update
     await SitemapService.generateSitemap().catch(err => 
       console.error('Error regenerating sitemap after product update:', err)
     );
@@ -892,7 +913,6 @@ router.delete('/:id', authenticate, authorize(['ADMIN']), async (req, res, next)
 
     res.status(204).send();
     
-    // Regenerate sitemap after product deletion
     await SitemapService.generateSitemap().catch(err => 
       console.error('Error regenerating sitemap after product deletion:', err)
     );
@@ -953,19 +973,30 @@ router.get('/by-slug/:slug', async (req, res, next) => {
       return res.status(404).json({ error: 'Product not found' });
     }
 
-    // Add availability status
+    let parsedProduct = { ...product };
+    if (product.meetingPoint) {
+      try {
+        const parsed = JSON.parse(product.meetingPoint);
+        if (Array.isArray(parsed)) {
+          parsedProduct.meetingPoints = parsed;
+          parsedProduct.meetingPoint = null;
+        }
+      } catch {
+        parsedProduct.meetingPoints = [];
+      }
+    } else {
+      parsedProduct.meetingPoints = [];
+    }
+
     const availabilities = product.availabilities || [];
     let availabilityStatus = 'AVAILABLE';
     let nextAvailableDate = null; 
     let availableDates: Date[] = [];
     
-    // Calculate package prices and discounts
     if (product.packages && product.packages.length > 0) {
       for (const pkg of product.packages) {
-        // Use basePrice as the main price reference
         const basePrice = pkg.basePrice;
         
-        // Calculate discounted price if applicable
         let effectivePrice = basePrice;
         if (pkg.discountType === 'percentage' && pkg.discountValue) {
           effectivePrice = basePrice - (basePrice * pkg.discountValue / 100);
@@ -973,7 +1004,6 @@ router.get('/by-slug/:slug', async (req, res, next) => {
           effectivePrice = basePrice - pkg.discountValue;
         }
         
-        // Add these calculated fields to each package
         pkg.effectivePrice = effectivePrice;
         pkg.discountPercentage = pkg.discountType === 'percentage' ? pkg.discountValue : 
           pkg.discountType === 'fixed' && basePrice > 0 ? (pkg.discountValue / basePrice) * 100 : 0;
@@ -998,7 +1028,7 @@ router.get('/by-slug/:slug', async (req, res, next) => {
     }
 
     const productWithAvailability = {
-      ...product,
+      ...parsedProduct,
       availabilityStatus,
       nextAvailableDate,
       availableDates
@@ -1038,9 +1068,8 @@ router.post('/:id/clone', authenticate, authorize(['ADMIN', 'EDITOR']), async (r
       return res.status(404).json({ error: 'Product not found' });
     }
 
-    const { packages, itineraries, ...productData } = originalProduct;
+    const { packages, itineraries, id, createdAt, updatedAt, ...productData } = originalProduct;
 
-    // Generate a unique slug for the cloned product
     const baseSlug = `${productData.slug}-copy`;
     let slug = baseSlug;
     let slugExists = true;
@@ -1072,100 +1101,128 @@ router.post('/:id/clone', authenticate, authorize(['ADMIN', 'EDITOR']), async (r
 
     const currentTime = new Date();
 
+    const cleanProductData = {
+      ...productData,
+      id: newId,
+      title: `${productData.title} (Copy)`,
+      productCode: `${productData.productCode}-COPY`, 
+      slug,
+      createdAt: currentTime,
+      updatedAt: currentTime,
+      guides: productData.guides || [],
+      destinationId: productData.destinationId === null ? undefined : productData.destinationId,
+      experienceCategoryId: productData.experienceCategoryId === null ? undefined : productData.experienceCategoryId,
+      difficulty: productData.difficulty === null ? undefined : productData.difficulty,
+      meetingPoint: productData.meetingPoint === null ? undefined : productData.meetingPoint,
+      availabilityEndDate: productData.availabilityEndDate === null ? undefined : productData.availabilityEndDate,
+      additionalPickupDetails: productData.additionalPickupDetails === null ? undefined : productData.additionalPickupDetails,
+      pickupStartTime: productData.pickupStartTime === null ? undefined : productData.pickupStartTime,
+      pickupLocationDetails: Array.isArray(productData.pickupLocationDetails) 
+        ? productData.pickupLocationDetails.filter(item => item !== null)
+        : [],
+      accessibilityFeatures: Array.isArray(productData.accessibilityFeatures)
+        ? productData.accessibilityFeatures.filter(item => item !== null && item !== '')
+        : [],
+      healthRestrictions: Array.isArray(productData.healthRestrictions)
+        ? productData.healthRestrictions.filter(item => item !== null && item !== '')
+        : [],
+      highlights: Array.isArray(productData.highlights)
+        ? productData.highlights.filter(item => item !== null && item !== '')
+        : [],
+      inclusions: Array.isArray(productData.inclusions)
+        ? productData.inclusions.filter(item => item !== null && item !== '')
+        : [],
+      exclusions: Array.isArray(productData.exclusions)
+        ? productData.exclusions.filter(item => item !== null && item !== '')
+        : [],
+      images: Array.isArray(productData.images)
+        ? productData.images.filter(item => item !== null && item !== '')
+        : [],
+      tags: Array.isArray(productData.tags)
+        ? productData.tags.filter(item => item !== null && item !== '')
+        : [],
+      pickupLocations: Array.isArray(productData.pickupLocations)
+        ? productData.pickupLocations.filter(item => item !== null && item !== '')
+        : [],
+    };
+
     const result = await prisma.$transaction(async (tx) => {
-      // Create cloned product
       const clonedProduct = await tx.product.create({
-        data: {
-          ...productData,
-          id: newId,
-          title: `${productData.title} (Copy)`,
-          productCode: `${productData.productCode}-COPY`, 
-          slug, // Use the new unique slug
-          createdAt: currentTime,
-          updatedAt: currentTime,
-          guides: productData.guides || []
-        }
+        data: cleanProductData
       });
 
-      // Clone packages with their slots and tiers
       for (const pkg of packages) {
-        const { slots, ...packageData } = pkg;
+        const { id: pkgId, slots, ...packageData } = pkg;
         
         const clonedPackage = await tx.package.create({
           data: {
             ...packageData,
-            id: undefined,
-            productId: clonedProduct.id
+            productId: clonedProduct.id,
+            endDate: packageData.endDate === null ? undefined : packageData.endDate,
+            currency: packageData.currency || 'INR',
           }
         });
 
-        // Clone slots and their tiers
         for (const slot of slots) {
-          const { adultTiers, childTiers, ...slotData } = slot;
+          const { id: slotId, adultTiers, childTiers, ...slotData } = slot;
           
           const clonedSlot = await tx.packageSlot.create({
             data: {
               ...slotData,
-              id: undefined,
               packageId: clonedPackage.id
             }
           });
 
-          // Clone adult tiers
           if (adultTiers.length > 0) {
             await tx.slotAdultTier.createMany({
-              data: adultTiers.map(tier => ({
-                ...tier,
-                id: undefined,
-                slotId: clonedSlot.id
-              }))
+              data: adultTiers.map(tier => {
+                const { id: tierId, ...tierData } = tier;
+                return {
+                  ...tierData,
+                  slotId: clonedSlot.id
+                };
+              })
             });
           }
 
-          // Clone child tiers
           if (childTiers.length > 0) {
             await tx.slotChildTier.createMany({
-              data: childTiers.map(tier => ({
-                ...tier,
-                id: undefined,
-                slotId: clonedSlot.id
-              }))
+              data: childTiers.map(tier => {
+                const { id: tierId, ...tierData } = tier;
+                return {
+                  ...tierData,
+                  slotId: clonedSlot.id
+                };
+              })
             });
           }
         }
       }
 
       for (const day of itineraries) {
+        const { id: dayId, activities, ...dayData } = day;
+        
         const createdItinerary = await tx.itinerary.create({
           data: {
+            ...dayData,
             productId: clonedProduct.id,
-            day: day.day,
-            title: day.title,
-            description: day.description,
-            images: day.images,
           }
         });
       
-        // Clone activities for this itinerary day
-        const activities = await prisma.itineraryActivity.findMany({
-          where: { itineraryId: day.id }
-        });
-        if (activities.length > 0) {
+        if (activities && activities.length > 0) {
           await tx.itineraryActivity.createMany({
-            data: activities.map(act => ({
-              itineraryId: createdItinerary.id,
-              location: act.location,
-              isStop: act.isStop,
-              stopDuration: act.stopDuration,
-              inclusions: act.inclusions,
-              exclusions: act.exclusions,
-              order: act.order,
-            }))
+            data: activities.map(act => {
+              const { id: actId, ...actData } = act;
+              return {
+                ...actData,
+                itineraryId: createdItinerary.id,
+                stopDuration: actData.stopDuration === null ? undefined : actData.stopDuration,
+              };
+            })
           });
         }
       }
 
-      // Return the complete cloned product
       return await tx.product.findUniqueOrThrow({
         where: { id: clonedProduct.id },
         include: { 
@@ -1181,7 +1238,7 @@ router.post('/:id/clone', authenticate, authorize(['ADMIN', 'EDITOR']), async (r
           }, 
           itineraries: {
             include: {
-              activities: true, // ✅ Fetch activities as a relation
+              activities: true,
             }
           },
         }

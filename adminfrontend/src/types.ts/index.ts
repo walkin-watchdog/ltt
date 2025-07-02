@@ -50,6 +50,12 @@ export interface Review {
 }
 
 export interface Product {
+  pickupLocationDetails(pickupLocationDetails: any): unknown;
+  pickupOption: boolean;
+  allowTravelersPickupPoint: any;
+  pickupStartTime: any;
+  meetingPoints(meetingPoints: any): unknown;
+  doesTourEndAtMeetingPoint: undefined;
   healthRestrictions: boolean;
   guides: boolean;
   infantSeatsRequired: any;
@@ -240,6 +246,22 @@ export interface ProductFormData {
   infantSeatsRequired: string
   infantSeatsAvailable: string
   accessibilityNotes: string
+
+pickupOption: string;
+allowTravelersPickupPoint: boolean;
+pickupStartTime?: string;
+additionalPickupDetails?: string;
+pickupLocationDetails: LocationDetail[];
+pickupStartTimeValue?: number;
+pickupStartTimeUnit?: 'minutes' | 'hours';
+}
+
+interface LocationDetail {
+  address: string;
+  lat: number;
+  lng: number;
+  radius: number;
+  placeId?: string;
 }
 
 export interface Productprop {

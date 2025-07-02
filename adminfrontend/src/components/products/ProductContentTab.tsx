@@ -5,19 +5,21 @@ import { useAuth } from '../../contexts/AuthContext';
 import { DestinationModal } from './DestinationModal';
 import { ExperienceCategoryModal } from './ExperienceCategoryModal';
 import { useToast } from '../ui/toaster';
+import { PickupLocationMap } from '../ui/PickupLocationMap';
+import { MeetingPointMap } from '../ui/MeetingPointMap';
 
 interface ItineraryDay {
   day: number;
   title: string;
   description: string;
-  activities: ItineraryActivity[]; // Changed from string[] to ItineraryActivity[]
+  activities: ItineraryActivity[];
   images: string[];
 }
 
 interface ItineraryActivity {
   location: string;
   isStop?: boolean;
-  stopDuration?: number; // in minutes
+  stopDuration?: number;
   inclusions?: string[];
   exclusions?: string[];
   order?: number;
@@ -112,16 +114,30 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
       case 'pickup':
         return formData.pickupOption;
       case 'content':
-        return true;
+        return (
+          (formData.highlights && formData.highlights.length > 0) ||
+          (formData.inclusions && formData.inclusions.length > 0) ||
+          (formData.exclusions && formData.exclusions.length > 0) ||
+          (formData.tags && formData.tags.length > 0)
+        );
       case 'details':
-        return true;
+        return (
+          !!formData.difficulty ||
+          (formData.accessibilityFeatures && formData.accessibilityFeatures.length > 0) ||
+          !!formData.wheelchairAccessible ||
+          !!formData.strollerAccessible ||
+          !!formData.serviceAnimalsAllowed ||
+          !!formData.publicTransportAccess ||
+          !!formData.infantSeatsRequired ||
+          !!formData.infantSeatsAvailable ||
+          (formData.healthRestrictions && formData.healthRestrictions.length > 0)
+        );
       case 'guides':
-        return true;
+        return formData.guides && formData.guides.length > 0;
       default:
         return true;
     }
   };
-
 
   const validateTabWithToast = (tabId: string): boolean => {
     switch (tabId) {
@@ -138,8 +154,8 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
 
         if (missingBasicFields.length > 0) {
           toast({
-            message:`Please fill the following required fields: ${missingBasicFields.join(', ')}`,
-              type: 'error'
+            message: `Please fill the following required fields: ${missingBasicFields.join(', ')}`,
+            type: 'error'
           })
           return false;
         }
@@ -174,10 +190,10 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
           return false;
         }
         if ((formData.pickupOption === 'We can pick up travelers or meet them at a meeting point' ||
-             formData.pickupOption === 'No, we meet all travelers at a meeting point') && 
-            !formData.meetingPoint) {
+          formData.pickupOption === 'No, we meet all travelers at a meeting point') &&
+          !formData.meetingPoint && (!formData.meetingPoints || formData.meetingPoints.length === 0)) {
           toast({
-            message: 'Please provide meeting point details',
+            message: 'Please provide at least one meeting point',
             type: 'error'
           })
           return false;
@@ -195,29 +211,23 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
   };
 
   const handleTabChange = (newTabId: string) => {
-    // If trying to move forward, validate current tab
     const currentTabIndex = contentTabs.findIndex(tab => tab.id === activeContentTab);
     const newTabIndex = contentTabs.findIndex(tab => tab.id === newTabId);
 
     if (newTabIndex > currentTabIndex) {
-      // Validate all previous tabs including current one
       for (let i = 0; i <= currentTabIndex; i++) {
         const tabToValidate = contentTabs[i].id;
-        if (!validateTabWithToast(tabToValidate)) {
-          return;
-        }
       }
     }
 
     setActiveContentTab(newTabId);
   };
-  ;
 
   const addActivity = () => {
     if (newActivity.location.trim() && editingDay) {
       const activityToAdd = {
         ...newActivity,
-        order: editingDay.activities.length, // Auto-assign order
+        order: editingDay.activities.length,
       };
 
       setEditingDay({
@@ -225,7 +235,6 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
         activities: [...editingDay.activities, activityToAdd]
       });
 
-      // Reset form
       setNewActivity({
         location: '',
         isStop: false,
@@ -248,7 +257,6 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
   const saveItineraryDay = () => {
     if (!editingDay) return;
 
-    // Ensure activities have proper order
     const activitiesWithOrder = editingDay.activities.map((activity, index) => ({
       ...activity,
       order: activity.order ?? index
@@ -283,7 +291,7 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
       day: nextDay,
       title: '',
       description: '',
-      activities: [], // Now an array of ItineraryActivity objects
+      activities: [],
       images: []
     });
     setShowItineraryBuilder(true);
@@ -573,7 +581,6 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
               </button>
             </div>
           </div>
-
         );
 
       case 'itinerary':
@@ -699,7 +706,7 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                   setPickupOption(e.target.value);
                   updateFormData({ pickupOption: e.target.value });
                   if (e.target.value === 'We pick up all travelers') {
-                    updateFormData({ meetingPoint: '' });
+                    updateFormData({ meetingPoint: '', meetingPoints: [] });
                   }
                 }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
@@ -716,62 +723,120 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
               </select>
             </div>
 
-            {(pickupOption === 'We can pick up travelers or meet them at a meeting point' ||
-              pickupOption === 'No, we meet all travelers at a meeting point') && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Meeting Point *
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={formData.meetingPoint || ''}
-                    onChange={e => updateFormData({ meetingPoint: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                    placeholder="Describe the meeting point..."
-                    required
-                  />
-                </div>
+            {(pickupOption === 'We pick up all travelers' ||
+              pickupOption === 'We can pick up travelers or meet them at a meeting point') && (
+                <>
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Allow travelers to choose their pickup point?
+                    </label>
+                    <select
+                      value={formData.allowTravelersPickupPoint ? 'yes' : 'no'}
+                      onChange={e => updateFormData({ allowTravelersPickupPoint: e.target.value === 'yes' })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    >
+                      <option value="no">No</option>
+                      <option value="yes">Yes</option>
+                    </select>
+                  </div>
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      How long before departure should travelers be at the pickup point?
+                    </label>
+                    <div className="flex space-x-2">
+                      <input
+                        type="number"
+                        min={1}
+                        value={formData.pickupStartTimeValue || ''}
+                        onChange={e => updateFormData({ pickupStartTimeValue: Number(e.target.value) })}
+                        className="w-32 px-3 py-2 border border-gray-300 rounded-md"
+                        placeholder="e.g., 15"
+                      />
+                      <select
+                        value={formData.pickupStartTimeUnit || 'minutes'}
+                        onChange={e => updateFormData({ pickupStartTimeUnit: e.target.value })}
+                        className="px-3 py-2 border border-gray-300 rounded-md"
+                      >
+                        <option value="minutes">minutes</option>
+                        <option value="hours">hours</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Additional Pickup Details
+                    </label>
+                    <textarea
+                      value={formData.additionalPickupDetails || ''}
+                      onChange={e => updateFormData({ additionalPickupDetails: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      placeholder="Any extra info for travelers"
+                    />
+                  </div>
+                  <div className="mt-4">
+                    <PickupLocationMap
+                      locations={formData.pickupLocationDetails || []}
+                      onLocationsChange={locs => updateFormData({ pickupLocationDetails: locs })}
+                    />
+                  </div>
+                </>
               )}
 
-            <div>
-              <h5 className="text-md font-medium text-gray-900 mb-4">Pickup Locations</h5>
-              <div className="space-y-4">
-                <div className="flex">
-                  <input
-                    type="text"
-                    value={newItem.pickupLocation}
-                    onChange={(e) => setNewItem({ ...newItem, pickupLocation: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                    placeholder="Add a pickup location"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => addItem('pickupLocations', newItem.pickupLocation)}
-                    className="px-3 py-2 bg-[#ff914d] text-white rounded-r-md hover:bg-[#e8823d] transition-colors"
-                  >
-                    <Plus className="h-5 w-5" />
-                  </button>
-                </div>
-                <div className="border border-gray-200 rounded-md max-h-64 overflow-y-auto">
-                  <ul className="divide-y divide-gray-200">
-                    {(formData.pickupLocations || []).map((location: string, index: number) => (
-                      <li key={index} className="flex justify-between items-center p-3 hover:bg-gray-50">
-                        <span className="text-gray-700">{location}</span>
-                        <button
-                          onClick={() => removeItem('pickupLocations', index)}
-                          className="text-red-500 hover:text-red-700 transition-colors"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      </li>
-                    ))}
-                    {(!formData.pickupLocations || formData.pickupLocations.length === 0) && (
-                      <li className="p-3 text-gray-500 text-center">No pickup locations added</li>
-                    )}
-                  </ul>
-                </div>
-              </div>
-            </div>
+            {(pickupOption === 'We can pick up travelers or meet them at a meeting point' ||
+              pickupOption === 'No, we meet all travelers at a meeting point') && (
+                <>
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      General Meeting Point (Optional)
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={formData.meetingPoint || ''}
+                      onChange={e => updateFormData({ meetingPoint: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      placeholder="General meeting point description..."
+                    />
+                  </div>
+
+                  <div className="mt-4">
+                    <MeetingPointMap
+                      meetingPoints={formData.meetingPoints || []}
+                      onMeetingPointsChange={points => updateFormData({ meetingPoints: points })}
+                    />
+                  </div>
+
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Does this tour end back at the meeting point(s)?
+                    </label>
+                    <div className="space-y-2">
+                      <label className="flex items-center space-x-3">
+                        <input
+                          type="radio"
+                          name="doesTourEndAtMeetingPoint"
+                          value="true"
+                          checked={formData.doesTourEndAtMeetingPoint === true}
+                          onChange={() => updateFormData({ doesTourEndAtMeetingPoint: true })}
+                          className="h-4 w-4 text-[#ff914d] focus:ring-[#ff914d] border-gray-300"
+                        />
+                        <span className="text-sm text-gray-700">Yes - Tour ends back at meeting point(s)</span>
+                      </label>
+                      <label className="flex items-center space-x-3">
+                        <input
+                          type="radio"
+                          name="doesTourEndAtMeetingPoint"
+                          value="false"
+                          checked={formData.doesTourEndAtMeetingPoint === false}
+                          onChange={() => updateFormData({ doesTourEndAtMeetingPoint: false })}
+                          className="h-4 w-4 text-[#ff914d] focus:ring-[#ff914d] border-gray-300"
+                        />
+                        <span className="text-sm text-gray-700">No - Tour ends at a different location</span>
+                      </label>
+                    </div>
+                  </div>
+                </>
+              )}
+
             <div className="flex justify-end mt-8">
               <button
                 type="button"
@@ -788,7 +853,6 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
         return (
           <div className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {/* Highlights */}
               <div className="bg-gray-50 rounded-lg p-6">
                 <h4 className="text-lg font-semibold text-gray-900 mb-4">Highlights</h4>
                 <div className="space-y-4">
@@ -829,7 +893,6 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                 </div>
               </div>
 
-              {/* Inclusions */}
               <div className="bg-gray-50 rounded-lg p-6">
                 <h4 className="text-lg font-semibold text-gray-900 mb-4">Inclusions</h4>
                 <div className="space-y-4">
@@ -900,7 +963,6 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                 </div>
               </div>
 
-              {/* Exclusions */}
               <div className="bg-gray-50 rounded-lg p-6">
                 <h4 className="text-lg font-semibold text-gray-900 mb-4">Exclusions</h4>
                 <div className="space-y-4">
@@ -971,7 +1033,6 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                 </div>
               </div>
 
-              {/* Tags */}
               <div className="bg-gray-50 rounded-lg p-6">
                 <h4 className="text-lg font-semibold text-gray-900 mb-4">Tags</h4>
                 <div className="space-y-4">
@@ -1030,7 +1091,6 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
       case 'details':
         return (
           <div className="space-y-8">
-            {/* Physical Difficulty Level */}
             <div className="bg-white rounded-lg p-6 border border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Physical Difficulty Level</h3>
               <p className="text-sm text-gray-600 mb-4">Select the physical difficulty level for this tour/experience</p>
@@ -1098,16 +1158,11 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
               </div>
             </div>
 
-            {/* Accessibility Features */}
-
-
-            {/* Existing Accessibility Options - Keep for backward compatibility */}
             <div className="bg-white rounded-lg p-6 border border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">General Accessibility</h3>
               <p className="text-sm text-gray-600 mb-6">Check all accessibility features that apply to your tour/experience</p>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Wheelchair Accessibility */}
                 <div className="space-y-4">
                   <h4 className="font-medium text-gray-900">Wheelchair Accessibility</h4>
                   <div className="space-y-3">
@@ -1136,7 +1191,6 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                   </div>
                 </div>
 
-                {/* Stroller Accessibility */}
                 <div className="space-y-4">
                   <h4 className="font-medium text-gray-900">Stroller Accessibility</h4>
                   <div className="space-y-3">
@@ -1165,7 +1219,6 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                   </div>
                 </div>
 
-                {/* Service Animals */}
                 <div className="space-y-4">
                   <h4 className="font-medium text-gray-900">Service Animals</h4>
                   <div className="space-y-3">
@@ -1194,7 +1247,6 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                   </div>
                 </div>
 
-                {/* Public Transportation */}
                 <div className="space-y-4">
                   <h4 className="font-medium text-gray-900">Public Transportation Access</h4>
                   <div className="space-y-3">
@@ -1223,7 +1275,6 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                   </div>
                 </div>
 
-                {/* Infant Seating */}
                 <div className="space-y-4">
                   <h4 className="font-medium text-gray-900">Infant Seating</h4>
                   <div className="space-y-3">
@@ -1252,7 +1303,6 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                   </div>
                 </div>
 
-                {/* Infant Seats Available */}
                 <div className="space-y-4">
                   <h4 className="font-medium text-gray-900">Infant Seats</h4>
                   <div className="space-y-3">
@@ -1285,7 +1335,6 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                 <p className="text-sm text-gray-600 mb-6">Add specific accessibility features available for this tour/experience</p>
 
                 <div className="space-y-4">
-                  {/* Add new accessibility feature */}
                   <div className="flex">
                     <input
                       type="text"
@@ -1303,7 +1352,6 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                     </button>
                   </div>
 
-                  {/* Display existing accessibility features */}
                   <div className="border border-gray-200 rounded-md max-h-64 overflow-y-auto">
                     <ul className="divide-y divide-gray-200">
                       {(formData.accessibilityFeatures || []).map((feature: string, index: number) => (
@@ -1326,7 +1374,6 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
               </div>
             </div>
 
-            {/* Health Restrictions */}
             <div className="bg-white rounded-lg p-6 border border-gray-200">
               <label className="block text-sm font-medium text-gray-700 mb-3">
                 Health Restrictions
@@ -1436,7 +1483,6 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                 Configure what type of guide is available for each language
               </p>
 
-              {/* Add new language */}
               <div className="mb-6">
                 <div className="flex items-center space-x-2">
                   <select
@@ -1488,7 +1534,6 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                 </div>
               </div>
 
-              {/* Guide Matrix Table */}
               {formData.guides && formData.guides.length > 0 ? (
                 <div className="overflow-x-auto">
                   <table className="w-full border-collapse border border-gray-300">
@@ -1630,7 +1675,6 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
 
   return (
     <div className="space-y-6">
-      {/* Content Tab Navigation */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="border-b border-gray-200">
           <nav className="-mb-px flex space-x-1 overflow-x-auto px-4">
@@ -1642,8 +1686,8 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                   key={tab.id}
                   onClick={() => handleTabChange(tab.id)}
                   className={`py-4 px-3 border-b-2 font-medium text-sm transition-colors flex items-center space-x-2 whitespace-nowrap ${activeContentTab === tab.id
-                      ? 'border-[#ff914d] text-[#ff914d]'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-[#ff914d] text-[#ff914d]'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                     }`}
                 >
                   <Icon className="h-4 w-4" />
@@ -1659,13 +1703,11 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
           </nav>
         </div>
 
-        {/* Tab Content */}
         <div className="p-6">
           {renderTabContent()}
         </div>
       </div>
 
-      {/* Itinerary Builder Modal */}
       {showItineraryBuilder && editingDay && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -1686,7 +1728,6 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
             </div>
 
             <div className="space-y-4">
-              {/* Day Title */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Day Title *
@@ -1700,7 +1741,6 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                 />
               </div>
 
-              {/* Day Description */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Description *
@@ -1714,13 +1754,11 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                 />
               </div>
 
-              {/* Activities */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Activities
                 </label>
                 <div className="space-y-4">
-                  {/* Activity Form */}
                   <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
@@ -1814,7 +1852,6 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                     </div>
                   </div>
 
-                  {/* Activity List */}
                   <div className="space-y-2">
                     {editingDay.activities.map((activity, index) => (
                       <div key={index} className="flex items-start justify-between bg-white border border-gray-200 px-4 py-3 rounded-md">
@@ -1849,7 +1886,6 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                 </div>
               </div>
 
-              {/* Images */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Images (Optional)
@@ -1867,7 +1903,6 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                 />
               </div>
 
-              {/* Save Button */}
               <div className="flex justify-end space-x-3 pt-4">
                 <button
                   type="button"
@@ -1893,26 +1928,23 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
         </div>
       )}
 
-      {/* Destination Modal */}
-      {/* Destination Modal */}
-{isDestinationModalOpen && (
-  <DestinationModal
-    isOpen={isDestinationModalOpen}
-    onClose={() => setIsDestinationModalOpen(false)}
-    onSelect={handleDestinationSelect}
-    onCreated={fetchDestinations} // Add this to refetch destinations
-  />
-)}
+      {isDestinationModalOpen && (
+        <DestinationModal
+          isOpen={isDestinationModalOpen}
+          onClose={() => setIsDestinationModalOpen(false)}
+          onSelect={handleDestinationSelect}
+          onCreated={fetchDestinations}
+        />
+      )}
 
-{/* Experience Category Modal */}
-{isCategoryModalOpen && (
-  <ExperienceCategoryModal
-    isOpen={isCategoryModalOpen}
-    onClose={() => setIsCategoryModalOpen(false)}
-    onSelect={handleCategorySelect}
-    onCreated={fetchExperienceCategories} // Add this to refetch categories
-  />
-)}
+      {isCategoryModalOpen && (
+        <ExperienceCategoryModal
+          isOpen={isCategoryModalOpen}
+          onClose={() => setIsCategoryModalOpen(false)}
+          onSelect={handleCategorySelect}
+          onCreated={fetchExperienceCategories}
+        />
+      )}
     </div>
   );
 };

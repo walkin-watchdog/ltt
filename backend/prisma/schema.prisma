@@ -58,7 +58,15 @@ model Product {
   guides      Json?
   languages   String[]     @default([])
   meetingPoint String?
+  meetingPoints Json[] @default([]) 
+  doesTourEndAtMeetingPoint Boolean @default(false) 
   pickupLocations String[]     @default([])
+  // New pickup-related fields
+  pickupOption String
+  allowTravelersPickupPoint Boolean @default(false)
+  pickupStartTime String? // How long before departure
+  additionalPickupDetails String?
+  pickupLocationDetails Json[] @default([]) // Store location with coordinates, radius etc.
   cancellationPolicy String?     @default("")
   isActive    Boolean @default(true)
   isDraft     Boolean @default(false)
@@ -355,7 +363,7 @@ model BlockedDate {
   reason    String?
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime @default(now())
 
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
@@ -455,7 +463,7 @@ model FAQ {
   question String
   answer   String
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime @default(now())
 }
 
 model JobPosting {
@@ -469,5 +477,5 @@ model JobPosting {
   requirements     String[]
   benefits         String[]
   createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  updatedAt      DateTime @default(now())
 }

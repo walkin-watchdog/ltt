@@ -61,6 +61,13 @@ export const ProductForm = () => {
     infantSeatsRequired: '',
     infantSeatsAvailable: '',
     accessibilityNotes: '',
+    pickupOption: '',
+    allowTravelersPickupPoint: false,
+    pickupStartTime: '',
+    additionalPickupDetails: '',
+    pickupLocationDetails: [],
+    pickupStartTimeValue: 0,
+    pickupStartTimeUnit: 'minutes',
   });
 
   useEffect(() => {
@@ -224,6 +231,14 @@ export const ProductForm = () => {
     }
     console.log('Submitting form data:', formData);
 
+    const payload = {
+      ...formData,
+      pickupStartTime:
+        formData.pickupStartTimeValue && formData.pickupStartTimeUnit
+          ? `${formData.pickupStartTimeValue} ${formData.pickupStartTimeUnit}`
+          : '',
+    };
+
     try {
       const url = isEdit 
         ? `${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/products/${id}`
@@ -237,7 +252,7 @@ export const ProductForm = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
       if (response.status === 400) {

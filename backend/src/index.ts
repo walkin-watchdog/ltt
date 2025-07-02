@@ -31,6 +31,7 @@ import experienceCategoryRoutes from './routes/experienceCategories';
 import reviewsRoutes from './routes/reviews';
 import paypalPaymentRoutes from './routes/paypalPayments';
 import currencyRoutes from './routes/currency';
+import { createAdmin } from './create-admin';
 
 dotenv.config();
 
@@ -118,7 +119,7 @@ app.get('/sitemap.xml', async (req, res, next) => {
 
 // Error handling
 app.use(errorHandler);
-
+// createAdmin()
 // Start server
 const server = app.listen(PORT, () => {
   logger.info(`Server running on port ${PORT}`);
