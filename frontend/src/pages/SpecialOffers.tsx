@@ -333,7 +333,7 @@ export const SpecialOffers = () => {
                     </div>
 
                     <Link
-                      to={`/product/${product.id}`}
+                     to={product.slug ? `/p/${product.slug}` : `/product/${product.id}`}
                       className={`w-full py-3 px-4 rounded-lg font-semibold transition-colors text-center block ${
                         product.availabilityStatus === 'SOLD_OUT' || product.availabilityStatus === 'NOT_OPERATING'
                           ? 'bg-gray-400 text-white cursor-not-allowed'

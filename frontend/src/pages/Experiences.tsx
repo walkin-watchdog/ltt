@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { MapPin, Clock, Star, Users } from 'lucide-react';
 import type { RootState, AppDispatch } from '@/store/store';
+import { PriceDisplay } from '../components/common/PriceDisplay';
 import { fetchProducts } from '../store/slices/productsSlice';
 import { SEOHead } from '../components/seo/SEOHead';
 
@@ -190,21 +191,21 @@ export const Experiences = () => {
                         <div className="flex items-center">
                           {product.lowestDiscountedPackagePrice ? (
                             <>
-                              <span className="text-2xl font-bold text-[#ff914d]">
-                                ₹{product.lowestDiscountedPackagePrice.toLocaleString()}
-                              </span>
-                              <span className="text-lg text-gray-500 line-through ml-2">
-                                ₹{product.lowestPackagePrice?.toLocaleString()}
-                              </span>
+                             <PriceDisplay 
+                               amount={product.lowestDiscountedPackagePrice}
+                               originalAmount={product.lowestPackagePrice}
+                               currency="INR"
+                             />
                             </>
                           ) : (
-                            <span className="text-2xl font-bold text-[#104c57]">
-                              ₹{product.lowestPackagePrice ? product.lowestPackagePrice.toLocaleString() : 'Contact us'}
-                            </span>
+                           <PriceDisplay 
+                             amount={product.lowestPackagePrice || 0}
+                             currency="INR"
+                           />
                           )}
                         </div>
                         <Link
-                          to={`/product/${product.id}`}
+                         to={product.slug ? `/p/${product.slug}` : `/product/${product.id}`}
                           className="bg-[#104c57] text-white px-4 py-2 rounded-lg hover:bg-[#0d3d47] transition-colors"
                         >
                           View Details

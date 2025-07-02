@@ -31,7 +31,6 @@ import experienceCategoryRoutes from './routes/experienceCategories';
 import reviewsRoutes from './routes/reviews';
 import paypalPaymentRoutes from './routes/paypalPayments';
 import currencyRoutes from './routes/currency';
-import { createAdmin } from './create-admin';
 
 dotenv.config();
 
@@ -110,6 +109,7 @@ app.get('/api/health', (req, res) => {
 app.get('/sitemap.xml', async (req, res, next) => {
   try {
     const sitemap = await SitemapService.getSitemap();
+    res.header('Access-Control-Allow-Origin', '*');
     res.header('Content-Type', 'application/xml');
     res.send(sitemap);
   } catch (error) {
@@ -119,7 +119,7 @@ app.get('/sitemap.xml', async (req, res, next) => {
 
 // Error handling
 app.use(errorHandler);
-// createAdmin()
+
 // Start server
 const server = app.listen(PORT, () => {
   logger.info(`Server running on port ${PORT}`);

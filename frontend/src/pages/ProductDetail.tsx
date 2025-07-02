@@ -1,11 +1,15 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
+import { trackProductView } from '../components/analytics/GoogleAnalytics';
 import {
   MapPin,
   Clock,
   Users,
   Star,
+  Accessibility,
+  Baby,
+  Heart,
   Calendar,
   Check,
   X,
@@ -20,7 +24,8 @@ import { AvailabilityBar } from '../components/common/AvailabilityBar';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { toast } from 'react-hot-toast';
 import type { RootState, AppDispatch } from '@/store/store';
-import { fetchProduct } from '../store/slices/productsSlice';
+import { fetchProduct, fetchProductBySlug } from '../store/slices/productsSlice';
+import { PriceDisplay } from '../components/common/PriceDisplay';
 import { SEOHead } from '../components/seo/SEOHead';
 import { ReviewsWidget } from '../components/reviews/ReviewsWidget';
 import { formatDate, parse } from 'date-fns';
@@ -42,9 +47,9 @@ const calculateEffectivePrice = (basePrice: number, discountType?: string, disco
 };
 
 export const ProductDetail = () => {
-  const { id } = useParams<{ id: string }>();
+  const { id, slug } = useParams<{ id?: string; slug?: string }>();
   const dispatch = useDispatch<AppDispatch>();
-  const { currentProduct, isLoading } = useSelector((state: RootState) => state.products);
+  const { currentProduct, isLoading, error } = useSelector((state: RootState) => state.products);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedPackage, setSelectedPackage] = useState<any>(null);
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
@@ -143,8 +148,25 @@ export const ProductDetail = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (id) {
-      // Check for recovery parameters in URL and sessionStorage
+    if (id && currentProduct?.slug && !slug) {
+      navigate(`/p/${currentProduct.slug}`, { replace: true });
+    }
+  }, [id, slug, currentProduct, navigate]);
+
+  useEffect(() => {
+    if (currentProduct) {
+      trackProductView(
+        currentProduct.id,
+        currentProduct.title,
+        currentProduct.category || currentProduct.type
+      );
+    }
+  }, [currentProduct]);
+
+  useEffect(() => {
+    if (slug) {
+      dispatch(fetchProductBySlug(slug));
+    } else if (id) {
       const urlParams = new URLSearchParams(window.location.search);
       const isRecover = urlParams.get('recover') === 'true';
 
@@ -176,7 +198,15 @@ export const ProductDetail = () => {
 
       dispatch(fetchProduct(id));
     }
-  }, [dispatch, id]);
+  }, [dispatch, id, slug]);
+
+  if (!isLoading && error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-red-600">{error}</p>
+      </div>
+    );
+  }
 
   useEffect(() => {
     if (id && email) {
@@ -228,35 +258,6 @@ export const ProductDetail = () => {
         console.error('Error applying recovery data:', err);
         sessionStorage.removeItem('pending_recovery');
       }
-    }
-
-    let cheapest = currentProduct.packages[0];
-    let lowestPrice = calculateEffectivePrice(
-      cheapest.basePrice,
-      cheapest.discountType,
-      cheapest.discountValue
-    );
-
-    for (const pkg of currentProduct.packages) {
-      const effectivePrice = calculateEffectivePrice(
-        pkg.basePrice,
-        pkg.discountType,
-        pkg.discountValue
-      );
-
-      if (effectivePrice < lowestPrice) {
-        cheapest = pkg;
-        lowestPrice = effectivePrice;
-      }
-    }
-
-    setCheapestPackage(cheapest);
-  }, [currentProduct]);
-
-  // Find the cheapest package when product data loads
-  useEffect(() => {
-    if (!currentProduct || !currentProduct.packages || currentProduct.packages.length === 0) {
-      return;
     }
 
     let cheapest = currentProduct.packages[0];
@@ -518,6 +519,8 @@ export const ProductDetail = () => {
       <SEOHead
         title={`${currentProduct.title} - Luxury ${currentProduct.type.toLowerCase()}`}
         description={currentProduct.description}
+        url={window.location.href}
+        type="product"
         keywords={`${currentProduct.tags.join(', ')}, luxury travel, ${currentProduct.location}`}
         image={currentProduct.images[0]}
         structuredData={structuredData}
@@ -591,7 +594,7 @@ export const ProductDetail = () => {
         {/* Thumbnail Grid */}
         {currentProduct.images.length > 1 && (
           <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 mt-4">
-            {currentProduct.images.slice(0, 4).map((image, index) => (
+            {currentProduct.images.slice(0, 10).map((image, index) => (
               <button
                 key={index}
                 onClick={() => setCurrentImageIndex(index)}
@@ -710,6 +713,47 @@ export const ProductDetail = () => {
               <p className="text-gray-700 text-lg leading-relaxed mb-6">
                 {currentProduct.description}
               </p>
+
+              {/* highlights */}
+              {currentProduct.highlights?.length ? (
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Highlights</h3>
+                  <ul className="space-y-2">
+                    {currentProduct.highlights.map((hl: string, i: number) => (
+                      <li key={i} className="flex items-start">
+                        <Star className="h-5 w-5 text-[#ff914d] mr-3" />
+                        <span className="text-gray-600">{hl}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
+              {/* Accessibility badges */}
+              {(currentProduct.wheelchairAccessible==='yes' ||
+                currentProduct.strollerAccessible==='yes' ||
+                currentProduct.serviceAnimalsAllowed==='yes') && (
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {currentProduct.wheelchairAccessible==='yes' && (
+                    <div className="flex items-center bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
+                      <Accessibility className="h-4 w-4 mr-1" />
+                      Wheelchair Accessible
+                    </div>
+                  )}
+                  {currentProduct.strollerAccessible==='yes' && (
+                    <div className="flex items-center bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
+                      <Baby className="h-4 w-4 mr-1" />
+                      Stroller Friendly
+                    </div>
+                  )}
+                  {currentProduct.serviceAnimalsAllowed==='yes' && (
+                    <div className="flex items-center bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm">
+                      <Heart className="h-4 w-4 mr-1" />
+                      Service Animals Welcome
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Tags */}
               <div className="flex flex-wrap gap-2 mb-6">
@@ -1167,26 +1211,21 @@ export const ProductDetail = () => {
               </div>
               <div className="flex items-baseline">
                 {cheapestPackage ? (
-                  <>
-                    <span className="text-3xl font-bold text-[#ff914d]">
-                      {cheapestPackage.currency === 'INR' ? '₹' :
-                        cheapestPackage.currency === 'USD' ? '$' :
-                          cheapestPackage.currency === 'EUR' ? '€' : '£'}
-                      {calculateEffectivePrice(
-                        cheapestPackage.basePrice,
-                        cheapestPackage.discountType,
-                        cheapestPackage.discountValue
-                      ).toLocaleString()}
-                    </span>
-                    {cheapestPackage && cheapestPackage.discountType !== 'none' && cheapestPackage.discountValue > 0 && (
-                      <span className="text-lg text-gray-500 line-through ml-2">
-                        {cheapestPackage.currency === 'INR' ? '₹' :
-                          cheapestPackage.currency === 'USD' ? '$' :
-                            cheapestPackage.currency === 'EUR' ? '€' : '£'}
-                        {cheapestPackage.basePrice.toLocaleString()}
-                      </span>
+                  <PriceDisplay
+                    amount={calculateEffectivePrice(
+                      cheapestPackage.basePrice,
+                      cheapestPackage.discountType,
+                      cheapestPackage.discountValue
                     )}
-                  </>
+                    originalAmount={
+                      cheapestPackage.discountType !== 'none' && cheapestPackage.discountValue > 0
+                        ? cheapestPackage.basePrice
+                        : undefined
+                    }
+                    currency={cheapestPackage.currency}
+                    showDisclaimer
+                    className="text-3xl font-bold"
+                  />
                 ) : (
                   <span className="text-3xl font-bold text-[#ff914d]">Contact for pricing</span>
                 )}

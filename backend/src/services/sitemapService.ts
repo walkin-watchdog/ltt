@@ -70,13 +70,15 @@ export class SitemapService {
       
       // Add dynamic product pages
       for (const product of products) {
-        sitemap += `
+        if (product.slug) {
+          sitemap += `
   <url>
-    <loc>${baseUrl}/product/${product.slug}</loc>
+    <loc>${baseUrl}/p/${product.slug}</loc>
     <lastmod>${product.updatedAt.toISOString().split('T')[0]}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>`;
+        }
       }
       
       // Add destination pages

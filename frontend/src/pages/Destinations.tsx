@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { MapPin, Clock, Star } from 'lucide-react';
 import { fetchProducts } from '../store/slices/productsSlice';
+import { PriceDisplay } from '../components/common/PriceDisplay';
 import type { AppDispatch, RootState } from '@/store/store';
 
 export const Destinations = () => {
@@ -166,21 +167,21 @@ export const Destinations = () => {
                         <div className="flex items-center">
                           {product.lowestDiscountedPackagePrice !== null ? (
                             <>
-                              <span className="text-2xl font-bold text-[#ff914d]">
-                                ₹{product.lowestDiscountedPackagePrice?.toLocaleString()}
-                              </span>
-                              <span className="text-lg text-gray-500 line-through ml-2">
-                                ₹{product.lowestPackagePrice?.toLocaleString()}
-                              </span>
+                             <PriceDisplay 
+                               amount={product.lowestDiscountedPackagePrice || 0}
+                               originalAmount={product.lowestPackagePrice}
+                               currency="INR"
+                             />
                             </>
                           ) : (
-                            <span className="text-2xl font-bold text-[#104c57]">
-                              ₹{product.lowestPackagePrice ? product.lowestPackagePrice.toLocaleString() : 'Contact us'}
-                            </span>
+                           <PriceDisplay 
+                             amount={product.lowestPackagePrice || 0}
+                             currency="INR"
+                           />
                           )}
                         </div>
                         <Link
-                          to={`/product/${product.id}`}
+                         to={product.slug ? `/p/${product.slug}` : `/product/${product.id}`}
                           className="text-[#ff914d] font-medium hover:underline"
                         >
                           View Details

@@ -73,6 +73,9 @@ export const CurrencySelector = ({ className = '' }: CurrencySelectorProps) => {
       case 'AUD': return 'A$';
       case 'CAD': return 'C$';
       case 'JPY': return '¥';
+      case 'SGD': return 'S$';
+      case 'AED': return 'د.إ';
+      case 'CNY': return '¥';
       default: return currency;
     }
   };

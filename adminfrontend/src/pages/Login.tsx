@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Navigate, useSearchParams, useNavigate } from 'react-router-dom';
+import { Navigate, useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -157,12 +157,12 @@ export const Login = () => {
         </form>
 
         <div className="mt-6 text-center">
-          <a
-            href="#"
+          <Link
+            to="/forgot-password"
             className="text-sm text-[#104c57] hover:text-[#ff914d] transition-colors"
           >
             Forgot your password?
-          </a>
+          </Link>
         </div>
       </div>
     </div>

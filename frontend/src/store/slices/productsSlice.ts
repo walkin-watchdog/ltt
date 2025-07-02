@@ -126,6 +126,21 @@ export const fetchProduct = createAsyncThunk<
   }
 );
 
+export const fetchProductBySlug = createAsyncThunk<
+  Product,
+  string
+>(
+  'products/fetchProductBySlug',
+  async (slug) => {
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/products/by-slug/${slug}`);
+    if (!response.ok) {
+      throw new Error(await getErrorMessage(response));
+    }
+    return await response.json();
+  }
+);
+
+
 const productsSlice = createSlice({
   name: 'products',
   initialState,
@@ -163,6 +178,18 @@ const productsSlice = createSlice({
         state.currentProduct = action.payload;
       })
       .addCase(fetchProduct.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.error.message || 'Failed to fetch product';
+      })
+      .addCase(fetchProductBySlug.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchProductBySlug.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.currentProduct = action.payload;
+      })
+      .addCase(fetchProductBySlug.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.error.message || 'Failed to fetch product';
       });

@@ -64,7 +64,7 @@ router.get('/currencies', async (req, res) => {
   try {
     const rates = await fetchExchangeRates('USD');
     const all = Object.keys(rates);
-    const popular = ['USD','EUR','GBP','INR','AUD','CAD','JPY'];
+    const popular = ['USD','EUR','GBP','INR','AUD','CAD','JPY','SGD','AED','CNY'];
     const sorted = [
       ...popular.filter(c => all.includes(c)).sort()
     ];

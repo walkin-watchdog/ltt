@@ -18,7 +18,7 @@ export const PriceDisplay = ({
   const { 
     convertedAmount, 
     isLoading, 
-    currencySymbol 
+    currencySymbol,
   } = useCurrencyConverter(amount, currency);
   
   const {

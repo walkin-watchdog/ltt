@@ -3,6 +3,7 @@ import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { Calendar, User, CreditCard, CheckCircle, Phone, Mail, MapPin, CalendarIcon } from 'lucide-react';
 import { useAbandonedCart } from '../hooks/useAbandonedCart';
+import { PriceDisplay } from '../components/common/PriceDisplay';
 import type { RootState, AppDispatch } from '@/store/store';
 import { fetchProduct } from '../store/slices/productsSlice';
 import { createBooking } from '../store/slices/bookingSlice';
@@ -722,12 +723,16 @@ export const BookingFlow = () => {
                 <hr className="my-2" />
                 <div className="flex justify-between font-semibold text-lg">
                   <span>Total:</span>
-                  <span className="text-[#ff914d]">₹{calculateTotal().toLocaleString()}</span>
+                  <PriceDisplay 
+                    amount={calculateTotal()}
+                    currency="INR"
+                    className="text-[#ff914d]"
+                  />
                 </div>
                 {appliedDiscount > 0 && (
                   <div className="flex justify-between text-sm text-green-600">
                     <span>Coupon Discount:</span>
-                    <span>-₹{appliedDiscount.toLocaleString()}</span>
+                    <span>-<PriceDisplay amount={appliedDiscount} currency="INR" /></span>
                   </div>
                 )}
               </div>

@@ -5,6 +5,7 @@ interface ConversionResult {
   isLoading: boolean;
   error: string | null;
   currencySymbol: string;
+  originalCurrency: string;
 }
 
 export const useCurrencyConverter = (
@@ -27,6 +28,9 @@ export const useCurrencyConverter = (
       case 'AUD': return 'A$';
       case 'CAD': return 'C$';
       case 'JPY': return '¥';
+      case 'SGD': return 'S$';
+      case 'AED': return 'د.إ';
+      case 'CNY': return '¥';
       default: return currency;
     }
   }, []);
@@ -88,6 +92,7 @@ export const useCurrencyConverter = (
     convertedAmount,
     isLoading,
     error,
-    currencySymbol: getCurrencySymbol(toCurrency)
+    currencySymbol: getCurrencySymbol(toCurrency),
+    originalCurrency: fromCurrency
   };
 };
