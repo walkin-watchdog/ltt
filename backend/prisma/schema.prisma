@@ -40,6 +40,7 @@ model Product {
   location    String?     @default("")
   duration    String?     @default("")
   capacity    Int?     @default(1)
+  tourType    String?     @default("")
   highlights  String[]     @default([])
   inclusions  String[]     @default([])
   exclusions  String[]     @default([])
@@ -69,6 +70,23 @@ model Product {
   additionalPickupDetails String?
   pickupLocationDetails Json[] @default([])
   cancellationPolicy String?     @default("")
+  cancellationPolicyType String? @default("standard") // standard, moderate, strict, no_refund, custom
+  freeCancellationHours Int? @default(24)
+  partialRefundPercent Int? @default(50)
+  noRefundAfterHours Int? @default(12)
+  cancellationTerms Json[] @default([]) // Array of custom cancellation terms
+  
+  // Additional Information Requirements
+  requirePhone Boolean @default(false)
+  requireId Boolean @default(false)
+  requireAge Boolean @default(false)
+  requireMedical Boolean @default(false)
+  requireDietary Boolean @default(false)
+  requireEmergencyContact Boolean @default(false)
+  requirePassportDetails Boolean @default(false)
+  additionalRequirements String? // Custom additional requirements text
+  customRequirementFields Json[] @default([]) // Array of custom requirement fields
+  phonenumber String? @default("")
   isActive    Boolean @default(true)
   isDraft     Boolean @default(false)
   availabilityStartDate DateTime?

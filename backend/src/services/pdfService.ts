@@ -106,12 +106,82 @@ export class PDFService {
              .fillColor('#ff914d')
              .text('Cancellation Policy:', 50, 620);
 
-          doc.fontSize(10)
-             .fillColor('#333333')
-             .text(data.product.cancellationPolicy, 70, 645, {
-               width: 450,
-               align: 'left'
-             });
+          // Add policy type indicator
+          if (data.product.cancellationPolicyType && data.product.cancellationPolicyType !== 'custom') {
+            const policyTypeLabels = {
+              standard: 'Standard Policy',
+              moderate: 'Moderate Policy', 
+              strict: 'Strict Policy',
+              no_refund: 'No Refund Policy'
+            };
+            
+            doc.fontSize(10)
+               .fillColor('#666666')
+               .text(`Policy Type: ${policyTypeLabels[data.product.cancellationPolicyType]}`, 70, 640);
+          }
+
+          // Add structured policy details if available
+          if (data.product.cancellationTerms && data.product.cancellationTerms.length > 0) {
+            let policyYPos = 660;
+            data.product.cancellationTerms.forEach((term: any) => {
+              doc.fontSize(10)
+                 .fillColor('#333333')
+                 .text(`• ${term.timeframe}: ${term.refundPercent}% refund`, 70, policyYPos)
+                 .text(`  ${term.description}`, 90, policyYPos + 12);
+              policyYPos += 28;
+            });
+          } else {
+            // Fallback to standard policy text
+            doc.fontSize(10)
+               .fillColor('#333333')
+               .text(data.product.cancellationPolicy, 70, 645, {
+                 width: 450,
+                 align: 'left'
+               });
+          }
+        }
+
+        // Additional Requirements
+        const hasRequirements = data.product.requirePhone || data.product.requireId || 
+                              data.product.requireAge || data.product.requireMedical ||
+                              data.product.requireDietary || data.product.requireEmergencyContact ||
+                              data.product.requirePassportDetails ||
+                              (data.product.customRequirementFields && data.product.customRequirementFields.length > 0) ||
+                              data.product.additionalRequirements;
+
+        if (hasRequirements) {
+          doc.fontSize(12)
+             .fillColor('#ff914d')
+             .text('Required Information from Travelers:', 50, 720);
+
+          let reqYPos = 740;
+          const requirements = [];
+          
+          if (data.product.requirePhone) requirements.push('Valid phone number');
+          if (data.product.requireId) requirements.push('Government-issued photo ID');
+          if (data.product.requireAge) requirements.push('Age verification for all travelers');
+          if (data.product.requireMedical) requirements.push('Medical information and restrictions');
+          if (data.product.requireDietary) requirements.push('Dietary restrictions and preferences');
+          if (data.product.requireEmergencyContact) requirements.push('Emergency contact information');
+          if (data.product.requirePassportDetails) requirements.push('Passport details for international travelers');
+
+          requirements.forEach(req => {
+            doc.fontSize(10)
+               .fillColor('#333333')
+               .text(`• ${req}`, 70, reqYPos);
+            reqYPos += 15;
+          });
+
+          if (data.product.customRequirementFields && data.product.customRequirementFields.length > 0) {
+            data.product.customRequirementFields.forEach((field: any) => {
+              doc.text(`• ${field.label}${field.required ? ' (Required)' : ' (Optional)'}`, 70, reqYPos);
+              reqYPos += 15;
+            });
+          }
+
+          if (data.product.additionalRequirements) {
+            doc.text(`• ${data.product.additionalRequirements}`, 70, reqYPos);
+          }
         }
 
         // Footer

@@ -127,6 +127,31 @@ const productSchema = z.object({
     placeId: z.string().optional(),
   })).optional().default([]),
   cancellationPolicy: z.string().min(1),
+  cancellationPolicyType: z.enum(['standard', 'moderate', 'strict', 'no_refund', 'custom']).optional().default('standard'),
+  freeCancellationHours: z.number().min(0).optional().default(24),
+  partialRefundPercent: z.number().min(0).max(100).optional().default(50),
+  noRefundAfterHours: z.number().min(0).optional().default(12),
+  cancellationTerms: z.array(z.object({
+    timeframe: z.string(),
+    refundPercent: z.number().min(0).max(100),
+    description: z.string()
+  })).optional().default([]),
+  requirePhone: z.boolean().optional().default(false),
+  requireId: z.boolean().optional().default(false),
+  requireAge: z.boolean().optional().default(false),
+  requireMedical: z.boolean().optional().default(false),
+  requireDietary: z.boolean().optional().default(false),
+  requireEmergencyContact: z.boolean().optional().default(false),
+  requirePassportDetails: z.boolean().optional().default(false),
+  additionalRequirements: z.string().optional().nullable(),
+  customRequirementFields: z.array(z.object({
+    id: z.string(),
+    label: z.string(),
+    type: z.enum(['text', 'textarea', 'select', 'checkbox', 'date', 'file']),
+    required: z.boolean(),
+    options: z.array(z.string()).optional(),
+    placeholder: z.string().optional()
+  })).optional().default([]),
   isActive: z.boolean().default(true),
   isDraft: z.boolean().default(false),
   availabilityStartDate: z.string().transform(str => new Date(str)),
@@ -141,6 +166,8 @@ const productSchema = z.object({
   publicTransportAccess: z.string().min(1).default('no').optional(),
   infantSeatsRequired:  z.string().min(1).default('no').optional(),
   infantSeatsAvailable:  z.string().min(1).default('no').optional(),
+  phonenumber:z.string().default(''),
+  tourType : z.string().default(''),
 });
 
 // Get all products (public)

@@ -677,19 +677,6 @@ export const ProductPreview = () => {
                     </div>
                   )}
 
-                  {/* Pickup Locations (String) fallback */}
-                  {(!product.pickupLocationDetails || product.pickupLocationDetails.length === 0) &&
-                    Array.isArray(product.pickupLocations) && product.pickupLocations.length > 0 && (
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-800 mb-2">Pickup Locations:</h4>
-                        <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
-                          {product.pickupLocations.map((location: string, idx: number) => (
-                            <li key={idx}>{location}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
                   {/* Meeting Point (old string) */}
                   {product.meetingPoint && typeof product.meetingPoint === 'string' && !Array.isArray(product.meetingPoints) && (
                     <div className="mb-3">
@@ -833,11 +820,115 @@ export const ProductPreview = () => {
             <h3 className="text-lg font-semibold mb-4">
               Cancellation Policy
             </h3>
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <p className="text-gray-600">
-                {product.cancellationPolicy ||
-                  'No specific policy provided.'}
-              </p>
+            <div className="bg-gray-50 p-4 rounded-lg space-y-4">
+              {/* Policy Type Badge */}
+              {product.cancellationPolicyType && typeof product.cancellationPolicyType === 'string' && product.cancellationPolicyType !== 'custom' && (
+                <div className="flex items-center space-x-2">
+                  <span className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full font-medium">
+                    {product.cancellationPolicyType === 'standard' && 'Standard Policy'}
+                    {product.cancellationPolicyType === 'moderate' && 'Moderate Policy'}
+                    {product.cancellationPolicyType === 'strict' && 'Strict Policy'}
+                    {product.cancellationPolicyType === 'no_refund' && 'No Refund Policy'}
+                  </span>
+                </div>
+              )}
+
+              {/* Structured Policy Terms */}
+              {Array.isArray(product.cancellationTerms) && product.cancellationTerms.length > 0 ? (
+                <div className="space-y-3">
+                  <h4 className="font-medium text-gray-800">Cancellation Terms:</h4>
+                  {product.cancellationTerms.map((term: any, index: number) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-white rounded-md border">
+                      <div className="flex-1">
+                        <div className="font-medium text-sm">{term.timeframe}</div>
+                        <div className="text-sm text-gray-600">{term.description}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className={`font-bold text-lg ${term.refundPercent === 100 ? 'text-green-600' :
+                          term.refundPercent > 0 ? 'text-yellow-600' : 'text-red-600'
+                          }`}>
+                          {term.refundPercent}%
+                        </div>
+                        <div className="text-xs text-gray-500">refund</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-600">
+                  {product.cancellationPolicy ||
+                    'No specific policy provided.'}
+                </p>
+              )}
+
+              {/* Additional Information Requirements */}
+              {(product.requirePhone || product.requireId || product.requireAge ||
+                product.requireMedical || product.requireDietary ||
+                product.requireEmergencyContact || product.requirePassportDetails ||
+                (Array.isArray(product.customRequirementFields) && product.customRequirementFields.length > 0) ||
+                product.additionalRequirements) && (
+                  <div className="mt-6 pt-4 border-t border-gray-200">
+                    <h4 className="font-medium text-gray-800 mb-3">Required Information from Travelers:</h4>
+                    <div className="space-y-2">
+                      {product.requirePhone && (
+                        <div className="flex items-center text-sm text-gray-600">
+                          <span className="w-2 h-2 bg-[#ff914d] rounded-full mr-2"></span>
+                          Valid phone number
+                        </div>
+                      )}
+                      {product.requireId && (
+                        <div className="flex items-center text-sm text-gray-600">
+                          <span className="w-2 h-2 bg-[#ff914d] rounded-full mr-2"></span>
+                          Government-issued photo ID
+                        </div>
+                      )}
+                      {product.requireAge && (
+                        <div className="flex items-center text-sm text-gray-600">
+                          <span className="w-2 h-2 bg-[#ff914d] rounded-full mr-2"></span>
+                          Age verification for all travelers
+                        </div>
+                      )}
+                      {product.requireMedical && (
+                        <div className="flex items-center text-sm text-gray-600">
+                          <span className="w-2 h-2 bg-[#ff914d] rounded-full mr-2"></span>
+                          Medical information and restrictions
+                        </div>
+                      )}
+                      {product.requireDietary && (
+                        <div className="flex items-center text-sm text-gray-600">
+                          <span className="w-2 h-2 bg-[#ff914d] rounded-full mr-2"></span>
+                          Dietary restrictions and preferences
+                        </div>
+                      )}
+                      {product.requireEmergencyContact && (
+                        <div className="flex items-center text-sm text-gray-600">
+                          <span className="w-2 h-2 bg-[#ff914d] rounded-full mr-2"></span>
+                          Emergency contact information
+                        </div>
+                      )}
+                      {product.requirePassportDetails && (
+                        <div className="flex items-center text-sm text-gray-600">
+                          <span className="w-2 h-2 bg-[#ff914d] rounded-full mr-2"></span>
+                          Passport details for international travelers
+                        </div>
+                      )}
+
+                      {Array.isArray(product.customRequirementFields) && product.customRequirementFields.map((field: any, index: number) => (
+                        <div key={index} className="flex items-center text-sm text-gray-600">
+                          <span className="w-2 h-2 bg-[#ff914d] rounded-full mr-2"></span>
+                          {field.label} {field.required && <span className="text-red-500">*</span>}
+                        </div>
+                      ))}
+
+                      {product.additionalRequirements && (
+                        <div className="flex items-start text-sm text-gray-600 mt-3 p-3 bg-blue-50 rounded-md">
+                          <span className="w-2 h-2 bg-blue-500 rounded-full mr-2 mt-1.5 flex-shrink-0"></span>
+                          <span>{product.additionalRequirements}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
             </div>
           </div>
         </section>
@@ -943,6 +1034,22 @@ export const ProductPreview = () => {
                 <Users className="h-4 w-4 text-[#ff914d] mr-2" />
                 Up&nbsp;to&nbsp;{product.capacity}&nbsp;people
               </div>
+              {product.phonenumber && (
+                <div className="flex items-center text-sm text-gray-600">
+                  <span className="font-medium mr-2">Phone:</span>
+                  <a href={`tel:${product.phonenumber}`} className="text-blue-700 underline">
+                    {product.phonenumber}
+                  </a>
+                </div>
+              )}
+              {product.tourType && (
+                <div className="flex items-center text-sm text-gray-600">
+                  <span className="font-medium mr-2">Tour Type:</span>
+                  <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded-full text-xs capitalize">
+                    {product.tourType}
+                  </span>
+                </div>
+              )}
               {product.difficulty && (
                 <div className="flex items-center text-sm text-gray-600">
                   <span className="font-medium mr-2">Difficulty:</span>

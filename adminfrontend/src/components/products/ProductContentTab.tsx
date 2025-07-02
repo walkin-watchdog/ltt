@@ -487,6 +487,22 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Tour Type *
+                </label>
+                <select
+                  value={formData.tourType || ''}
+                  onChange={e => updateFormData({ tourType: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+                  required
+                >
+                  <option value="">Select tour type</option>
+                  <option value="public">Public</option>
+                  <option value="private">Private</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Max Capacity *
                 </label>
                 <input

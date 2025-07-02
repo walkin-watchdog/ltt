@@ -46,6 +46,20 @@ export const ProductForm = () => {
     destinationId: '',
     experienceCategoryId: '',
     cancellationPolicy: '',
+    cancellationPolicyType: 'standard',
+    freeCancellationHours: 24,
+    partialRefundPercent: 50,
+    noRefundAfterHours: 12,
+    cancellationTerms: [],
+    requirePhone: false,
+    requireId: false,
+    requireAge: false,
+    requireMedical: false,
+    requireDietary: false,
+    requireEmergencyContact: false,
+    requirePassportDetails: false,
+    additionalRequirements: '',
+    customRequirementFields: [],
     isActive: true,
     isDraft: false,
     availabilityStartDate: today,
@@ -69,6 +83,8 @@ export const ProductForm = () => {
     pickupStartTimeValue: 0,
     pickupStartTimeUnit: 'minutes',
     meetingPoints: [],
+    phonenumber: '',
+    tourType: '',
   });
 
   useEffect(() => {
@@ -110,6 +126,30 @@ export const ProductForm = () => {
     booking: (formData) => {
       const missing: string[] = [];
       if (!formData.cancellationPolicy) missing.push('Cancellation Policy');
+      
+      // Validate custom cancellation terms if custom policy is selected
+      if (formData.cancellationPolicyType === 'custom') {
+        if (!formData.cancellationTerms || formData.cancellationTerms.length === 0) {
+          missing.push('At least one Cancellation Term (for custom policy)');
+        } else {
+          const invalidTerms = formData.cancellationTerms.some((term: any) => 
+            !term.timeframe || !term.description || term.refundPercent < 0 || term.refundPercent > 100
+          );
+          if (invalidTerms) {
+            missing.push('Complete all Cancellation Term details');
+          }
+        }
+      }
+
+      // Validate custom requirement fields
+      if (formData.customRequirementFields && formData.customRequirementFields.length > 0) {
+        const invalidFields = formData.customRequirementFields.some((field: any) => 
+          !field.label || (field.type === 'select' && (!field.options || field.options.length === 0))
+        );
+        if (invalidFields) {
+          missing.push('Complete all Custom Requirement Field details');
+        }
+      }
 
       // Validate pickup configuration
       if (!formData.pickupOption) missing.push('Pickup Option');

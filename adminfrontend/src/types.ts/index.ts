@@ -49,25 +49,53 @@ export interface Review {
   comment: string;
 }
 
+export interface MeetingPoint {
+  address: string;
+  description?: string;
+  lat: number;
+  lng: number;
+  placeId?: string;
+}
+
+export interface EndPoint {
+  address: string;
+  description?: string;
+  lat: number;
+  lng: number;
+  placeId?: string;
+}
+
 export interface Product {
-  endPoints(endPoints: any): unknown;
-  pickupLocationDetails(pickupLocationDetails: any): unknown;
+  phonenumber: number;
+  tourType: string;
+  cancellationPolicyType: boolean;
+  cancellationTerms: boolean;
+  requirePhone: boolean;
+  requireId: boolean;
+  requireAge: boolean;
+  requireMedical: boolean;
+  requireDietary: boolean;
+  requireEmergencyContact: boolean;
+  requirePassportDetails: boolean;
+  customRequirementFields: boolean;
+  additionalRequirements: string;
+  endPoints : EndPoint[];
+  pickupLocationDetails: LocationDetail[];
   pickupOption: boolean;
-  allowTravelersPickupPoint: any;
-  pickupStartTime: any;
-  meetingPoints(meetingPoints: any): unknown;
-  doesTourEndAtMeetingPoint: undefined;
+  allowTravelersPickupPoint: boolean;
+  pickupStartTime: string;
+  meetingPoints: MeetingDetail[];
+  doesTourEndAtMeetingPoint: boolean;
   healthRestrictions: boolean;
   guides: boolean;
-  infantSeatsRequired: any;
-  infantSeatsAvailable: any;
-  pickupLocations(pickupLocations: any): unknown;
+  infantSeatsRequired:string;
+  infantSeatsAvailable: string;
+  pickupLocations(pickupLocations: string[]): [];
   meetingPoint: boolean;
   wheelchairAccessible: string;
   strollerAccessible: string;
   serviceAnimalsAllowed: string;
   publicTransportAccess: string;
-  accessibilityNotes: any;
   id: string;
   title: string;
   productCode: string;
@@ -256,9 +284,27 @@ export interface ProductFormData {
   pickupStartTimeValue?: number;
   pickupStartTimeUnit?: 'minutes' | 'hours';
   meetingPoints: MeetingDetail[];
+
+  cancellationPolicyType: string;
+  freeCancellationHours: number
+  partialRefundPercent: number
+  noRefundAfterHours: number
+  cancellationTerms: string[]; // Array of cancellation terms
+  requirePhone: boolean
+  requireId: boolean
+  requireAge: boolean
+  requireMedical: boolean
+  requireDietary: boolean
+  requireEmergencyContact: boolean
+  requirePassportDetails: boolean
+  additionalRequirements: string;
+  customRequirementFields: string[];
+  phonenumber: string;
+  tourType: string,
+
 }
 
-interface LocationDetail {
+export interface LocationDetail {
   address: string;
   lat: number;
   lng: number;

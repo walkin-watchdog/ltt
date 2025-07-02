@@ -8,25 +8,60 @@ interface ItineraryDay {
   images: string[];
 }
 
+export interface EndPoint {
+  lat: number;
+  lng: number;
+  label?: string;
+}
+
+export interface PickupLocationDetail {
+  lat: number;
+  lng: number;
+  address?: string;
+  label?: string;
+  [key: string]: any;
+}
+
+export interface MeetingPoint {
+  lat: number;
+  lng: number;
+  address?: string;
+  label?: string;
+  [key: string]: any;
+}
+
+// Update Product interface types
 interface Product {
-  pickupLocationDetails(pickupLocationDetails: any): unknown;
+  requirePhone: boolean;
+  requireId: boolean;
+  requireAge: boolean;
+  requireMedical: boolean;
+  requireDietary: boolean;
+  requireEmergencyContact: boolean;
+  requirePassportDetails: boolean;
+  customRequirementFields: boolean;
+  additionalRequirements: string;
+  phonenumber: string;
+  tourType: string;
+  additionalDetails: string;
+  pickupLocationDetails: PickupLocationDetail[];
   pickupOption: boolean;
-  allowTravelersPickupPoint: any;
-  meetingPoints(meetingPoints: any): unknown;
-  pickupStartTime: any;
-  doesTourEndAtMeetingPoint: undefined;
-  endPoints(endPoints: any): unknown;
+  allowTravelersPickupPoint: boolean;
+  meetingPoints: MeetingPoint[];
+  pickupStartTime: string;
+  doesTourEndAtMeetingPoint: boolean;
+  endPoints: EndPoint[];
   guides: boolean;
-  wheelchairAccessible: any;
-  strollerAccessible: any;
-  serviceAnimalsAllowed: any;
-  publicTransportAccess: any;
-  infantSeatsRequired: any;
-  infantSeatsAvailable: any;
-  accessibilityFeatures: boolean;
-  difficulty: any;
-  pickupLocations: boolean;
-  meetingPoint: any;
+  wheelchairAccessible: string;
+  strollerAccessible: string;
+  serviceAnimalsAllowed: string;
+  publicTransportAccess: string;
+  infantSeatsRequired: string;
+  infantSeatsAvailable: string;
+  accessibilityFeatures: string[]; // array of features
+  difficulty: string;
+  pickupLocations: string[];
+  meetingPoint: string;
   cancellationPolicy: string;
   id: string;
   title: string;
@@ -52,7 +87,7 @@ interface Product {
   availableDates?: string[];
   lowestPackagePrice?: number;
   lowestDiscountedPackagePrice?: number;
-  healthRestrictions?: string[]; // Changed to array of strings
+  healthRestrictions?: string[];
 }
 
 interface ProductsFilter {

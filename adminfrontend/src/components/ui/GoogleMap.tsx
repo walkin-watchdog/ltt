@@ -1,13 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { AlertCircle } from 'lucide-react';
-
-interface LocationDetail {
-  address: string;
-  lat: number;
-  lng: number;
-  radius: number;
-  placeId?: string;
-}
+import type { LocationDetail } from '@/types.ts';
 
 interface GoogleMapProps {
   locations: LocationDetail[];

@@ -708,6 +708,23 @@ export const ProductDetail = () => {
                   <Users className="h-4 w-4 mr-1" />
                   <span>Up to {currentProduct.capacity} people</span>
                 </div>
+                {currentProduct.phonenumber && (
+  <div className="flex items-center text-sm text-gray-600">
+    <span className="font-medium mr-2">Phone:</span>
+    <a href={`tel:${currentProduct.phonenumber}`} className="text-blue-700 underline">
+      {currentProduct.phonenumber}
+    </a>
+    {currentProduct.tourType && (
+  <div className="flex items-center text-sm text-gray-600">
+    <span className="font-medium mr-2">Tour Type:</span>
+    <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded-full text-xs capitalize">
+      {currentProduct.tourType}
+    </span>
+  </div>
+)}
+  </div>
+  
+)}
               </div>
 
               <p className="text-gray-700 text-lg leading-relaxed mb-6">
@@ -730,30 +747,30 @@ export const ProductDetail = () => {
               ) : null}
 
               {/* Accessibility badges */}
-              {(currentProduct.wheelchairAccessible==='yes' ||
-                currentProduct.strollerAccessible==='yes' ||
-                currentProduct.serviceAnimalsAllowed==='yes') && (
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {currentProduct.wheelchairAccessible==='yes' && (
-                    <div className="flex items-center bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
-                      <Accessibility className="h-4 w-4 mr-1" />
-                      Wheelchair Accessible
-                    </div>
-                  )}
-                  {currentProduct.strollerAccessible==='yes' && (
-                    <div className="flex items-center bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
-                      <Baby className="h-4 w-4 mr-1" />
-                      Stroller Friendly
-                    </div>
-                  )}
-                  {currentProduct.serviceAnimalsAllowed==='yes' && (
-                    <div className="flex items-center bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm">
-                      <Heart className="h-4 w-4 mr-1" />
-                      Service Animals Welcome
-                    </div>
-                  )}
-                </div>
-              )}
+              {(currentProduct.wheelchairAccessible === 'yes' ||
+                currentProduct.strollerAccessible === 'yes' ||
+                currentProduct.serviceAnimalsAllowed === 'yes') && (
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {currentProduct.wheelchairAccessible === 'yes' && (
+                      <div className="flex items-center bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
+                        <Accessibility className="h-4 w-4 mr-1" />
+                        Wheelchair Accessible
+                      </div>
+                    )}
+                    {currentProduct.strollerAccessible === 'yes' && (
+                      <div className="flex items-center bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
+                        <Baby className="h-4 w-4 mr-1" />
+                        Stroller Friendly
+                      </div>
+                    )}
+                    {currentProduct.serviceAnimalsAllowed === 'yes' && (
+                      <div className="flex items-center bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm">
+                        <Heart className="h-4 w-4 mr-1" />
+                        Service Animals Welcome
+                      </div>
+                    )}
+                  </div>
+                )}
 
               {/* Tags */}
               <div className="flex flex-wrap gap-2 mb-6">
@@ -909,9 +926,9 @@ export const ProductDetail = () => {
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-gray-700">Physical Difficulty:</span>
                       <span className={`text-sm font-medium px-2 py-1 rounded-full ${currentProduct.difficulty === 'Easy' ? 'bg-green-100 text-green-800' :
-                          currentProduct.difficulty === 'Moderate' ? 'bg-yellow-100 text-yellow-800' :
-                            currentProduct.difficulty === 'Challenging' ? 'bg-red-100 text-red-800' :
-                              'bg-gray-100 text-gray-800'
+                        currentProduct.difficulty === 'Moderate' ? 'bg-yellow-100 text-yellow-800' :
+                          currentProduct.difficulty === 'Challenging' ? 'bg-red-100 text-red-800' :
+                            'bg-gray-100 text-gray-800'
                         }`}>
                         {currentProduct.difficulty}
                       </span>
@@ -930,122 +947,122 @@ export const ProductDetail = () => {
               currentProduct.meetingPoint ||
               (Array.isArray(currentProduct.meetingPoints) && currentProduct.meetingPoints.length > 0)
             ) && (
-              <div className="mb-6">
-                <h3 className="text-md font-semibold text-gray-900 mb-3">Pickup & Meeting Information</h3>
-                <div className="bg-gray-50 rounded-lg p-4 space-y-4">
+                <div className="mb-6">
+                  <h3 className="text-md font-semibold text-gray-900 mb-3">Pickup & Meeting Information</h3>
+                  <div className="bg-gray-50 rounded-lg p-4 space-y-4">
 
-                  {/* Pickup Option */}
-                  {currentProduct.pickupOption && (
-                    <div>
-                      <span className="font-medium text-gray-800">Pickup Option: </span>
-                      <span className="text-gray-700">{currentProduct.pickupOption}</span>
-                    </div>
-                  )}
-
-                  {/* Allow Travelers to Choose Pickup Point */}
-                  {typeof currentProduct.allowTravelersPickupPoint === 'boolean' && (
-                    <div>
-                      <span className="font-medium text-gray-800">Allow Travelers to Choose Pickup Point: </span>
-                      <span className={`font-medium ${currentProduct.allowTravelersPickupPoint ? 'text-green-600' : 'text-red-600'}`}>
-                        {currentProduct.allowTravelersPickupPoint ? 'Yes' : 'No'}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Pickup Start Time */}
-                  {currentProduct.pickupStartTime && (
-                    <div>
-                      <span className="font-medium text-gray-800">Pickup Start Time: </span>
-                      <span className="text-gray-700">{currentProduct.pickupStartTime}</span>
-                    </div>
-                  )}
-
-                  {/* Pickup Locations (Detailed) */}
-                  {Array.isArray(currentProduct.pickupLocationDetails) && currentProduct.pickupLocationDetails.length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-800 mb-2">Pickup Locations:</h4>
-                      <ul className="space-y-2">
-                        {currentProduct.pickupLocationDetails.map((loc: any, idx: number) => (
-                          <li key={idx} className="bg-white rounded-md p-3 border border-gray-200">
-                            <div className="font-medium text-sm text-gray-800">{loc.address}</div>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* Pickup Locations (String) fallback */}
-                  {(!currentProduct.pickupLocationDetails || currentProduct.pickupLocationDetails.length === 0) &&
-                    Array.isArray(currentProduct.pickupLocations) && currentProduct.pickupLocations.length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-800 mb-2">Pickup Locations:</h4>
-                      <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
-                        {currentProduct.pickupLocations.map((location: string, idx: number) => (
-                          <li key={idx}>{location}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* Meeting Point (old string) */}
-                  {currentProduct.meetingPoint && typeof currentProduct.meetingPoint === 'string' && !Array.isArray(currentProduct.meetingPoints) && (
-                    <div className="mb-3">
-                      <h4 className="text-sm font-medium text-gray-800 mb-1">Meeting Point:</h4>
-                      <p className="text-sm text-gray-700">{currentProduct.meetingPoint}</p>
-                    </div>
-                  )}
-
-                  {/* Meeting Points (array) */}
-                  {Array.isArray(currentProduct.meetingPoints) && currentProduct.meetingPoints.length > 0 && (
-                    <div className="mb-3">
-                      <h4 className="text-sm font-medium text-gray-800 mb-2">Meeting Points:</h4>
-                      <div className="space-y-2">
-                        {currentProduct.meetingPoints.map((point: any, idx: number) => (
-                          <div key={idx} className="bg-white rounded-md p-3 border border-gray-200">
-                            <div className="font-medium text-sm text-gray-800">{point.address}</div>
-                            {point.description && (
-                              <div className="text-sm text-gray-600 mt-1">{point.description}</div>
-                            )}
-                          </div>
-                        ))}
+                    {/* Pickup Option */}
+                    {currentProduct.pickupOption && (
+                      <div>
+                        <span className="font-medium text-gray-800">Pickup Option: </span>
+                        <span className="text-gray-700">{currentProduct.pickupOption}</span>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {/* Tour End at Meeting Point */}
-                  {currentProduct.doesTourEndAtMeetingPoint !== undefined && (
-                    <div className="mb-3 p-3 bg-blue-50 rounded-md border border-blue-200">
-                      <div className="flex items-center space-x-2">
-                        <div className={`w-2 h-2 rounded-full ${currentProduct.doesTourEndAtMeetingPoint ? 'bg-green-500' : 'bg-orange-500'}`}></div>
-                        <span className="text-sm font-medium text-gray-800">
-                          {currentProduct.doesTourEndAtMeetingPoint ? 'Tour ends back at meeting point(s)' : 'Tour does not end at meeting point(s)'}
+                    {/* Allow Travelers to Choose Pickup Point */}
+                    {typeof currentProduct.allowTravelersPickupPoint === 'boolean' && (
+                      <div>
+                        <span className="font-medium text-gray-800">Allow Travelers to Choose Pickup Point: </span>
+                        <span className={`font-medium ${currentProduct.allowTravelersPickupPoint ? 'text-green-600' : 'text-red-600'}`}>
+                          {currentProduct.allowTravelersPickupPoint ? 'Yes' : 'No'}
                         </span>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {/* End Point Locations */}
-                  {Array.isArray(currentProduct.endPoints) && currentProduct.endPoints.length > 0 && (
-                    <div className="bg-white rounded-lg shadow-sm p-6">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-3">End Point Locations</h3>
-                      <div className="bg-gray-50 rounded-lg p-4">
+                    {/* Pickup Start Time */}
+                    {currentProduct.pickupStartTime && (
+                      <div>
+                        <span className="font-medium text-gray-800">Pickup Start Time: </span>
+                        <span className="text-gray-700">{currentProduct.pickupStartTime}</span>
+                      </div>
+                    )}
+
+                    {/* Pickup Locations (Detailed) */}
+                    {Array.isArray(currentProduct.pickupLocationDetails) && currentProduct.pickupLocationDetails.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-800 mb-2">Pickup Locations:</h4>
                         <ul className="space-y-2">
-                          {currentProduct.endPoints.map((loc: any, idx: number) => (
+                          {currentProduct.pickupLocationDetails.map((loc: any, idx: number) => (
                             <li key={idx} className="bg-white rounded-md p-3 border border-gray-200">
                               <div className="font-medium text-sm text-gray-800">{loc.address}</div>
-                              {loc.description && loc.description.trim() !== '' && (
-                                <div className="text-xs text-gray-700 mt-1">{loc.description}</div>
-                              )}
                             </li>
                           ))}
                         </ul>
                       </div>
-                    </div>
-                  )}
+                    )}
 
+                    {/* Pickup Locations (String) fallback */}
+                    {(!currentProduct.pickupLocationDetails || currentProduct.pickupLocationDetails.length === 0) &&
+                      Array.isArray(currentProduct.pickupLocations) && currentProduct.pickupLocations.length > 0 && (
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-800 mb-2">Pickup Locations:</h4>
+                          <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
+                            {currentProduct.pickupLocations.map((location: string, idx: number) => (
+                              <li key={idx}>{location}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                    {/* Meeting Point (old string) */}
+                    {currentProduct.meetingPoint && typeof currentProduct.meetingPoint === 'string' && !Array.isArray(currentProduct.meetingPoints) && (
+                      <div className="mb-3">
+                        <h4 className="text-sm font-medium text-gray-800 mb-1">Meeting Point:</h4>
+                        <p className="text-sm text-gray-700">{currentProduct.meetingPoint}</p>
+                      </div>
+                    )}
+
+                    {/* Meeting Points (array) */}
+                    {Array.isArray(currentProduct.meetingPoints) && currentProduct.meetingPoints.length > 0 && (
+                      <div className="mb-3">
+                        <h4 className="text-sm font-medium text-gray-800 mb-2">Meeting Points:</h4>
+                        <div className="space-y-2">
+                          {currentProduct.meetingPoints.map((point: any, idx: number) => (
+                            <div key={idx} className="bg-white rounded-md p-3 border border-gray-200">
+                              <div className="font-medium text-sm text-gray-800">{point.address}</div>
+                              {point.description && (
+                                <div className="text-sm text-gray-600 mt-1">{point.description}</div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Tour End at Meeting Point */}
+                    {currentProduct.doesTourEndAtMeetingPoint !== undefined && (
+                      <div className="mb-3 p-3 bg-blue-50 rounded-md border border-blue-200">
+                        <div className="flex items-center space-x-2">
+                          <div className={`w-2 h-2 rounded-full ${currentProduct.doesTourEndAtMeetingPoint ? 'bg-green-500' : 'bg-orange-500'}`}></div>
+                          <span className="text-sm font-medium text-gray-800">
+                            {currentProduct.doesTourEndAtMeetingPoint ? 'Tour ends back at meeting point(s)' : 'Tour does not end at meeting point(s)'}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* End Point Locations */}
+                    {Array.isArray(currentProduct.endPoints) && currentProduct.endPoints.length > 0 && (
+                      <div className="bg-white rounded-lg shadow-sm p-6">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-3">End Point Locations</h3>
+                        <div className="bg-gray-50 rounded-lg p-4">
+                          <ul className="space-y-2">
+                            {currentProduct.endPoints.map((loc: any, idx: number) => (
+                              <li key={idx} className="bg-white rounded-md p-3 border border-gray-200">
+                                <div className="font-medium text-sm text-gray-800">{loc.address}</div>
+                                {loc.description && loc.description.trim() !== '' && (
+                                  <div className="text-xs text-gray-700 mt-1">{loc.description}</div>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    )}
+
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
             {/* Itinerary */}
             {currentProduct.type === 'TOUR' &&
               currentProduct.itineraries &&
@@ -1158,6 +1175,74 @@ export const ProductDetail = () => {
               </div>
             </div>
 
+             {(currentProduct.requirePhone || currentProduct.requireId || currentProduct.requireAge ||
+                currentProduct.requireMedical || currentProduct.requireDietary ||
+                currentProduct.requireEmergencyContact || currentProduct.requirePassportDetails ||
+                (Array.isArray(currentProduct.customRequirementFields) && currentProduct.customRequirementFields.length > 0) ||
+                currentProduct.additionalRequirements) && (
+                  <div className="mt-6 pt-4 border-t border-gray-200">
+                    <h4 className="font-medium text-gray-800 mb-3">Required Information from Travelers:</h4>
+                    <div className="space-y-2">
+                      {currentProduct.requirePhone && (
+                        <div className="flex items-center text-sm text-gray-600">
+                          <span className="w-2 h-2 bg-[#ff914d] rounded-full mr-2"></span>
+                          Valid phone number
+                        </div>
+                      )}
+                      {currentProduct.requireId && (
+                        <div className="flex items-center text-sm text-gray-600">
+                          <span className="w-2 h-2 bg-[#ff914d] rounded-full mr-2"></span>
+                          Government-issued photo ID
+                        </div>
+                      )}
+                      {currentProduct.requireAge && (
+                        <div className="flex items-center text-sm text-gray-600">
+                          <span className="w-2 h-2 bg-[#ff914d] rounded-full mr-2"></span>
+                          Age verification for all travelers
+                        </div>
+                      )}
+                      {currentProduct.requireMedical && (
+                        <div className="flex items-center text-sm text-gray-600">
+                          <span className="w-2 h-2 bg-[#ff914d] rounded-full mr-2"></span>
+                          Medical information and restrictions
+                        </div>
+                      )}
+                      {currentProduct.requireDietary && (
+                        <div className="flex items-center text-sm text-gray-600">
+                          <span className="w-2 h-2 bg-[#ff914d] rounded-full mr-2"></span>
+                          Dietary restrictions and preferences
+                        </div>
+                      )}
+                      {currentProduct.requireEmergencyContact && (
+                        <div className="flex items-center text-sm text-gray-600">
+                          <span className="w-2 h-2 bg-[#ff914d] rounded-full mr-2"></span>
+                          Emergency contact information
+                        </div>
+                      )}
+                      {currentProduct.requirePassportDetails && (
+                        <div className="flex items-center text-sm text-gray-600">
+                          <span className="w-2 h-2 bg-[#ff914d] rounded-full mr-2"></span>
+                          Passport details for international travelers
+                        </div>
+                      )}
+
+                      {Array.isArray(currentProduct.customRequirementFields) && currentProduct.customRequirementFields.map((field: any, index: number) => (
+                        <div key={index} className="flex items-center text-sm text-gray-600">
+                          <span className="w-2 h-2 bg-[#ff914d] rounded-full mr-2"></span>
+                          {field.label} {field.required && <span className="text-red-500">*</span>}
+                        </div>
+                      ))}
+
+                      {currentProduct.additionalRequirements && (
+                        <div className="flex items-start text-sm text-gray-600 mt-3 p-3 bg-blue-50 rounded-md">
+                          <span className="w-2 h-2 bg-blue-500 rounded-full mr-2 mt-1.5 flex-shrink-0"></span>
+                          <span>{currentProduct.additionalRequirements}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+            
             {/* Reviews */}
             {currentProduct.reviews && currentProduct.reviews.length > 0 && (
               <div className="bg-white rounded-lg shadow-sm p-6">
@@ -1400,11 +1485,10 @@ export const ProductDetail = () => {
                               }
                             }}
                             disabled={isDisabled}
-                            className={`border rounded-lg p-3 text-center cursor-pointer transition-colors ${
-                              isSelected
+                            className={`border rounded-lg p-3 text-center cursor-pointer transition-colors ${isSelected
                                 ? 'border-[#ff914d] bg-orange-50'
                                 : 'border-gray-200 hover:border-[#ff914d]'
-                            } ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                              } ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                           >
                             {time}
                           </button>
