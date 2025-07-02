@@ -10,6 +10,7 @@ export const ResetPassword = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [tokenValid, setTokenValid] = useState<boolean | null>(null);
+  const [isValidating, setIsValidating] = useState(false);
   const [resetComplete, setResetComplete] = useState(false);
   const navigate = useNavigate();
 
@@ -17,8 +18,21 @@ export const ResetPassword = () => {
     const tokenParam = searchParams.get('token');
     if (tokenParam) {
       setToken(tokenParam);
-      // In a real implementation, we might validate the token here
-      setTokenValid(true);
+      setIsValidating(true);
+      (async () => {
+        try {
+          const res = await fetch(
+            `${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/auth/validate-reset-token?token=${encodeURIComponent(
+              tokenParam
+            )}`
+          );
+          setTokenValid(res.ok);
+        } catch {
+          setTokenValid(false);
+        } finally {
+          setIsValidating(false);
+        }
+      })();
     } else {
       setTokenValid(false);
     }
@@ -67,6 +81,15 @@ export const ResetPassword = () => {
       setIsSubmitting(false);
     }
   };
+
+  if (isValidating) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p>Validating reset link…</p>
+      </div>
+    );
+  }
+
 
   if (tokenValid === false) {
     return (

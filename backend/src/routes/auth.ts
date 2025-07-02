@@ -218,6 +218,16 @@ router.post('/reset-password', async (req, res, next) => {
   }
 });
 
+router.get('/validate-reset-token', async (req, res) => {
+  const { token } = req.query;
+  if (!token || typeof token !== 'string') return res.sendStatus(400);
+  const hashed = crypto.createHash('sha256').update(token).digest('hex');
+  const user = await prisma.user.findFirst({
+    where: { resetToken: hashed, resetTokenExpiry: { gt: new Date() } }
+  });
+  return user ? res.sendStatus(200) : res.sendStatus(404);
+});
+
 router.post(
   '/change-password',
   authenticate,
