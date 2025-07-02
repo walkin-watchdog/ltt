@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft, MapPin, Clock, Users, Star, 
+  ArrowLeft, MapPin, Clock, Users, Star,
   CheckCircle, XCircle, Calendar, AlertCircle,
   ChevronLeft, ChevronRight
 } from 'lucide-react';
@@ -353,7 +353,7 @@ export const ProductPreview = () => {
         </button>
       </header>
 
-      
+
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Image Gallery - Updated to match ProductDetail */}
@@ -392,10 +392,10 @@ export const ProductPreview = () => {
           </div>
         </div>
         {/* Status banner */}
-      <div className={`${bgColor} ${border} border-t-0 border-b px-6 py-3 flex items-center`}>
-        <StatusIcon className={`h-5 w-5 mr-2 ${color}`} />
-        <span className={`text-sm font-medium ${color}`}>{message}</span>
-      </div>
+        <div className={`${bgColor} ${border} border-t-0 border-b px-6 py-3 flex items-center`}>
+          <StatusIcon className={`h-5 w-5 mr-2 ${color}`} />
+          <span className={`text-sm font-medium ${color}`}>{message}</span>
+        </div>
 
         {/* Thumbnail Grid */}
         {product.images.length > 1 && (
@@ -424,8 +424,8 @@ export const ProductPreview = () => {
                   key={t}
                   onClick={() => handleTabClick(t)}
                   className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === t
-                      ? 'border-[#ff914d] text-[#ff914d]'
-                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                    ? 'border-[#ff914d] text-[#ff914d]'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
                     }`}
                 >
                   {{
@@ -612,9 +612,9 @@ export const ProductPreview = () => {
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-700">Physical Difficulty:</span>
                     <span className={`text-sm font-medium px-2 py-1 rounded-full ${product.difficulty === 'Easy' ? 'bg-green-100 text-green-800' :
-                        product.difficulty === 'Moderate' ? 'bg-yellow-100 text-yellow-800' :
-                          product.difficulty === 'Challenging' ? 'bg-red-100 text-red-800' :
-                            'bg-gray-100 text-gray-800'
+                      product.difficulty === 'Moderate' ? 'bg-yellow-100 text-yellow-800' :
+                        product.difficulty === 'Challenging' ? 'bg-red-100 text-red-800' :
+                          'bg-gray-100 text-gray-800'
                       }`}>
                       {product.difficulty}
                     </span>
@@ -633,120 +633,120 @@ export const ProductPreview = () => {
             product.meetingPoint ||
             (Array.isArray(product.meetingPoints) && product.meetingPoints.length > 0)
           ) && (
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">Pickup & Meeting Information</h3>
-              <div className="bg-gray-50 rounded-lg p-4 space-y-4">
+              <div className="bg-white rounded-lg shadow-sm p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Pickup & Meeting Information</h3>
+                <div className="bg-gray-50 rounded-lg p-4 space-y-4">
 
-                {/* Pickup Option */}
-                {product.pickupOption && (
-                  <div>
-                    <span className="font-medium text-gray-800">Pickup Option: </span>
-                    <span className="text-gray-700">{product.pickupOption}</span>
-                  </div>
-                )}
-
-                {/* Allow Travelers to Choose Pickup Point */}
-                {typeof product.allowTravelersPickupPoint === 'boolean' && (
-                  <div>
-                    <span className="font-medium text-gray-800">Allow Travelers to Choose Pickup Point: </span>
-                    <span className={`font-medium ${product.allowTravelersPickupPoint ? 'text-green-600' : 'text-red-600'}`}>
-                      {product.allowTravelersPickupPoint ? 'Yes' : 'No'}
-                    </span>
-                  </div>
-                )}
-
-                {/* Pickup Start Time */}
-                {product.pickupStartTime && (
-                  <div>
-                    <span className="font-medium text-gray-800">Pickup Start Time: </span>
-                    <span className="text-gray-700">{product.pickupStartTime}</span>
-                  </div>
-                )}
-
-                {/* Pickup Locations (Detailed) */}
-                {Array.isArray(product.pickupLocationDetails) && product.pickupLocationDetails.length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-800 mb-2">Pickup Locations:</h4>
-                    <ul className="space-y-2">
-                      {product.pickupLocationDetails.map((loc: any, idx: number) => (
-                        <li key={idx} className="bg-white rounded-md p-3 border border-gray-200">
-                          <div className="font-medium text-sm text-gray-800">{loc.address}</div>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Pickup Locations (String) fallback */}
-                {(!product.pickupLocationDetails || product.pickupLocationDetails.length === 0) &&
-                  Array.isArray(product.pickupLocations) && product.pickupLocations.length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-800 mb-2">Pickup Locations:</h4>
-                    <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
-                      {product.pickupLocations.map((location: string, idx: number) => (
-                        <li key={idx}>{location}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Meeting Point (old string) */}
-                {product.meetingPoint && typeof product.meetingPoint === 'string' && !Array.isArray(product.meetingPoints) && (
-                  <div className="mb-3">
-                    <h4 className="text-sm font-medium text-gray-800 mb-1">Meeting Point:</h4>
-                    <p className="text-sm text-gray-700">{product.meetingPoint}</p>
-                  </div>
-                )}
-
-                {/* Meeting Points (array) */}
-                {Array.isArray(product.meetingPoints) && product.meetingPoints.length > 0 && (
-                  <div className="mb-3">
-                    <h4 className="text-sm font-medium text-gray-800 mb-2">Meeting Points:</h4>
-                    <div className="space-y-2">
-                      {product.meetingPoints.map((point: any, idx: number) => (
-                        <div key={idx} className="bg-white rounded-md p-3 border border-gray-200">
-                          <div className="font-medium text-sm text-gray-800">{point.address}</div>
-                          {point.description && (
-                            <div className="text-sm text-gray-600 mt-1">{point.description}</div>
-                          )}
-                        </div>
-                      ))}
+                  {/* Pickup Option */}
+                  {product.pickupOption && (
+                    <div>
+                      <span className="font-medium text-gray-800">Pickup Option: </span>
+                      <span className="text-gray-700">{product.pickupOption}</span>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {/* Tour End at Meeting Point */}
-                {product.doesTourEndAtMeetingPoint !== undefined && (
-                  <div className="mb-3 p-3 bg-blue-50 rounded-md border border-blue-200">
-                    <div className="flex items-center space-x-2">
-                      <div className={`w-2 h-2 rounded-full ${product.doesTourEndAtMeetingPoint ? 'bg-green-500' : 'bg-orange-500'}`}></div>
-                      <span className="text-sm font-medium text-gray-800">
-                        {product.doesTourEndAtMeetingPoint ? 'Tour ends back at meeting point(s)' : 'Tour does not end at meeting point(s)'}
+                  {/* Allow Travelers to Choose Pickup Point */}
+                  {typeof product.allowTravelersPickupPoint === 'boolean' && (
+                    <div>
+                      <span className="font-medium text-gray-800">Allow Travelers to Choose Pickup Point: </span>
+                      <span className={`font-medium ${product.allowTravelersPickupPoint ? 'text-green-600' : 'text-red-600'}`}>
+                        {product.allowTravelersPickupPoint ? 'Yes' : 'No'}
                       </span>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {Array.isArray(product.endPoints) && product.endPoints.length > 0 && (
-                  <div className="bg-white rounded-lg shadow-sm p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-3">End Point Locations</h3>
-                    <div className="bg-gray-50 rounded-lg p-4">
+                  {/* Pickup Start Time */}
+                  {product.pickupStartTime && (
+                    <div>
+                      <span className="font-medium text-gray-800">Pickup Start Time: </span>
+                      <span className="text-gray-700">{product.pickupStartTime}</span>
+                    </div>
+                  )}
+
+                  {/* Pickup Locations (Detailed) */}
+                  {Array.isArray(product.pickupLocationDetails) && product.pickupLocationDetails.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-800 mb-2">Pickup Locations:</h4>
                       <ul className="space-y-2">
-                        {product.endPoints.map((loc: any, idx: number) => (
+                        {product.pickupLocationDetails.map((loc: any, idx: number) => (
                           <li key={idx} className="bg-white rounded-md p-3 border border-gray-200">
                             <div className="font-medium text-sm text-gray-800">{loc.address}</div>
-                            {loc.description && loc.description.trim() !== '' && (
-                              <div className="text-xs text-gray-700 mt-1">{loc.description}</div>
-                            )}
                           </li>
                         ))}
                       </ul>
                     </div>
-                  </div>
-                )}
+                  )}
+
+                  {/* Pickup Locations (String) fallback */}
+                  {(!product.pickupLocationDetails || product.pickupLocationDetails.length === 0) &&
+                    Array.isArray(product.pickupLocations) && product.pickupLocations.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-800 mb-2">Pickup Locations:</h4>
+                        <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
+                          {product.pickupLocations.map((location: string, idx: number) => (
+                            <li key={idx}>{location}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                  {/* Meeting Point (old string) */}
+                  {product.meetingPoint && typeof product.meetingPoint === 'string' && !Array.isArray(product.meetingPoints) && (
+                    <div className="mb-3">
+                      <h4 className="text-sm font-medium text-gray-800 mb-1">Meeting Point:</h4>
+                      <p className="text-sm text-gray-700">{product.meetingPoint}</p>
+                    </div>
+                  )}
+
+                  {/* Meeting Points (array) */}
+                  {Array.isArray(product.meetingPoints) && product.meetingPoints.length > 0 && (
+                    <div className="mb-3">
+                      <h4 className="text-sm font-medium text-gray-800 mb-2">Meeting Points:</h4>
+                      <div className="space-y-2">
+                        {product.meetingPoints.map((point: any, idx: number) => (
+                          <div key={idx} className="bg-white rounded-md p-3 border border-gray-200">
+                            <div className="font-medium text-sm text-gray-800">{point.address}</div>
+                            {point.description && (
+                              <div className="text-sm text-gray-600 mt-1">{point.description}</div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Tour End at Meeting Point */}
+                  {product.doesTourEndAtMeetingPoint !== undefined && (
+                    <div className="mb-3 p-3 bg-blue-50 rounded-md border border-blue-200">
+                      <div className="flex items-center space-x-2">
+                        <div className={`w-2 h-2 rounded-full ${product.doesTourEndAtMeetingPoint ? 'bg-green-500' : 'bg-orange-500'}`}></div>
+                        <span className="text-sm font-medium text-gray-800">
+                          {product.doesTourEndAtMeetingPoint ? 'Tour ends back at meeting point(s)' : 'Tour does not end at meeting point(s)'}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {Array.isArray(product.endPoints) && product.endPoints.length > 0 && (
+                    <div className="bg-white rounded-lg shadow-sm p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-3">End Point Locations</h3>
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        <ul className="space-y-2">
+                          {product.endPoints.map((loc: any, idx: number) => (
+                            <li key={idx} className="bg-white rounded-md p-3 border border-gray-200">
+                              <div className="font-medium text-sm text-gray-800">{loc.address}</div>
+                              {loc.description && loc.description.trim() !== '' && (
+                                <div className="text-xs text-gray-700 mt-1">{loc.description}</div>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
           {/* Itinerary */}
           <div ref={itineraryRef} className="bg-white rounded-lg shadow-sm p-6 scroll-mt-20">
@@ -910,8 +910,8 @@ export const ProductPreview = () => {
                         key={pkg.id}
                         onClick={() => handlePackageSelect(pkg.id)}
                         className={`w-full flex items-center justify-between px-4 py-3 border rounded-lg ${selectedPackage?.id === pkg.id
-                            ? 'border-[#ff914d] bg-orange-50'
-                            : 'border-gray-200 hover:border-[#ff914d]'
+                          ? 'border-[#ff914d] bg-orange-50'
+                          : 'border-gray-200 hover:border-[#ff914d]'
                           }`}
                       >
                         <span>
