@@ -631,7 +631,8 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
                     slotId: createdSlot.id,
                     min: tier.min,
                     max: tier.max,
-                    price: tier.price
+                    price: tier.price,
+                    currency: pkg.currency ?? 'INR'
                   }))
                 });
               }
@@ -642,7 +643,8 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
                     slotId: createdSlot.id,
                     min: tier.min,
                     max: tier.max,
-                    price: tier.price
+                    price: tier.price,
+                    currency: pkg.currency ?? 'INR'
                   }))
                 });
               }
@@ -870,7 +872,7 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
                     min: tier.min,
                     max: tier.max,
                     price: tier.price,
-                    currency: tier.currency
+                    currency: pkg.currency ?? 'INR'
                   }))
                 });
               }
@@ -882,7 +884,7 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
                     min: tier.min,
                     max: tier.max,
                     price: tier.price,
-                    currency: tier.currency
+                    currency: pkg.currency ?? 'INR'
                   }))
                 });
               }
@@ -1099,6 +1101,7 @@ router.get('/by-slug/:slug', async (req, res, next) => {
   }
 });
 
+
 // Clone product (Admin/Editor only)
 router.post('/:id/clone', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, next) => {
   try {
@@ -1127,7 +1130,15 @@ router.post('/:id/clone', authenticate, authorize(['ADMIN', 'EDITOR']), async (r
       return res.status(404).json({ error: 'Product not found' });
     }
 
-    const { packages, itineraries, id, createdAt, updatedAt, ...productData } = originalProduct;
+    const {
+      packages,
+      itineraries,
+      id,
+      createdAt,
+      updatedAt,
+      meetingPoints, 
+      ...productData
+    } = originalProduct;
 
     const baseSlug = `${productData.slug}-copy`;
     let slug = baseSlug;
@@ -1169,15 +1180,14 @@ router.post('/:id/clone', authenticate, authorize(['ADMIN', 'EDITOR']), async (r
       createdAt: currentTime,
       updatedAt: currentTime,
       guides: productData.guides || [],
-      destinationId: productData.destinationId === null ? undefined : productData.destinationId,
-      experienceCategoryId: productData.experienceCategoryId === null ? undefined : productData.experienceCategoryId,
+      destinationId: productData.destinationId,
+      experienceCategoryId: productData.experienceCategoryId,
       difficulty: productData.difficulty === null ? undefined : productData.difficulty,
       meetingPoint: productData.meetingPoint === null ? undefined : productData.meetingPoint,
       availabilityEndDate: productData.availabilityEndDate === null ? undefined : productData.availabilityEndDate,
       additionalPickupDetails: productData.additionalPickupDetails === null ? undefined : productData.additionalPickupDetails,
       pickupStartTime: productData.pickupStartTime === null ? undefined : productData.pickupStartTime,
       pickupLocationDetails: Array.isArray(productData.pickupLocationDetails)
-      
         ? productData.pickupLocationDetails.filter(item => item !== null)
         : [],
       accessibilityFeatures: Array.isArray(productData.accessibilityFeatures)
@@ -1207,6 +1217,12 @@ router.post('/:id/clone', authenticate, authorize(['ADMIN', 'EDITOR']), async (r
       endPoints: Array.isArray(productData.endPoints)
         ? productData.endPoints.filter(item => item !== null)
         : [],
+      cancellationTerms: Array.isArray(productData.cancellationTerms)
+        ? productData.cancellationTerms.filter(item => item !== null)
+        : [],
+      customRequirementFields: Array.isArray(productData.customRequirementFields)
+        ? productData.customRequirementFields.filter(item => item !== null)
+        : [],
     };
 
     const result = await prisma.$transaction(async (tx) => {
@@ -1223,6 +1239,8 @@ router.post('/:id/clone', authenticate, authorize(['ADMIN', 'EDITOR']), async (r
             productId: clonedProduct.id,
             endDate: packageData.endDate === null ? undefined : packageData.endDate,
             currency: packageData.currency || 'INR',
+            ageGroups: packageData.ageGroups === null ? undefined : packageData.ageGroups,
+            pricingType: packageData.pricingType,
           }
         });
 
@@ -1317,5 +1335,6 @@ router.post('/:id/clone', authenticate, authorize(['ADMIN', 'EDITOR']), async (r
     next(error);
   }
 });
+
 
 export default router;
