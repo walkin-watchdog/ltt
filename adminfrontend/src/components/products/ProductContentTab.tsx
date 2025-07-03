@@ -8,6 +8,7 @@ import { useToast } from '../ui/toaster';
 import { PickupLocationMap } from '../ui/PickupLocationMap';
 import { MeetingPointMap } from '../ui/MeetingPointMap';
 import { EndPointMap } from '../ui/EndPointMap';
+import { LocationAutocomplete } from '../ui/LocationAutocomplete';
 
 interface ItineraryDay {
   day: number;
@@ -19,6 +20,9 @@ interface ItineraryDay {
 
 interface ItineraryActivity {
   location: string;
+  lat?: number;
+  lng?: number;
+  placeId?: string;
   isStop?: boolean;
   stopDuration?: number;
   inclusions?: string[];
@@ -79,6 +83,7 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
     exclusions: [],
     order: 0,
   });
+  const [editingActivityIndex, setEditingActivityIndex] = useState<number | null>(null);
   const [isDestinationModalOpen, setIsDestinationModalOpen] = useState(false);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [destinations, setDestinations] = useState<any[]>([]);
@@ -443,22 +448,28 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                   Location *
                 </label>
                 <div className="flex">
-                  <select
-                    value={formData.location}
-                    onChange={(e) => updateFormData({
-                      location: e.target.value,
-                      destinationId: destinations.find(d => d.name === e.target.value)?.id || null
-                    })}
+                  <LocationAutocomplete
+                    value={formData.location || ''}
+                    onChange={(location, lat, lng, placeId) => {
+                      // Find matching destination by name or coordinates
+                      const matchingDestination = destinations.find(d =>
+                        d.name === location ||
+                        (lat && lng && d.lat && d.lng &&
+                          Math.abs(d.lat - lat) < 0.001 &&
+                          Math.abs(d.lng - lng) < 0.001)
+                      );
+
+                      updateFormData({
+                        location: location,
+                        destinationId: matchingDestination?.id || null,
+                        locationLat: lat,
+                        locationLng: lng,
+                        locationPlaceId: placeId
+                      });
+                    }}
+                    placeholder="Search for a location..."
                     className="w-full px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                    required
-                  >
-                    <option value="">Select a location</option>
-                    {destinations.map(destination => (
-                      <option key={destination.id} value={destination.name}>
-                        {destination.name}
-                      </option>
-                    ))}
-                  </select>
+                  />
                   <button
                     type="button"
                     onClick={() => setIsDestinationModalOpen(true)}
@@ -469,6 +480,11 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                 </div>
                 {isLoadingDestinations && (
                   <p className="text-sm text-gray-500 mt-1">Loading destinations...</p>
+                )}
+                {formData.locationLat && formData.locationLng && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Coordinates: {formData.locationLat.toFixed(6)}, {formData.locationLng.toFixed(6)}
+                  </p>
                 )}
               </div>
 
@@ -1801,10 +1817,17 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                         <label className="block text-xs font-medium text-gray-700 mb-1">
                           Location *
                         </label>
-                        <input
-                          type="text"
+                        <LocationAutocomplete
                           value={newActivity.location}
-                          onChange={(e) => setNewActivity({ ...newActivity, location: e.target.value })}
+                          onChange={(location, lat, lng, placeId) =>
+                            setNewActivity({
+                              ...newActivity,
+                              location: location,
+                              lat,
+                              lng,
+                              placeId,
+                            })
+                          }
                           placeholder="Activity location"
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-sm"
                         />
@@ -1876,15 +1899,60 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                     </div>
 
                     <div className="flex justify-end mt-3">
-                      <button
-                        type="button"
-                        onClick={addActivity}
-                        disabled={!newActivity.location}
-                        className="px-4 py-2 bg-[#ff914d] text-white rounded-md hover:bg-[#e8823d] transition-colors disabled:bg-gray-300 text-sm"
-                      >
-                        <Plus className="h-4 w-4 inline mr-1" />
-                        Add Activity
-                      </button>
+                      {editingActivityIndex === null ? (
+                        <button
+                          type="button"
+                          onClick={addActivity}
+                          disabled={!newActivity.location}
+                          className="px-4 py-2 bg-[#ff914d] text-white rounded-md hover:bg-[#e8823d] transition-colors disabled:bg-gray-300 text-sm"
+                        >
+                          <Plus className="h-4 w-4 inline mr-1" />
+                          Add Activity
+                        </button>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setNewActivity({
+                                location: '',
+                                isStop: false,
+                                stopDuration: undefined,
+                                inclusions: [],
+                                exclusions: [],
+                                order: 0,
+                              });
+                              setEditingActivityIndex(null);
+                            }}
+                            className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors mr-2 text-sm"
+                          >
+                            Cancel Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (editingDay && editingActivityIndex !== null) {
+                                const updatedActivities = [...editingDay.activities];
+                                updatedActivities[editingActivityIndex] = { ...newActivity, order: editingActivityIndex };
+                                setEditingDay({ ...editingDay, activities: updatedActivities });
+                                setNewActivity({
+                                  location: '',
+                                  isStop: false,
+                                  stopDuration: undefined,
+                                  inclusions: [],
+                                  exclusions: [],
+                                  order: 0,
+                                });
+                                setEditingActivityIndex(null);
+                              }
+                            }}
+                            disabled={!newActivity.location}
+                            className="px-4 py-2 bg-[#ff914d] text-white rounded-md hover:bg-[#e8823d] transition-colors disabled:bg-gray-300 text-sm"
+                          >
+                            Save Activity
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
 
@@ -1909,13 +1977,27 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                             </div>
                           )}
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => removeActivity(index)}
-                          className="text-red-500 hover:text-red-700 ml-3"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
+                        <div className="flex items-center space-x-2 ml-3">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setNewActivity(activity);
+                              setEditingActivityIndex(index);
+                            }}
+                            className="text-blue-500 hover:text-blue-700"
+                            title="Edit Activity"
+                          >
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536M9 13l6-6m2 2l-6 6m-2 2h6a2 2 0 002-2v-6a2 2 0 00-2-2h-6a2 2 0 00-2 2v6a2 2 0 002 2z" /></svg>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeActivity(index)}
+                            className="text-red-500 hover:text-red-700"
+                            title="Remove Activity"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>

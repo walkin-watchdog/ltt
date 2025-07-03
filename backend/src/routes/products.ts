@@ -32,6 +32,9 @@ const guideSchema = z.object({
 });
 const itineraryActivitySchema = z.object({
   location: z.string().min(1),
+  lat: z.number().optional(),
+  lng: z.number().optional(),
+  placeId: z.string().optional(),
   isStop: z.boolean().optional(),
   stopDuration: z.number().nullable().optional(),
   inclusions: z.array(z.string()).optional().default([]),
@@ -72,6 +75,19 @@ const productSchema = z.object({
     isActive: z.boolean().optional(),
     startDate: z.string().min(1),
     endDate: z.string().optional().nullable(),
+    pricingType: z.enum(['per_person', 'per_group']).default('per_person'),
+    ageGroups: z.object({
+      adult: z.object({
+        enabled: z.boolean(),
+        min: z.number().optional(),
+        max: z.number().optional(),
+      }).optional(),
+      child: z.object({
+        enabled: z.boolean(),
+        min: z.number().optional(),
+        max: z.number().optional(),
+      }).optional(),
+    }).optional().nullable().default({}),
     slotConfigs: z.array(z.object({
       times: z.array(z.string()),
       days: z.array(z.string()),
@@ -90,8 +106,8 @@ const productSchema = z.object({
         discountType: z.enum(['none', 'percentage', 'fixed']).optional().default('none'),
         discountValue: z.union([z.number().min(0), z.string().transform(val => Number(val))]).optional().default(0),
         currency: z.string()
-      }))
-    })).optional()
+      })).optional().default([])
+    })).optional().default([])
   })).optional(),
   images: z.array(z.string()),
   tags: z.array(z.string()),
@@ -156,18 +172,18 @@ const productSchema = z.object({
   isDraft: z.boolean().default(false),
   availabilityStartDate: z.string().transform(str => new Date(str)),
   availabilityEndDate: z.string().transform(str => new Date(str)).optional(),
-  blockedDates: z.array(z.object({date: z.string(), reason: z.string().optional()})).optional(),
+  blockedDates: z.array(z.object({ date: z.string(), reason: z.string().optional() })).optional(),
   destinationId: z.string().nullable(),
   experienceCategoryId: z.string().nullable(),
   accessibilityFeatures: z.array(z.string().min(1)).optional().default([]),
   wheelchairAccessible: z.string().min(1).default('no').optional(),
-  strollerAccessible:  z.string().min(1).default('no').optional(),
-  serviceAnimalsAllowed:  z.string().min(1).default('no').optional(),
+  strollerAccessible: z.string().min(1).default('no').optional(),
+  serviceAnimalsAllowed: z.string().min(1).default('no').optional(),
   publicTransportAccess: z.string().min(1).default('no').optional(),
-  infantSeatsRequired:  z.string().min(1).default('no').optional(),
-  infantSeatsAvailable:  z.string().min(1).default('no').optional(),
-  phonenumber:z.string().default(''),
-  tourType : z.string().default(''),
+  infantSeatsRequired: z.string().min(1).default('no').optional(),
+  infantSeatsAvailable: z.string().min(1).default('no').optional(),
+  phonenumber: z.string().default(''),
+  tourType: z.string().default(''),
 });
 
 // Get all products (public)
@@ -181,18 +197,18 @@ router.get('/', async (req, res, next) => {
     if (type) where.type = type;
     if (category) where.category = category;
     if (location) where.location = location;
-    
+
     if (draft === 'draft') {
       where.isDraft = true;
     } else if (draft === 'published') {
       where.isDraft = false;
     }
-    
+
     if (!req.headers.authorization) {
       where.isActive = true;
       where.isDraft = false;
     }
-    
+
     const priceFilter = minPrice || maxPrice;
 
     const products = await prisma.product.findMany({
@@ -240,28 +256,28 @@ router.get('/', async (req, res, next) => {
 
     let productsWithAvailability = products.map(product => {
       const availabilities = product.availabilities;
-      let availabilityStatus = 'AVAILABLE'; 
+      let availabilityStatus = 'AVAILABLE';
       let nextAvailableDate = null;
       let availableDates: Date[] = [];
-      
+
       let lowestPrice: number | null = null;
       let lowestDiscountedPrice: number | null = null;
-      
+
       if (product.packages && product.packages.length > 0) {
         for (const pkg of product.packages) {
           const basePrice = pkg.basePrice;
-          
+
           let discountedPrice = basePrice;
           if (pkg.discountType === 'percentage' && pkg.discountValue) {
             discountedPrice = basePrice - (basePrice * pkg.discountValue / 100);
           } else if (pkg.discountType === 'fixed' && pkg.discountValue) {
             discountedPrice = basePrice - pkg.discountValue;
           }
-          
+
           if (lowestPrice === null || basePrice < lowestPrice) {
             lowestPrice = basePrice;
           }
-          
+
           if (pkg.discountType !== 'none' && (lowestDiscountedPrice === null || discountedPrice < lowestDiscountedPrice)) {
             lowestDiscountedPrice = discountedPrice;
           }
@@ -294,12 +310,12 @@ router.get('/', async (req, res, next) => {
         lowestDiscountedPackagePrice: lowestDiscountedPrice !== lowestPrice ? lowestDiscountedPrice : null
       };
     });
-    
+
     if (priceFilter) {
       productsWithAvailability = productsWithAvailability.filter(product => {
         const price = product.lowestDiscountedPackagePrice || product.lowestPackagePrice;
         if (!price) return true;
-        
+
         if (minPrice && price < parseFloat(minPrice as string)) return false;
         if (maxPrice && price > parseFloat(maxPrice as string)) return false;
         return true;
@@ -383,22 +399,22 @@ router.get('/:id', async (req, res, next) => {
 
     const availabilities = product.availabilities || [];
     let availabilityStatus = 'AVAILABLE';
-    let nextAvailableDate = null; 
+    let nextAvailableDate = null;
     let availableDates: Date[] = [];
-    
+
     if (product.packages && product.packages.length > 0) {
       for (const pkg of product.packages) {
         const basePrice = pkg.basePrice;
-        
+
         let effectivePrice = basePrice;
         if (pkg.discountType === 'percentage' && pkg.discountValue) {
           effectivePrice = basePrice - (basePrice * pkg.discountValue / 100);
         } else if (pkg.discountType === 'fixed' && pkg.discountValue) {
           effectivePrice = basePrice - pkg.discountValue;
         }
-        
+
         pkg.effectivePrice = effectivePrice;
-        pkg.discountPercentage = pkg.discountType === 'percentage' ? pkg.discountValue : 
+        pkg.discountPercentage = pkg.discountType === 'percentage' ? pkg.discountValue :
           pkg.discountType === 'fixed' && basePrice > 0 ? (pkg.discountValue / basePrice) * 100 : 0;
       }
     }
@@ -453,16 +469,16 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
     const { blockedDates = [], itinerary = [], packages = [], accessibilityFeatures = [], isDraft = false, ...rest } = data;
 
     const baseSlug = generateSlug(rest.title ?? `draft-${Date.now()}`);
-    
+
     let slug = baseSlug;
     let slugExists = true;
     let counter = 1;
-    
+
     while (slugExists) {
-      const existingProduct = await prisma.product.findUnique({ 
-        where: { slug } 
+      const existingProduct = await prisma.product.findUnique({
+        where: { slug }
       });
-      
+
       if (!existingProduct) {
         slugExists = false;
       } else {
@@ -479,13 +495,13 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
         written: guide.written || false
       }));
     }
-    
+
     const cleanNullValues = (obj: any): any => {
       const cleaned = { ...obj };
-      
+
       if (cleaned.destinationId === null) cleaned.destinationId = undefined;
       if (cleaned.experienceCategoryId === null) cleaned.experienceCategoryId = undefined;
-      
+
       if (cleaned.itineraries?.create) {
         cleaned.itineraries.create = cleaned.itineraries.create.map((day: any) => ({
           ...day,
@@ -497,7 +513,7 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
           },
         }));
       }
-      
+
       return cleaned;
     };
 
@@ -506,7 +522,7 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
       if (data.meetingPoints && data.meetingPoints.length > 0) {
         meetingPointData = JSON.stringify(data.meetingPoints);
       }
-      
+
       const productData = {
         ...rest,
         slug,
@@ -518,7 +534,7 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
         serviceAnimalsAllowed: rest.serviceAnimalsAllowed ?? 'no',
         publicTransportAccess: rest.publicTransportAccess ?? 'no',
         infantSeatsRequired: rest.infantSeatsRequired ?? 'no',
-        infantSeatsAvailable: rest.infantSeatsAvailable ?? 'no', 
+        infantSeatsAvailable: rest.infantSeatsAvailable ?? 'no',
         isDraft,
         guides: data.guides || [],
         ...(blockedDates.length && {
@@ -540,6 +556,9 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
               activities: {
                 create: (day.activities || []).map(act => ({
                   location: act.location,
+                  locationLat: act.lat,
+                  locationLng: act.lng,
+                  locationPlaceId: act.placeId,
                   isStop: act.isStop ?? false,
                   stopDuration: act.stopDuration,
                   inclusions: act.inclusions ?? [],
@@ -551,13 +570,13 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
           }
         })
       };
-      
+
       if (rest.type === 'EXPERIENCE' && rest.experienceCategoryId) {
         productData.experienceCategoryId = rest.experienceCategoryId;
       } else {
         productData.experienceCategoryId = null;
       }
-      
+
       const createdProduct = await tx.product.create({
         data: cleanNullValues(productData)
       });
@@ -598,7 +617,9 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
               maxPeople: pkg.maxPeople,
               isActive: pkg.isActive ?? true,
               startDate: new Date(pkg.startDate),
-              endDate: pkg.endDate ? new Date(pkg.endDate) : null
+              endDate: pkg.endDate ? new Date(pkg.endDate) : null,
+              ageGroups: pkg.ageGroups === null ? undefined : pkg.ageGroups,
+              pricingType: pkg.pricingType
             }
           });
 
@@ -667,7 +688,7 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
     if (data.availabilityStartDate) {
       const startDate = new Date(data.availabilityStartDate);
       const endDate = data.availabilityEndDate || null;
-    
+
       if (product.packages && product.packages.length) {
         await Promise.all(
           product.packages.map(pkg =>
@@ -697,8 +718,8 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
     }
 
     res.status(201).json(product);
-    
-    await SitemapService.generateSitemap().catch(err => 
+
+    await SitemapService.generateSitemap().catch(err =>
       console.error('Error regenerating sitemap after product creation:', err)
     );
   } catch (error) {
@@ -711,34 +732,34 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
 router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, next) => {
   try {
     let data = productSchema.partial().parse(req.body);
-    
+
     const { blockedDates, itinerary, packages, ...rest } = data;
 
     if (data.guides) {
       data.guides = data.guides.map(guide => ({
-        language: guide.language, 
-        inPerson: guide.inPerson || false, 
-        audio: guide.audio || false, 
-        written: guide.written || false 
+        language: guide.language,
+        inPerson: guide.inPerson || false,
+        audio: guide.audio || false,
+        written: guide.written || false
       }));
     }
 
     let slug: string | undefined;
     if (rest.title) {
       const baseSlug = generateSlug(rest.title);
-      
+
       let tempSlug = baseSlug;
       let slugExists = true;
       let counter = 1;
-      
+
       while (slugExists) {
-        const existingProduct = await prisma.product.findFirst({ 
-          where: { 
+        const existingProduct = await prisma.product.findFirst({
+          where: {
             slug: tempSlug,
             id: { not: req.params.id }
-          } 
+          }
         });
-        
+
         if (!existingProduct) {
           slugExists = false;
           slug = tempSlug;
@@ -760,10 +781,10 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
       if (data.meetingPoints && data.meetingPoints.length > 0) {
         meetingPointData = JSON.stringify(data.meetingPoints);
       }
-      
+
       let updatedProduct = await tx.product.update({
         where: { id: req.params.id },
-        data: { 
+        data: {
           ...rest,
           meetingPoint: meetingPointData,
           endPoints: data.endPoints || [],
@@ -803,6 +824,9 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
                 activities: {
                   create: (day.activities || []).map(act => ({
                     location: act.location,
+                    locationLat: act.lat,
+                    locationLng: act.lng,
+                    locationPlaceId: act.placeId,
                     isStop: act.isStop ?? false,
                     stopDuration: act.stopDuration,
                     inclusions: act.inclusions ?? [],
@@ -818,7 +842,7 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
 
       if (packages && Array.isArray(packages)) {
         await tx.package.deleteMany({ where: { productId: req.params.id } });
-        
+
         for (const pkg of packages) {
           const createdPackage = await tx.package.create({
             data: {
@@ -833,7 +857,9 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
               maxPeople: pkg.maxPeople,
               isActive: pkg.isActive ?? true,
               startDate: new Date(pkg.startDate),
-              endDate: pkg.endDate ? new Date(pkg.endDate) : null
+              endDate: pkg.endDate ? new Date(pkg.endDate) : null,
+              ageGroups: pkg.ageGroups === null ? undefined : pkg.ageGroups,
+              pricingType: pkg.pricingType
             }
           });
 
@@ -934,8 +960,8 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
     }
 
     res.json(product);
-    
-    await SitemapService.generateSitemap().catch(err => 
+
+    await SitemapService.generateSitemap().catch(err =>
       console.error('Error regenerating sitemap after product update:', err)
     );
   } catch (error) {
@@ -952,8 +978,8 @@ router.delete('/:id', authenticate, authorize(['ADMIN']), async (req, res, next)
     });
 
     res.status(204).send();
-    
-    await SitemapService.generateSitemap().catch(err => 
+
+    await SitemapService.generateSitemap().catch(err =>
       console.error('Error regenerating sitemap after product deletion:', err)
     );
   } catch (error) {
@@ -966,7 +992,7 @@ router.get('/by-slug/:slug', async (req, res, next) => {
   try {
     const { slug } = req.params;
     console.log('Fetching product with slug:', slug);
-    
+
     const product = await prisma.product.findUnique({
       where: { slug },
       include: {
@@ -1034,22 +1060,22 @@ router.get('/by-slug/:slug', async (req, res, next) => {
 
     const availabilities = product.availabilities || [];
     let availabilityStatus = 'AVAILABLE';
-    let nextAvailableDate = null; 
+    let nextAvailableDate = null;
     let availableDates: Date[] = [];
-    
+
     if (product.packages && product.packages.length > 0) {
       for (const pkg of product.packages) {
         const basePrice = pkg.basePrice;
-        
+
         let effectivePrice = basePrice;
         if (pkg.discountType === 'percentage' && pkg.discountValue) {
           effectivePrice = basePrice - (basePrice * pkg.discountValue / 100);
         } else if (pkg.discountType === 'fixed' && pkg.discountValue) {
           effectivePrice = basePrice - pkg.discountValue;
         }
-        
+
         pkg.effectivePrice = effectivePrice;
-        pkg.discountPercentage = pkg.discountType === 'percentage' ? pkg.discountValue : 
+        pkg.discountPercentage = pkg.discountType === 'percentage' ? pkg.discountValue :
           pkg.discountType === 'fixed' && basePrice > 0 ? (pkg.discountValue / basePrice) * 100 : 0;
       }
     }
@@ -1089,7 +1115,7 @@ router.post('/:id/clone', authenticate, authorize(['ADMIN', 'EDITOR']), async (r
   try {
     const originalProduct = await prisma.product.findUnique({
       where: { id: req.params.id },
-      include: { 
+      include: {
         packages: {
           include: {
             slots: {
@@ -1099,7 +1125,7 @@ router.post('/:id/clone', authenticate, authorize(['ADMIN', 'EDITOR']), async (r
               }
             }
           }
-        }, 
+        },
         itineraries: {
           include: {
             activities: true,
@@ -1118,12 +1144,12 @@ router.post('/:id/clone', authenticate, authorize(['ADMIN', 'EDITOR']), async (r
     let slug = baseSlug;
     let slugExists = true;
     let counter = 1;
-    
+
     while (slugExists) {
-      const existingProduct = await prisma.product.findUnique({ 
-        where: { slug } 
+      const existingProduct = await prisma.product.findUnique({
+        where: { slug }
       });
-      
+
       if (!existingProduct) {
         slugExists = false;
       } else {
@@ -1133,7 +1159,7 @@ router.post('/:id/clone', authenticate, authorize(['ADMIN', 'EDITOR']), async (r
     }
 
     let newId: string;
-    
+
     do {
       newId = `LTC${counter.toString().padStart(3, '0')}`;
       const existingProduct = await prisma.product.findUnique({
@@ -1149,7 +1175,7 @@ router.post('/:id/clone', authenticate, authorize(['ADMIN', 'EDITOR']), async (r
       ...productData,
       id: newId,
       title: `${productData.title} (Copy)`,
-      productCode: `${productData.productCode}-COPY`, 
+      productCode: `${productData.productCode}-COPY`,
       slug,
       createdAt: currentTime,
       updatedAt: currentTime,
@@ -1161,7 +1187,8 @@ router.post('/:id/clone', authenticate, authorize(['ADMIN', 'EDITOR']), async (r
       availabilityEndDate: productData.availabilityEndDate === null ? undefined : productData.availabilityEndDate,
       additionalPickupDetails: productData.additionalPickupDetails === null ? undefined : productData.additionalPickupDetails,
       pickupStartTime: productData.pickupStartTime === null ? undefined : productData.pickupStartTime,
-      pickupLocationDetails: Array.isArray(productData.pickupLocationDetails) 
+      pickupLocationDetails: Array.isArray(productData.pickupLocationDetails)
+      
         ? productData.pickupLocationDetails.filter(item => item !== null)
         : [],
       accessibilityFeatures: Array.isArray(productData.accessibilityFeatures)
@@ -1188,7 +1215,7 @@ router.post('/:id/clone', authenticate, authorize(['ADMIN', 'EDITOR']), async (r
       pickupLocations: Array.isArray(productData.pickupLocations)
         ? productData.pickupLocations.filter(item => item !== null && item !== '')
         : [],
-      endPoints: Array.isArray(productData.endPoints) 
+      endPoints: Array.isArray(productData.endPoints)
         ? productData.endPoints.filter(item => item !== null)
         : [],
     };
@@ -1200,7 +1227,7 @@ router.post('/:id/clone', authenticate, authorize(['ADMIN', 'EDITOR']), async (r
 
       for (const pkg of packages) {
         const { id: pkgId, slots, ...packageData } = pkg;
-        
+
         const clonedPackage = await tx.package.create({
           data: {
             ...packageData,
@@ -1212,7 +1239,7 @@ router.post('/:id/clone', authenticate, authorize(['ADMIN', 'EDITOR']), async (r
 
         for (const slot of slots) {
           const { id: slotId, adultTiers, childTiers, ...slotData } = slot;
-          
+
           const clonedSlot = await tx.packageSlot.create({
             data: {
               ...slotData,
@@ -1248,14 +1275,14 @@ router.post('/:id/clone', authenticate, authorize(['ADMIN', 'EDITOR']), async (r
 
       for (const day of itineraries) {
         const { id: dayId, activities, ...dayData } = day;
-        
+
         const createdItinerary = await tx.itinerary.create({
           data: {
             ...dayData,
             productId: clonedProduct.id,
           }
         });
-      
+
         if (activities && activities.length > 0) {
           await tx.itineraryActivity.createMany({
             data: activities.map(act => {
@@ -1264,6 +1291,9 @@ router.post('/:id/clone', authenticate, authorize(['ADMIN', 'EDITOR']), async (r
                 ...actData,
                 itineraryId: createdItinerary.id,
                 stopDuration: actData.stopDuration === null ? undefined : actData.stopDuration,
+                locationLat: actData.locationLat || undefined,
+                locationLng: actData.locationLng || undefined,
+                locationPlaceId: actData.locationPlaceId || undefined,
               };
             })
           });
@@ -1272,7 +1302,7 @@ router.post('/:id/clone', authenticate, authorize(['ADMIN', 'EDITOR']), async (r
 
       return await tx.product.findUniqueOrThrow({
         where: { id: clonedProduct.id },
-        include: { 
+        include: {
           packages: {
             include: {
               slots: {
@@ -1282,7 +1312,7 @@ router.post('/:id/clone', authenticate, authorize(['ADMIN', 'EDITOR']), async (r
                 }
               }
             }
-          }, 
+          },
           itineraries: {
             include: {
               activities: true,

@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { Plus, Trash, PlusCircle, MinusCircle, Clock, Save, X } from 'lucide-react';
-
+import dayjs from 'dayjs'; 
 interface Package {
+  pricingType: string;
+  maxTravellersPerBooking?: number;
+  ageGroups: any;
   id?: string;
   name: string;
   description: string;
@@ -22,8 +25,8 @@ interface SchedulePriceTabProps {
   updateFormData: (updates: any) => void;
 }
 
-export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({ 
-  formData, 
+export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
+  formData,
   updateFormData,
 }) => {
   const [newInclusion, setNewInclusion] = useState('');
@@ -41,7 +44,13 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
     maxPeople: 10,
     isActive: true,
     startDate: new Date().toISOString().split('T')[0],
-    endDate: ''
+    endDate: '',
+    pricingType: 'per_person',
+    maxTravellersPerBooking: undefined,
+    ageGroups: {
+      adult: { enabled: true, min: 18, max: 99 },
+      child: { enabled: false, min: 6, max: 17 },
+    }
   });
   const [isAddingSlot, setIsAddingSlot] = useState(false);
   const [editingPackageId, setEditingPackageId] = useState<string | null>(null);
@@ -56,7 +65,75 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
     adultTiers: [{ min: 1, max: 10, price: 0, currency: 'INR' }],
     childTiers: [{ min: 1, max: 10, price: 0, currency: 'INR' }]
   });
+  const [editingSlotIndex, setEditingSlotIndex] = useState<number | null>(null);
+  const [autoSlot, setAutoSlot] = useState({
+    start: '',
+    end: '',
+    duration: 60,
+    durationUnit: 'minutes', // or 'hours'
+  });
+
+  const generateTimeSlots = (start: string, end: string, duration: number, unit: string) => {
+    console.log('generateTimeSlots called with:', { start, end, duration, unit });
+    
+    if (!start || !end || !duration || duration <= 0) {
+      console.log('Invalid inputs - returning empty array');
+      return [];
+    }
+    
+    const slots: string[] = [];
+    // Use today's date as base and parse the time
+    const today = dayjs().format('YYYY-MM-DD');
+    let current = dayjs(`${today} ${start}`);
+    const endTime = dayjs(`${today} ${end}`);
+    
+    // Handle case where end time is next day (e.g., start: 23:00, end: 01:00)
+    if (endTime.isBefore(current)) {
+      endTime.add(1, 'day');
+    }
+    
+    const step = unit === 'hours' ? duration * 60 : duration;
   
+    console.log('Parsed values:', {
+      currentValid: current.isValid(),
+      endTimeValid: endTime.isValid(),
+      currentTime: current.format('HH:mm'),
+      endTimeFormatted: endTime.format('HH:mm'),
+      step
+    });
+  
+    // Prevent infinite loop: start must be before end, and step must be positive
+    if (!current.isValid() || !endTime.isValid() || current.isAfter(endTime) || step <= 0) {
+      console.log('Validation failed - returning empty array');
+      return [];
+    }
+  
+    let safety = 0; // Safety counter to prevent infinite loop
+    while (current.isBefore(endTime) && safety < 100) {
+      const slotStart = current.format('HH:mm');
+      const slotEnd = current.add(step, 'minute');
+      
+      console.log(`Iteration ${safety}:`, {
+        slotStart,
+        slotEndTime: slotEnd.format('HH:mm'),
+        isAfterEnd: slotEnd.isAfter(endTime)
+      });
+      
+      // Check if the slot end time exceeds the end time
+      if (slotEnd.isAfter(endTime)) {
+        console.log('Slot end exceeds end time - breaking');
+        break;
+      }
+      
+      slots.push(`${slotStart} - ${slotEnd.format('HH:mm')}`);
+      current = slotEnd;
+      safety++;
+    }
+    
+    console.log('Generated slots:', slots);
+    return slots;
+  };
+
   // Days of the week for slot selection
   const daysOfWeek = [
     'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
@@ -65,7 +142,7 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
   const handlePackageChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     // Convert numeric fields to numbers
-    if (['basePrice', 'discountValue', 'maxPeople'].includes(name)) {
+    if (['basePrice', 'discountValue', 'maxPeople', 'maxTravellersPerBooking'].includes(name)) {
       setPackageFormData(prev => ({
         ...prev,
         [name]: name === 'discountValue' && value === '' ? 0 : Number(value)
@@ -117,7 +194,13 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
       isActive: true,
       startDate: new Date().toISOString().split('T')[0],
       endDate: '',
-      slotConfigs: []
+      slotConfigs: [],
+      pricingType: 'per_person',
+      maxTravellersPerBooking: undefined,
+      ageGroups: {
+        adult: { enabled: true, min: 18, max: 99 },
+        child: { enabled: false, min: 6, max: 17 },
+      }
     });
   };
 
@@ -127,31 +210,43 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
     setPackageFormData({
       ...packageData,
       startDate: packageData.startDate ? packageData.startDate.split('T')[0] : new Date().toISOString().split('T')[0],
-      endDate: packageData.endDate ? packageData.endDate.split('T')[0] : ''
+      endDate: packageData.endDate ? packageData.endDate.split('T')[0] : '',
+      maxTravellersPerBooking: packageData.maxTravellersPerBooking,
+      ageGroups: packageData.ageGroups || {
+        adult: { enabled: true, min: 18, max: 99 },
+        child: { enabled: false, min: 6, max: 17 },
+      }
     });
   };
 
   const handleSavePackage = () => {
     const updatedPackages = formData.packages ? [...formData.packages] : [];
-    
+
+    // Deep clone ageGroups to avoid reference issues
+    const ageGroups = {
+      adult: { ...(packageFormData.ageGroups?.adult || { enabled: true, min: 18, max: 99 }) },
+      child: { ...(packageFormData.ageGroups?.child || { enabled: false, min: 6, max: 17 }) }
+    };
+
     const packageToSave = {
       ...packageFormData,
+      pricingType: packageFormData.pricingType || 'per_person',
+      maxTravellersPerBooking: packageFormData.pricingType === 'per_group' ? packageFormData.maxTravellersPerBooking : undefined,
+      ageGroups, // Always use the new object
       basePrice: Number(packageFormData.basePrice),
       discountValue: Number(packageFormData.discountValue || 0),
       maxPeople: Number(packageFormData.maxPeople)
     };
-    
+
     if (isEditingPackage && editingPackageIndex !== null) {
-      // Update existing package
       updatedPackages[editingPackageIndex] = {
         ...updatedPackages[editingPackageIndex],
         ...packageToSave
       };
     } else {
-      // Add new package
       updatedPackages.push(packageToSave);
     }
-    
+
     updateFormData({ packages: updatedPackages });
     setIsAddingPackage(false);
     setIsEditingPackage(false);
@@ -167,7 +262,13 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
       maxPeople: 10,
       isActive: true,
       startDate: new Date().toISOString().split('T')[0],
-      endDate: ''
+      endDate: '',
+      pricingType: 'per_person',
+      maxTravellersPerBooking: undefined,
+      ageGroups: {
+        adult: { enabled: true, min: 18, max: 99 },
+        child: { enabled: false, min: 6, max: 17 },
+      }
     });
   };
 
@@ -181,17 +282,48 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
   const handleAddSlot = (packageId: string) => {
     setIsAddingSlot(true);
     setEditingPackageId(packageId);
+    setEditingSlotIndex(null); // Not editing, just adding
+
+    const pkg = formData.packages.find((p: any) => p.id === packageId);
+
+    setPackageFormData(pkg || packageFormData);
+
     setSlotFormData({
       times: [''],
       days: [],
-      adultTiers: [{ min: 1, max: 10, price: 0, currency: 'INR' }],
-      childTiers: [{ min: 1, max: 10, price: 0, currency: 'INR' }]
+      adultTiers: [{ min: 1, max: 10, price: 0, currency: (pkg?.currency || 'INR') }],
+      childTiers: [{ min: 1, max: 10, price: 0, currency: (pkg?.currency || 'INR') }]
     });
+  };
+
+  const handleEditSlot = (packageId: string, slotIndex: number) => {
+    setIsAddingSlot(true);
+    setEditingPackageId(packageId);
+    setEditingSlotIndex(slotIndex);
+
+    const pkg = formData.packages.find((p: any) => p.id === packageId);
+    setPackageFormData(pkg || packageFormData);
+
+    const slot = pkg?.slotConfigs?.[slotIndex];
+    setSlotFormData(slot
+      ? {
+        times: slot.times || [''],
+        days: slot.days || [],
+        adultTiers: slot.adultTiers || [{ min: 1, max: 10, price: 0, currency: (pkg?.currency || 'INR') }],
+        childTiers: slot.childTiers || [{ min: 1, max: 10, price: 0, currency: (pkg?.currency || 'INR') }]
+      }
+      : {
+        times: [''],
+        days: [],
+        adultTiers: [{ min: 1, max: 10, price: 0, currency: (pkg?.currency || 'INR') }],
+        childTiers: [{ min: 1, max: 10, price: 0, currency: (pkg?.currency || 'INR') }]
+      }
+    );
   };
 
   const handleSlotChange = (e: React.ChangeEvent<HTMLInputElement>, field: string, index: number) => {
     const { value } = e.target;
-    
+
     if (field === 'times') {
       const updatedTimes = [...slotFormData.times];
       updatedTimes[index] = value;
@@ -210,13 +342,13 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
   ) => {
     const { value } = e.target;
     const updatedTiers = [...slotFormData[tierType]];
-    
+
     if (field === 'min' || field === 'max' || field === 'price') {
       updatedTiers[tierIndex][field] = Number(value);
     } else {
       updatedTiers[tierIndex][field] = value;
     }
-    
+
     setSlotFormData(prev => ({
       ...prev,
       [tierType]: updatedTiers
@@ -256,8 +388,8 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
       const isSelected = prev.days.includes(day);
       return {
         ...prev,
-        days: isSelected 
-          ? prev.days.filter(d => d !== day) 
+        days: isSelected
+          ? prev.days.filter(d => d !== day)
           : [...prev.days, day]
       };
     });
@@ -268,12 +400,26 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
       alert('Please fill in all time slots and select at least one day');
       return;
     }
-    
+
+    const currency = packageFormData.currency;
+    const slotData = {
+      ...slotFormData,
+      adultTiers: slotFormData.adultTiers.map(tier => ({ ...tier, currency })),
+      childTiers: packageFormData.ageGroups?.child?.enabled
+        ? slotFormData.childTiers.map(tier => ({ ...tier, currency }))
+        : undefined,
+    };
+
     const updatedPackages = formData.packages.map((pkg: any) => {
       if (pkg.id === editingPackageId) {
         const updatedSlotConfigs = pkg.slotConfigs ? [...pkg.slotConfigs] : [];
-        updatedSlotConfigs.push(slotFormData);
-        
+        if (editingSlotIndex !== null) {
+          // Edit
+          updatedSlotConfigs[editingSlotIndex] = slotData;
+        } else {
+          // Add
+          updatedSlotConfigs.push(slotData);
+        }
         return {
           ...pkg,
           slotConfigs: updatedSlotConfigs
@@ -281,10 +427,11 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
       }
       return pkg;
     });
-    
+
     updateFormData({ packages: updatedPackages });
     setIsAddingSlot(false);
     setEditingPackageId(null);
+    setEditingSlotIndex(null);
     setSlotFormData({
       times: [''],
       days: [],
@@ -297,13 +444,13 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
     if (window.confirm('Are you sure you want to remove this slot?')) {
       const updatedPackages = [...formData.packages];
       const updatedSlotConfigs = [...updatedPackages[packageIndex].slotConfigs];
-      
+
       updatedSlotConfigs.splice(slotIndex, 1);
       updatedPackages[packageIndex] = {
         ...updatedPackages[packageIndex],
         slotConfigs: updatedSlotConfigs
       };
-      
+
       updateFormData({ packages: updatedPackages });
     }
   };
@@ -355,6 +502,24 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                         Max: {pkg.maxPeople} people
                       </span>
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                        {pkg.pricingType === 'per_person' ? 'Per Person' : 'Per Group'}
+                      </span>
+                      {pkg.pricingType === 'per_group' && pkg.maxTravellersPerBooking && (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                          Max Travellers/Booking: {pkg.maxTravellersPerBooking}
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-2 text-xs text-gray-700">
+                      <strong>Age Groups:</strong>
+                      {Object.entries(pkg.ageGroups || {}).map(([group, val]: any) =>
+                        val.enabled ? (
+                          <span key={group} className="ml-2">
+                            {group.charAt(0).toUpperCase() + group.slice(1)} ({val.min}-{val.max})
+                          </span>
+                        ) : null
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
@@ -374,7 +539,7 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
                     </button>
                   </div>
                 </div>
-                
+
                 {/* Slot Configurations */}
                 <div className="mt-4">
                   <div className="flex items-center justify-between mb-2">
@@ -388,7 +553,7 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
                       Add Slot
                     </button>
                   </div>
-                  
+
                   {pkg.slotConfigs && pkg.slotConfigs.length > 0 ? (
                     <div className="space-y-2">
                       {pkg.slotConfigs.map((slot: any, slotIndex: number) => (
@@ -418,6 +583,13 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
                               </div>
                             )}
                           </div>
+                          <button
+                            type="button"
+                            onClick={() => handleEditSlot(pkg.id!, slotIndex)}
+                            className="text-blue-600 hover:text-blue-800 "
+                          >
+                            Edit
+                          </button>
                           <button
                             type="button"
                             onClick={() => handleRemoveSlot(index, slotIndex)}
@@ -461,7 +633,7 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
                 <X className="h-6 w-6" />
               </button>
             </div>
-            
+
             <div className="p-6 space-y-6">
               {/* Package Form */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -479,10 +651,10 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
                     required
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Max People *
+                    Max Travellers per booking *
                   </label>
                   <input
                     type="number"
@@ -495,7 +667,7 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
                   />
                 </div>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Description *
@@ -510,7 +682,102 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
                   required
                 />
               </div>
-              
+
+              {/* Pricing Type and Age Groups */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  How do you price your product?
+                </label>
+                <div className="flex items-center gap-6 mb-2">
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="pricingType"
+                      value="per_person"
+                      checked={packageFormData.pricingType === 'per_person'}
+                      onChange={() => setPackageFormData(prev => ({ ...prev, pricingType: 'per_person', maxTravellersPerBooking: undefined }))}
+                      className="h-4 w-4 text-[#ff914d] border-gray-300"
+                    />
+                    <span className="ml-2 text-sm">Per person</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="pricingType"
+                      value="per_group"
+                      checked={packageFormData.pricingType === 'per_group'}
+                      onChange={() => setPackageFormData(prev => ({ ...prev, pricingType: 'per_group' }))}
+                      className="h-4 w-4 text-[#ff914d] border-gray-300"
+                    />
+                    <span className="ml-2 text-sm">Per vehicle/group</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Define the age groups that can participate
+                </label>
+                <div className="space-y-2">
+                  {(['adult', 'child'] as const).map(group => (
+                    <div key={group} className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={packageFormData.ageGroups?.[group]?.enabled ?? (group === 'adult')}
+                        disabled={group === 'adult'}
+                        onChange={e => setPackageFormData(prev => ({
+                          ...prev,
+                          ageGroups: {
+                            ...prev.ageGroups,
+                            [group]: {
+                              ...(prev.ageGroups?.[group] || {}),
+                              enabled: e.target.checked
+                            }
+                          }
+                        }))}
+                        className="h-4 w-4 text-[#ff914d] border-gray-300"
+                      />
+                      <span className="w-16 capitalize">{group}</span>
+                      <input
+                        type="number"
+                        min={0}
+                        value={packageFormData.ageGroups?.[group]?.min ?? (group === 'adult' ? 18 : '')}
+                        onChange={e => setPackageFormData(prev => ({
+                          ...prev,
+                          ageGroups: {
+                            ...prev.ageGroups,
+                            [group]: {
+                              ...(prev.ageGroups?.[group] || {}),
+                              min: Number(e.target.value)
+                            }
+                          }
+                        }))}
+                        className="w-16 px-2 py-1 border border-gray-300 rounded-md"
+                        placeholder="Min age"
+                      />
+                      <span>-</span>
+                      <input
+                        type="number"
+                        min={0}
+                        value={packageFormData.ageGroups?.[group]?.max ?? (group === 'adult' ? 99 : '')}
+                        onChange={e => setPackageFormData(prev => ({
+                          ...prev,
+                          ageGroups: {
+                            ...prev.ageGroups,
+                            [group]: {
+                              ...(prev.ageGroups?.[group] || {}),
+                              max: Number(e.target.value)
+                            }
+                          }
+                        }))}
+                        className="w-16 px-2 py-1 border border-gray-300 rounded-md"
+                        placeholder="Max age"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -539,7 +806,7 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
                     />
                   </div>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Discount Type
@@ -555,7 +822,7 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
                     <option value="fixed">Fixed Amount</option>
                   </select>
                 </div>
-                
+
                 {packageFormData.discountType !== 'none' && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -573,30 +840,30 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
                   </div>
                 )}
               </div>
-              
+
               {/* Effective Price Display */}
               {packageFormData.discountType !== 'none' && packageFormData.discountValue > 0 && (
                 <div className="bg-green-50 border border-green-200 rounded-md p-3">
                   <p className="text-sm text-green-800">
                     <span className="font-medium">Effective Price: </span>
-                    {packageFormData.currency === 'INR' ? '₹' : 
-                     packageFormData.currency === 'USD' ? '$' : 
-                     packageFormData.currency === 'EUR' ? '€' : '£'}
+                    {packageFormData.currency === 'INR' ? '₹' :
+                      packageFormData.currency === 'USD' ? '$' :
+                        packageFormData.currency === 'EUR' ? '€' : '£'}
                     {calculateEffectivePrice(
-                      packageFormData.basePrice, 
-                      packageFormData.discountType, 
+                      packageFormData.basePrice,
+                      packageFormData.discountType,
                       packageFormData.discountValue
                     ).toLocaleString()}
                     <span className="text-gray-500 ml-2 line-through">
-                      {packageFormData.currency === 'INR' ? '₹' : 
-                       packageFormData.currency === 'USD' ? '$' : 
-                       packageFormData.currency === 'EUR' ? '€' : '£'}
+                      {packageFormData.currency === 'INR' ? '₹' :
+                        packageFormData.currency === 'USD' ? '$' :
+                          packageFormData.currency === 'EUR' ? '€' : '£'}
                       {packageFormData.basePrice.toLocaleString()}
                     </span>
                   </p>
                 </div>
               )}
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -611,7 +878,7 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
                     required
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     End Date
@@ -627,7 +894,7 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
                   <p className="text-xs text-gray-500 mt-1">Leave empty for no end date</p>
                 </div>
               </div>
-              
+
               <div>
                 <label className="flex items-center">
                   <input
@@ -640,7 +907,7 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
                   <span className="ml-2 text-sm text-gray-700">Active (available for booking)</span>
                 </label>
               </div>
-              
+
               {/* Inclusions */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -687,7 +954,7 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
                   <p className="text-sm text-gray-500 italic">No inclusions added</p>
                 )}
               </div>
-              
+
               {/* Save Button */}
               <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
                 <button
@@ -734,9 +1001,69 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
                 <X className="h-6 w-6" />
               </button>
             </div>
-            
+
             <div className="p-6 space-y-6">
               {/* Time Slots */}
+              <div className="mb-4 p-3 bg-blue-50 rounded">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Start Time</label>
+              <input
+                type="time"
+                value={autoSlot.start}
+                onChange={e => setAutoSlot(prev => ({ ...prev, start: e.target.value }))}
+                className="w-full px-2 py-1 border border-gray-300 rounded-md"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">End Time</label>
+              <input
+                type="time"
+                value={autoSlot.end}
+                onChange={e => setAutoSlot(prev => ({ ...prev, end: e.target.value }))}
+                className="w-full px-2 py-1 border border-gray-300 rounded-md"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Duration</label>
+              <input
+                type="number"
+                min={1}
+                value={autoSlot.duration}
+                onChange={e => setAutoSlot(prev => ({ ...prev, duration: Number(e.target.value) }))}
+                className="w-full px-2 py-1 border border-gray-300 rounded-md"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Unit</label>
+              <select
+                value={autoSlot.durationUnit}
+                onChange={e => setAutoSlot(prev => ({ ...prev, durationUnit: e.target.value }))}
+                className="w-full px-2 py-1 border border-gray-300 rounded-md"
+              >
+                <option value="minutes">Minutes</option>
+                <option value="hours">Hours</option>
+              </select>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="mt-3 px-4 py-2 bg-[#ff914d] text-white rounded hover:bg-[#e8823d] text-sm"
+            onClick={() => {
+              const slots = generateTimeSlots(autoSlot.start, autoSlot.end, autoSlot.duration, autoSlot.durationUnit);
+              if (slots.length === 0) {
+                alert('No slots generated. Please check your inputs.');
+                return;
+              }
+              setSlotFormData(prev => ({
+                ...prev,
+                times: slots
+              }));
+            }}
+          >
+            Auto-generate Time Slots
+          </button>
+        </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Time Slots *
@@ -771,12 +1098,22 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
                   </button>
                 </div>
               </div>
-              
+
               {/* Days of Week */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Days Available *
                 </label>
+                <button
+                  type="button"
+                  className="mb-2 px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs"
+                  onClick={() => setSlotFormData(prev => ({
+                    ...prev,
+                    days: prev.days.length === daysOfWeek.length ? [] : [...daysOfWeek]
+                  }))}
+                >
+                  {slotFormData.days.length === daysOfWeek.length ? 'Clear All' : 'Select All'}
+                </button>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {daysOfWeek.map(day => (
                     <label key={day} className="flex items-center">
@@ -791,7 +1128,7 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
                   ))}
                 </div>
               </div>
-              
+
               {/* Adult Pricing Tiers */}
               <div>
                 <div className="flex items-center justify-between mb-3">
@@ -822,27 +1159,17 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
                           className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-sm"
                         />
                       </div>
-                      <div className="flex-1">
-                        <label className="block text-xs font-medium text-gray-700 mb-1">Price</label>
-                        <div className="flex">
-                          <select
-                            value={tier.currency}
-                            onChange={(e) => handleTierChange(e, 'adultTiers', index, 'currency')}
-                            className="px-2 py-1 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-sm"
-                          >
-                            <option value="INR">₹</option>
-                            <option value="USD">$</option>
-                            <option value="EUR">€</option>
-                            <option value="GBP">£</option>
-                          </select>
-                          <input
-                            type="number"
-                            min={0}
-                            value={tier.price}
-                            onChange={(e) => handleTierChange(e, 'adultTiers', index, 'price')}
-                            className="w-full px-2 py-1 border-y border-r border-gray-300 rounded-r-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-sm"
-                          />
-                        </div>
+                      <div className="flex">
+                        <span className="px-2 py-1 border border-gray-300 rounded-l-md bg-gray-100 text-sm flex items-center">
+                          {packageFormData.currency}
+                        </span>
+                        <input
+                          type="number"
+                          min={0}
+                          value={tier.price}
+                          onChange={(e) => handleTierChange(e, 'adultTiers', index, 'price')}
+                          className="w-full px-2 py-1 border-y border-r border-gray-300 rounded-r-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-sm"
+                        />
                       </div>
                       <button
                         type="button"
@@ -864,87 +1191,79 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
                   </button>
                 </div>
               </div>
-              
+
               {/* Child Pricing Tiers */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <label className="text-sm font-medium text-gray-700">
-                    Child Pricing Tiers *
-                  </label>
-                  <span className="text-xs text-gray-500">
-                    Consider accessibility needs for children
-                  </span>
-                </div>
-                <div className="space-y-3">
-                  {slotFormData.childTiers.map((tier, index) => (
-                    <div key={index} className="flex items-center gap-2 p-3 rounded-md bg-green-50">
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">Min Age</label>
-                        <input
-                          type="number"
-                          min={0}
-                          value={tier.min}
-                          onChange={(e) => handleTierChange(e, 'childTiers', index, 'min')}
-                          className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-sm"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">Max Age</label>
-                        <input
-                          type="number"
-                          min={tier.min}
-                          max={17}
-                          value={tier.max}
-                          onChange={(e) => handleTierChange(e, 'childTiers', index, 'max')}
-                          className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-sm"
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <label className="block text-xs font-medium text-gray-700 mb-1">Price</label>
+              {packageFormData.ageGroups?.child?.enabled && (
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="text-sm font-medium text-gray-700">
+                      Child Pricing Tiers *
+                    </label>
+                    <span className="text-xs text-gray-500">
+                      Consider accessibility needs for children
+                    </span>
+                  </div>
+                  <div className="space-y-3">
+                    {slotFormData.childTiers.map((tier, index) => (
+                      <div key={index} className="flex items-center gap-2 p-3 rounded-md bg-green-50">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">Min </label>
+                          <input
+                            type="number"
+                            min={0}
+                            value={tier.min}
+                            onChange={(e) => handleTierChange(e, 'childTiers', index, 'min')}
+                            className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">Max </label>
+                          <input
+                            type="number"
+                            min={tier.min}
+                            max={17}
+                            value={tier.max}
+                            onChange={(e) => handleTierChange(e, 'childTiers', index, 'max')}
+                            className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-sm"
+                          />
+                        </div>
                         <div className="flex">
-                          <select
-                            value={tier.currency}
-                            onChange={(e) => handleTierChange(e, 'childTiers', index, 'currency')}
-                            className="px-2 py-1 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-sm"
-                          >
-                            <option value="INR">₹</option>
-                            <option value="USD">$</option>
-                            <option value="EUR">€</option>
-                            <option value="GBP">£</option>
-                          </select>
+                          <span className="px-2 py-1 border border-gray-300 rounded-l-md bg-gray-100 text-sm flex items-center">
+                            {packageFormData.currency}
+                          </span>
                           <input
                             type="number"
                             min={0}
                             value={tier.price}
-                            onChange={(e) => handleTierChange(e, 'childTiers', index, 'price')}
+                            onChange={(e) => handleTierChange(e, 'adultTiers', index, 'price')}
                             className="w-full px-2 py-1 border-y border-r border-gray-300 rounded-r-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-sm"
                           />
                         </div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveTier('childTiers', index)}
+                          disabled={slotFormData.childTiers.length <= 1}
+                          className="p-2 text-red-600 hover:text-red-800 disabled:text-gray-400 disabled:cursor-not-allowed self-end"
+                        >
+                          <MinusCircle className="h-5 w-5" />
+                        </button>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveTier('childTiers', index)}
-                        disabled={slotFormData.childTiers.length <= 1}
-                        className="p-2 text-red-600 hover:text-red-800 disabled:text-gray-400 disabled:cursor-not-allowed self-end"
-                      >
-                        <MinusCircle className="h-5 w-5" />
-                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => handleAddTier('childTiers')}
+                      className="flex items-center text-blue-600 hover:text-blue-800 text-xs"
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Add Tier
+                    </button>
+                    <div className="text-xs text-gray-500 bg-blue-50 p-2 rounded-md">
+                      <strong>Note:</strong> Consider special pricing for children with accessibility needs or those requiring additional assistance
                     </div>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() => handleAddTier('childTiers')}
-                    className="flex items-center text-blue-600 hover:text-blue-800 text-xs"
-                  >
-                    <Plus className="h-3 w-3 mr-1" />
-                    Add Tier
-                  </button>
-                  <div className="text-xs text-gray-500 bg-blue-50 p-2 rounded-md">
-                    <strong>Note:</strong> Consider special pricing for children with accessibility needs or those requiring additional assistance
                   </div>
                 </div>
-              </div>
-              
+              )}
+
               {/* Save Button */}
               <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
                 <button

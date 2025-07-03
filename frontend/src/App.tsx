@@ -73,6 +73,7 @@ function App() {
       productId: open.cartData.productId,
       productTitle: open.cartData.productTitle || '',
       date: open.cartData.selectedDate || new Date().toISOString(),
+      selectedTimeSlot: open.cartData.selectedTimeSlot || '',
     });
   }, [email]);
 

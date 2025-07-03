@@ -152,7 +152,7 @@ export const ProductDetail = () => {
       navigate(`/p/${currentProduct.slug}`, { replace: true });
     }
   }, [id, slug, currentProduct, navigate]);
-
+  
   useEffect(() => {
     if (currentProduct) {
       trackProductView(

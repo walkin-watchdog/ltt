@@ -3,6 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { X, Save, Plus } from 'lucide-react';
 import { useToast } from '../ui/toaster';
 import { ImageUploader } from '../gallery/ImageUploader';
+import { LocationAutocomplete } from '../ui/LocationAutocomplete';
 
 interface Destination {
   id: string;
@@ -208,13 +209,19 @@ export const DestinationModal = ({ isOpen, onClose, onSelect, onCreated }: Desti
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Destination Name *
                 </label>
-                <input
-                  type="text"
-                  value={newDestination.name}
-                  onChange={(e) => setNewDestination(prev => ({ ...prev, name: e.target.value }))}
+                <LocationAutocomplete
+                  value={newDestination.name || ''}
+                  onChange={(location, lat, lng, placeId) => {
+                    setNewDestination(prev => ({ 
+                      ...prev, 
+                      name: location,
+                      lat,
+                      lng,
+                      placeId
+                    }));
+                  }}
+                  placeholder="Search for a destination..."
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                  placeholder="e.g., Delhi"
-                  required
                 />
               </div>
               

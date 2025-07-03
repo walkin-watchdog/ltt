@@ -126,8 +126,11 @@ model ItineraryActivity {
   id          String   @id @default(cuid())
   itineraryId String
   location    String
+  locationLat Float?   
+  locationLng Float?   
+  locationPlaceId String? 
   isStop      Boolean  @default(false)
-  stopDuration Int?    // Stop duration in minutes
+  stopDuration Int?    
   inclusions  String[]
   exclusions  String[]
   order       Int      @default(0)
@@ -153,6 +156,8 @@ model Package {
   isActive    Boolean @default(true)
   startDate   DateTime @default(now())
   endDate     DateTime?
+  pricingType String @default("per_person") // "per_person" or "per_group"
+  ageGroups Json?
   
   availabilities Availability[] @relation("PackageAvailability")
   product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
@@ -435,6 +440,9 @@ enum RequestStatus {
 model Destination {
   id          String   @id @default(cuid())
   name        String   @unique
+  lat         Float?
+  lng         Float?
+  placeId     String?  
   slug        String   @unique
   tagline     String
   description String
@@ -473,7 +481,7 @@ model TeamMember {
   description String
   imageUrl    String?
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  updatedAt   DateTime @default(now())
 }
 
 model FAQ {

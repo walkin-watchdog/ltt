@@ -7,6 +7,9 @@ const router = express.Router();
 
 const destinationSchema = z.object({
   name: z.string().min(1),
+  lat: z.number().optional(),
+  lng: z.number().optional(),
+  placeId: z.string().optional(),
   tagline: z.string().min(1),
   description: z.string().min(1),
   image: z.string().min(1),
