@@ -9,7 +9,12 @@ interface TranslationContextValue {
 const TranslationContext = createContext<TranslationContextValue | null>(null);
 
 export const TranslationProvider: React.FC<React.PropsWithChildren<{}>> = ({ children }) => {
-  const [lang, setLang] = useState<string>('en');
+  const [lang, setLangState] = useState<string>(() => localStorage.getItem('lang') ?? 'en');
+
+  const setLang = (l: string) => {
+    localStorage.setItem('lang', l);
+    setLangState(l);
+  };
 
   const t = useMemo(() => {
     return async (text: string | string[]) => {

@@ -632,7 +632,6 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
                     min: tier.min,
                     max: tier.max,
                     price: tier.price,
-                    currency: pkg.currency ?? 'INR'
                   }))
                 });
               }
@@ -644,7 +643,6 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
                     min: tier.min,
                     max: tier.max,
                     price: tier.price,
-                    currency: pkg.currency ?? 'INR'
                   }))
                 });
               }
@@ -872,7 +870,6 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
                     min: tier.min,
                     max: tier.max,
                     price: tier.price,
-                    currency: pkg.currency ?? 'INR'
                   }))
                 });
               }
@@ -884,7 +881,6 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
                     min: tier.min,
                     max: tier.max,
                     price: tier.price,
-                    currency: pkg.currency ?? 'INR'
                   }))
                 });
               }

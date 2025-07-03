@@ -121,7 +121,7 @@ function App() {
                 <Route path="/blog/category/:slug" element={<BlogCategory />} />
                 <Route path="/blog/tag/:slug" element={<BlogTag />} />
                 <Route path="/product/:id" element={<ProductDetail />} />
-              <Route path="/p/:slug" element={<ProductDetail />} />
+                <Route path="/p/:slug" element={<ProductDetail />} />
                 <Route path="/offers" element={<SpecialOffers />} />
                 <Route path="/plan-your-trip" element={<PlanYourTrip />} />
                 <Route path="/contact" element={<Contact />} />

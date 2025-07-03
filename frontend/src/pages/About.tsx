@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Users, Award, Globe, Heart, Loader } from 'lucide-react';
+import { Users, Award, Globe, Heart } from 'lucide-react';
 import { SEOHead } from '../components/seo/SEOHead';
+import { useTranslation } from '../contexts/TranslationContext';
+import { translateFields } from '../utils/translate';
+
 
 interface TeamMember {
   id: string;
@@ -13,14 +16,19 @@ interface TeamMember {
 export const About = () => {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
+  const { t } = useTranslation();
   useEffect(() => {
     const fetchTeamMembers = async () => {
       setIsLoading(true);
       try {
         const response = await fetch(`${import.meta.env.VITE_API_URL}/about`);
         if (response.ok) {
-          const data = await response.json();
+          const raw = await response.json();
+          const data = await Promise.all(
+            raw.map((m: TeamMember) =>
+              translateFields(m, ['jobTitle', 'description'], (s: string) => t(s) as Promise<string>)
+            )
+          );
           setTeamMembers(data);
         }
       } catch (error) {
@@ -31,7 +39,7 @@ export const About = () => {
     };
     
     fetchTeamMembers();
-  }, []);
+  }, [t]);
 
   const achievements = [
     { icon: Award, title: '500+ Happy Travelers', description: 'Consistently rated 5 stars by our guests' },
