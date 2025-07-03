@@ -95,7 +95,6 @@ export const BookingFlow = () => {
       setFormData(updatedFormData);
     }
   }, [currentProduct, searchParams]);
-  console.log('Initial form data:', formData);
 
   const calculateTotal = useCallback(() => {
     const basePrice = formData.selectedPackage?.basePrice || 0;
@@ -197,7 +196,6 @@ export const BookingFlow = () => {
     if (recoveryData) {
       try {
         const cartData = JSON.parse(recoveryData);
-        console.log('Recovered cart data:', cartData);
         if (cartData.productId === productId) {
           // Pre-fill customer data from abandoned cart
           setFormData(prev => ({

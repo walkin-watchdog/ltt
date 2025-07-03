@@ -57,13 +57,13 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
   const [slotFormData, setSlotFormData] = useState<{
     times: string[];
     days: string[];
-    adultTiers: { min: number; max: number; price: number; currency: string }[];
-    childTiers: { min: number; max: number; price: number; currency: string }[];
+    adultTiers: { min: number; max: number; price: number }[];
+    childTiers: { min: number; max: number; price: number }[];
   }>({
     times: [''],
     days: [],
-    adultTiers: [{ min: 1, max: 10, price: 0, currency: 'INR' }],
-    childTiers: [{ min: 1, max: 10, price: 0, currency: 'INR' }]
+    adultTiers: [{ min: 1, max: 10, price: 0 }],
+    childTiers: [{ min: 1, max: 10, price: 0 }]
   });
   const [editingSlotIndex, setEditingSlotIndex] = useState<number | null>(null);
   const [autoSlot, setAutoSlot] = useState({
@@ -82,14 +82,14 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
     }
     
     const slots: string[] = [];
-    // Use today's date as base and parse the time
     const today = dayjs().format('YYYY-MM-DD');
-    let current = dayjs(`${today} ${start}`);
-    const endTime = dayjs(`${today} ${end}`);
+    let current = dayjs(`${today}T${start}`);
+    let endTime = dayjs(`${today}T${end}`);
+
     
     // Handle case where end time is next day (e.g., start: 23:00, end: 01:00)
     if (endTime.isBefore(current)) {
-      endTime.add(1, 'day');
+      endTime = endTime.add(1, 'day');
     }
     
     const step = unit === 'hours' ? duration * 60 : duration;
@@ -196,7 +196,7 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
       endDate: '',
       slotConfigs: [],
       pricingType: 'per_person',
-      maxTravellersPerBooking: undefined,
+      maxTravellersPerBooking: 10,
       ageGroups: {
         adult: { enabled: true, min: 18, max: 99 },
         child: { enabled: false, min: 6, max: 17 },
@@ -264,7 +264,7 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
       startDate: new Date().toISOString().split('T')[0],
       endDate: '',
       pricingType: 'per_person',
-      maxTravellersPerBooking: undefined,
+      maxTravellersPerBooking: 10,
       ageGroups: {
         adult: { enabled: true, min: 18, max: 99 },
         child: { enabled: false, min: 6, max: 17 },
@@ -291,8 +291,8 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
     setSlotFormData({
       times: [''],
       days: [],
-      adultTiers: [{ min: 1, max: 10, price: 0, currency: (pkg?.currency || 'INR') }],
-      childTiers: [{ min: 1, max: 10, price: 0, currency: (pkg?.currency || 'INR') }]
+      adultTiers: [{ min: 1, max: 10, price: 0 }],
+      childTiers: [{ min: 1, max: 10, price: 0 }]
     });
   };
 
@@ -309,14 +309,14 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
       ? {
         times: slot.times || [''],
         days: slot.days || [],
-        adultTiers: slot.adultTiers || [{ min: 1, max: 10, price: 0, currency: (pkg?.currency || 'INR') }],
-        childTiers: slot.childTiers || [{ min: 1, max: 10, price: 0, currency: (pkg?.currency || 'INR') }]
+        adultTiers: slot.adultTiers || [{ min: 1, max: 10, price: 0 }],
+        childTiers: slot.childTiers || [{ min: 1, max: 10, price: 0 }]
       }
       : {
         times: [''],
         days: [],
-        adultTiers: [{ min: 1, max: 10, price: 0, currency: (pkg?.currency || 'INR') }],
-        childTiers: [{ min: 1, max: 10, price: 0, currency: (pkg?.currency || 'INR') }]
+        adultTiers: [{ min: 1, max: 10, price: 0 }],
+        childTiers: [{ min: 1, max: 10, price: 0 }]
       }
     );
   };
@@ -338,7 +338,7 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
     tierType: 'adultTiers' | 'childTiers',
     tierIndex: number,
-    field: 'min' | 'max' | 'price' | 'currency'
+    field: 'min' | 'max' | 'price'
   ) => {
     const { value } = e.target;
     const updatedTiers = [...slotFormData[tierType]];
@@ -358,7 +358,7 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
   const handleAddTier = (tierType: 'adultTiers' | 'childTiers') => {
     setSlotFormData(prev => ({
       ...prev,
-      [tierType]: [...prev[tierType], { min: 1, max: 10, price: 0, currency: 'INR' }]
+      [tierType]: [...prev[tierType], { min: 1, max: 10, price: 0 }]
     }));
   };
 
@@ -401,12 +401,11 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
       return;
     }
 
-    const currency = packageFormData.currency;
     const slotData = {
       ...slotFormData,
-      adultTiers: slotFormData.adultTiers.map(tier => ({ ...tier, currency })),
+      adultTiers: slotFormData.adultTiers,
       childTiers: packageFormData.ageGroups?.child?.enabled
-        ? slotFormData.childTiers.map(tier => ({ ...tier, currency }))
+        ? slotFormData.childTiers
         : undefined,
     };
 
@@ -435,8 +434,8 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
     setSlotFormData({
       times: [''],
       days: [],
-      adultTiers: [{ min: 1, max: 10, price: 0, currency: 'INR' }],
-      childTiers: [{ min: 1, max: 10, price: 0, currency: 'INR' }]
+      adultTiers: [{ min: 1, max: 10, price: 0 }],
+      childTiers: [{ min: 1, max: 10, price: 0 }]
     });
   };
 
@@ -571,14 +570,14 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
                             {slot.adultTiers && slot.adultTiers.length > 0 && (
                               <div className="text-xs text-gray-500">
                                 Adult: {slot.adultTiers.map((tier: any) => (
-                                  `${tier.min}-${tier.max}: ${tier.currency} ${tier.price}`
+                                  `${tier.min}-${tier.max}: ${pkg.currency} ${tier.price}`
                                 )).join(', ')}
                               </div>
                             )}
                             {slot.childTiers && slot.childTiers.length > 0 && (
                               <div className="text-xs text-gray-500">
                                 Child: {slot.childTiers.map((tier: any) => (
-                                  `${tier.min}-${tier.max}: ${tier.currency} ${tier.price}`
+                                  `${tier.min}-${tier.max}: ${pkg.currency} ${tier.price}`
                                 )).join(', ')}
                               </div>
                             )}
@@ -709,7 +708,7 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
                       onChange={() => setPackageFormData(prev => ({ ...prev, pricingType: 'per_group' }))}
                       className="h-4 w-4 text-[#ff914d] border-gray-300"
                     />
-                    <span className="ml-2 text-sm">Per vehicle/group</span>
+                    <span className="ml-2 text-sm">Per vehicle / group</span>
                   </label>
                 </div>
               </div>
@@ -1235,7 +1234,7 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
                             type="number"
                             min={0}
                             value={tier.price}
-                            onChange={(e) => handleTierChange(e, 'adultTiers', index, 'price')}
+                            onChange={(e) => handleTierChange(e, 'childTiers', index, 'price')}
                             className="w-full px-2 py-1 border-y border-r border-gray-300 rounded-r-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-sm"
                           />
                         </div>

@@ -398,7 +398,7 @@ export const ProductForm = () => {
   }
 
   return (
-    <div className={`space-y-6 ${!isEdit && formData.isDraft ? 'bg-yellow-50 border border-yellow-300 p-4 rounded-lg' : ''}`}>
+    <div className={`space-y-6 ${isEdit && formData.isDraft ? 'bg-yellow-50 border border-yellow-300 p-4 rounded-lg' : ''}`}>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center">
@@ -422,37 +422,33 @@ export const ProductForm = () => {
         <div className="flex items-center space-x-3">
           {/* Draft Toggle */}
           <div className="flex items-center space-x-2">
-            {!isEdit && (
-                <>
-                  <span
-                    className={`text-sm font-medium ${
-                      formData.isDraft ? 'text-yellow-800' : 'text-gray-500'
-                    }`}
-                  >
-                    Draft
-                  </span>
-                  <button
-                    onClick={() =>
-                        updateFormData({
-                          isDraft: !formData.isDraft,
-                          ...( !formData.isDraft
-                              ? { isActive: false }
-                              : { isActive: true }
-                          ),
-                        })
-                      }
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                      formData.isDraft ? 'bg-[#ff914d]' : 'bg-gray-200'
-                    }`}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                        formData.isDraft ? 'translate-x-1' : 'translate-x-6'
-                      }`}
-                    />
-                  </button>
-                </>
-              )}
+            <span
+              className={`text-sm font-medium ${
+                formData.isDraft ? 'text-yellow-800' : 'text-gray-500'
+              }`}
+            >
+              Draft
+            </span>
+            <button
+              onClick={() =>
+                  updateFormData({
+                    isDraft: !formData.isDraft,
+                    ...( !formData.isDraft
+                        ? { isActive: false }
+                        : { isActive: true }
+                    ),
+                  })
+                }
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                formData.isDraft ? 'bg-[#ff914d]' : 'bg-gray-200'
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  formData.isDraft ? 'translate-x-1' : 'translate-x-6'
+                }`}
+              />
+            </button>
           </div>
           {/* Status Toggle */}
           <div className="flex items-center space-x-2">
@@ -498,10 +494,12 @@ export const ProductForm = () => {
             <Save className="h-4 w-4 mr-2" />
             {isSaving
               ? 'Saving...'
+              : isEdit && formData.isDraft
+              ? 'Update Draft'
               : isEdit
               ? 'Update Product'
               : formData.isDraft
-              ? 'Save Draft'
+              ? 'Create Draft'
               : 'Create Product'}
           </button>
         </div>

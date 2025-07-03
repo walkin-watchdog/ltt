@@ -94,18 +94,12 @@ const productSchema = z.object({
       adultTiers: z.array(z.object({
         min: z.union([z.number(), z.string().transform(val => Number(val))]),
         max: z.union([z.number(), z.string().transform(val => Number(val))]),
-        price: z.union([z.number(), z.string().transform(val => Number(val))]),
-        discountType: z.enum(['none', 'percentage', 'fixed']).optional().default('none'),
-        discountValue: z.union([z.number().min(0), z.string().transform(val => Number(val))]).optional().default(0),
-        currency: z.string()
+        price: z.union([z.number(), z.string().transform(val => Number(val))])
       })),
       childTiers: z.array(z.object({
         min: z.union([z.number(), z.string().transform(val => Number(val))]),
         max: z.union([z.number(), z.string().transform(val => Number(val))]),
-        price: z.union([z.number(), z.string().transform(val => Number(val))]),
-        discountType: z.enum(['none', 'percentage', 'fixed']).optional().default('none'),
-        discountValue: z.union([z.number().min(0), z.string().transform(val => Number(val))]).optional().default(0),
-        currency: z.string()
+        price: z.union([z.number(), z.string().transform(val => Number(val))])
       })).optional().default([])
     })).optional().default([])
   })).optional(),
@@ -331,7 +325,6 @@ router.get('/', async (req, res, next) => {
 // Get single product (public)
 router.get('/:id', async (req, res, next) => {
   try {
-    console.log('Fetching product with ID:', req.params.id);
     const product = await prisma.product.findUnique({
       where: { id: req.params.id },
       include: {
@@ -465,7 +458,6 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
     const data = draft
       ? productSchema.partial().parse(draft)
       : productSchema.parse(req.body);
-    console.log('Creating product with data:', data);
     const { blockedDates = [], itinerary = [], packages = [], accessibilityFeatures = [], isDraft = false, ...rest } = data;
 
     const baseSlug = generateSlug(rest.title ?? `draft-${Date.now()}`);
@@ -639,8 +631,7 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
                     slotId: createdSlot.id,
                     min: tier.min,
                     max: tier.max,
-                    price: tier.price,
-                    currency: tier.currency
+                    price: tier.price
                   }))
                 });
               }
@@ -651,8 +642,7 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
                     slotId: createdSlot.id,
                     min: tier.min,
                     max: tier.max,
-                    price: tier.price,
-                    currency: tier.currency
+                    price: tier.price
                   }))
                 });
               }
@@ -991,7 +981,6 @@ router.delete('/:id', authenticate, authorize(['ADMIN']), async (req, res, next)
 router.get('/by-slug/:slug', async (req, res, next) => {
   try {
     const { slug } = req.params;
-    console.log('Fetching product with slug:', slug);
 
     const product = await prisma.product.findUnique({
       where: { slug },

@@ -191,9 +191,6 @@ model SlotAdultTier {
   min    Int
   max    Int
   price  Float
-  discountType String? @default("none") // "none", "percentage", "fixed"
-  discountValue Float? @default(0)  // percentage or fixed amount
-  currency String
   isActive Boolean @default(true)
   
   slot PackageSlot @relation(fields: [slotId], references: [id], onDelete: Cascade)
@@ -207,9 +204,6 @@ model SlotChildTier {
   min    Int
   max    Int
   price  Float
-  discountType String? @default("none") // "none", "percentage", "fixed"
-  discountValue Float? @default(0)  // percentage or fixed amount
-  currency String
   isActive Boolean @default(true)
   
   slot PackageSlot @relation(fields: [slotId], references: [id], onDelete: Cascade)
