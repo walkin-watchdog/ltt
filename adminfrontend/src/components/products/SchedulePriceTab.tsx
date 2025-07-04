@@ -2,75 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, Plus, Clock, Package, Trash2, Save } from 'lucide-react';
 import dayjs from 'dayjs'; 
 import { useToast } from '../ui/toaster';
-
-// Add predefined categories and subcategories (same as ProductContentTab)
-const predefinedCategories = {
-  'Food and Drink': {
-    items: ['Meals', 'Breakfast', 'Lunch', 'Dinner', 'Snacks', 'Beverages', 'Bottled water', 'Alcoholic drinks'],
-    descriptions: {
-      'Meals': 'General meal provision',
-      'Breakfast': 'Morning meal included',
-      'Lunch': 'Midday meal included',
-      'Dinner': 'Evening meal included',
-      'Snacks': 'Light refreshments',
-      'Beverages': 'Drinks and refreshments',
-      'Bottled water': 'Complimentary water',
-      'Alcoholic drinks': 'Alcoholic beverages'
-    }
-  },
-  'Excess Charges': {
-    items: ['Excess baggage', 'Overweight limit', 'Extra luggage fees', 'Oversized items'],
-    descriptions: {
-      'Excess baggage': 'Additional baggage beyond limits',
-      'Overweight limit': 'Charges for overweight luggage',
-      'Extra luggage fees': 'Additional luggage costs',
-      'Oversized items': 'Charges for large items'
-    }
-  },
-  'Transportation Amenities': {
-    items: ['Private transportation', 'WiFi on board', 'Public transportation', 'Air conditioned vehicle', 'Pick-up and drop-off', 'Fuel surcharge'],
-    descriptions: {
-      'Private transportation': 'Dedicated vehicle service',
-      'WiFi on board': 'Internet connectivity during travel',
-      'Public transportation': 'Use of public transport systems',
-      'Air conditioned vehicle': 'Climate controlled transport',
-      'Pick-up and drop-off': 'Hotel/location transfers',
-      'Fuel surcharge': 'Additional fuel costs'
-    }
-  },
-  'Fees': {
-    items: ['Landing and facility fees', 'Gratuities', 'Government fees', 'Entrance fees', 'Parking', 'Fuel surcharge', 'Airport/departure tax'],
-    descriptions: {
-      'Landing and facility fees': 'Airport and facility charges',
-      'Gratuities': 'Tips and service charges',
-      'Government fees': 'Official government charges',
-      'Entrance fees': 'Admission to attractions',
-      'Parking': 'Vehicle parking costs',
-      'Fuel surcharge': 'Additional fuel costs',
-      'Airport/departure tax': 'Airport taxes and fees'
-    }
-  },
-  'Use of Equipment': {
-    items: ['Use of SCUBA equipment', 'Use of Segway', 'Use of trikke', 'Use of snorkelling equipment', 'Use of bicycle', 'Booster seat', 'Locker', 'Safety equipment', 'Audio guides'],
-    descriptions: {
-      'Use of SCUBA equipment': 'Diving gear and equipment',
-      'Use of Segway': 'Personal transportation device',
-      'Use of trikke': 'Three-wheeled vehicle',
-      'Use of snorkelling equipment': 'Swimming and diving gear',
-      'Use of bicycle': 'Bicycle rental and use',
-      'Booster seat': 'Child safety seat',
-      'Locker': 'Storage facility',
-      'Safety equipment': 'Safety gear and equipment',
-      'Audio guides': 'Audio tour equipment'
-    }
-  }
-} as const;
-
-// Helper function to get description safely
-const getDescription = (category: string, item: string): string => {
-  const categoryData = predefinedCategories[category as keyof typeof predefinedCategories];
-  return categoryData?.descriptions[item as keyof typeof categoryData.descriptions] || '';
-};
+import { getDescription, predefinedCategories } from '../productcontenttabs/predefinedcategories';
 
 interface Package {
   pricingType: string;

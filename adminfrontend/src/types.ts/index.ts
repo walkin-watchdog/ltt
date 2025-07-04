@@ -1,26 +1,3 @@
-export interface ItineraryActivity {
-  id?: string;
-  title: string;
-  description: string;
-  location: string;
-  duration?: number; // Duration figure (number only)
-  durationUnit?: 'minutes' | 'hours'; // Duration unit
-  isStop: boolean;
-  stopDuration?: number; // Stop duration in minutes
-  isAdmissionIncluded?: boolean; // New field for admission inclusion
-  inclusions: string[];
-  exclusions: string[];
-  order: number;
-}
-
-export interface ItineraryDay {
-  id?: string;
-  day: number;
-  title: string;
-  description: string;
-  activities: ItineraryActivity[];
-  images: string[];
-}
 
 export interface PackageOption {
   id: string;
@@ -227,6 +204,48 @@ interface BlockDate {
   date: string;
   reason?: string;
 }
+
+export interface ItineraryDay {
+  day: number;
+  title: string;
+  description: string;
+  activities: ItineraryActivity[];
+  images: string[];
+}
+
+export interface ItineraryActivity {
+  location: string;
+  lat?: number;
+  lng?: number;
+  placeId?: string;
+  isStop?: boolean;
+  stopDuration?: number;
+  durationUnit?: string; // New duration unit field
+  isAdmissionIncluded?: boolean; // New admission field
+  inclusions?: string[];
+  exclusions?: string[];
+  order?: number;
+}
+
+export interface newItem {
+  highlight: string;
+  inclusion: string;
+  inclusionText?: string;
+  exclusion: string;
+  exclusionText?: string;
+  tag: string;
+  pickupLocation: string;
+  guide: string;
+  language: string;
+  accessibilityFeature?: string;
+}
+
+export interface ProductContentTabProps {
+  formData: any;
+  updateFormData: (updates: any) => void;
+  isEdit: boolean;
+}
+
 
 export interface ProductFormData {
   // Basic Details

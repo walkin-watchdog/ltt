@@ -188,16 +188,16 @@ export const ProductForm = () => {
     const nextIndex = tabs.findIndex((tab) => tab.id === nextTab);
     if (nextIndex > currentIndex && !formData.isDraft) {
       const validate = tabValidations[activeTab];
-      // if (validate) {
-      //   const missingFields = validate(formData);
-      //   if (missingFields.length > 0) {
-      //     toast({
-      //       message: `Please fill out: ${missingFields.join(', ')}`,
-      //       type: 'error',
-      //     });
-      //     return; // Block tab change
-      //   }
-      // }
+      if (validate) {
+        const missingFields = validate(formData);
+        if (missingFields.length > 0) {
+          toast({
+            message: `Please fill out: ${missingFields.join(', ')}`,
+            type: 'error',
+          });
+          return; // Block tab change
+        }
+      }
     }
     setActiveTab(nextTab);
   };

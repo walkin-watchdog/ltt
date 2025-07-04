@@ -1,111 +1,20 @@
-import { ImageUploader } from '../gallery/ImageUploader';
 import { useState, useEffect } from 'react';
-import { X, Plus, PlusCircle, Calendar, Info, Image, Route, MapPin, Star, Settings, Users, CheckCircle, AlertCircle } from 'lucide-react';
+import { Info, Image, Route, MapPin, Star, Settings, Users, CheckCircle, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { DestinationModal } from './DestinationModal';
 import { ExperienceCategoryModal } from './ExperienceCategoryModal';
 import { useToast } from '../ui/toaster';
-import { PickupLocationMap } from '../ui/PickupLocationMap';
-import { MeetingPointMap } from '../ui/MeetingPointMap';
-import { EndPointMap } from '../ui/EndPointMap';
-import { LocationAutocomplete } from '../ui/LocationAutocomplete';
-
-// Add predefined categories and subcategories
-const predefinedCategories = {
-  'Food and Drink': {
-    items: ['Meals', 'Breakfast', 'Lunch', 'Dinner', 'Snacks', 'Beverages', 'Bottled water', 'Alcoholic drinks'],
-    descriptions: {
-      'Meals': 'General meal provision',
-      'Breakfast': 'Morning meal included',
-      'Lunch': 'Midday meal included',
-      'Dinner': 'Evening meal included',
-      'Snacks': 'Light refreshments',
-      'Beverages': 'Drinks and refreshments',
-      'Bottled water': 'Complimentary water',
-      'Alcoholic drinks': 'Alcoholic beverages'
-    }
-  },
-  'Excess Charges': {
-    items: ['Excess baggage', 'Overweight limit', 'Extra luggage fees', 'Oversized items'],
-    descriptions: {
-      'Excess baggage': 'Additional baggage beyond limits',
-      'Overweight limit': 'Charges for overweight luggage',
-      'Extra luggage fees': 'Additional luggage costs',
-      'Oversized items': 'Charges for large items'
-    }
-  },
-  'Transportation Amenities': {
-    items: ['Private transportation', 'WiFi on board', 'Public transportation', 'Air conditioned vehicle', 'Pick-up and drop-off', 'Fuel surcharge'],
-    descriptions: {
-      'Private transportation': 'Dedicated vehicle service',
-      'WiFi on board': 'Internet connectivity during travel',
-      'Public transportation': 'Use of public transport systems',
-      'Air conditioned vehicle': 'Climate controlled transport',
-      'Pick-up and drop-off': 'Hotel/location transfers',
-      'Fuel surcharge': 'Additional fuel costs'
-    }
-  },
-  'Fees': {
-    items: ['Landing and facility fees', 'Gratuities', 'Government fees', 'Entrance fees', 'Parking', 'Fuel surcharge', 'Airport/departure tax'],
-    descriptions: {
-      'Landing and facility fees': 'Airport and facility charges',
-      'Gratuities': 'Tips and service charges',
-      'Government fees': 'Official government charges',
-      'Entrance fees': 'Admission to attractions',
-      'Parking': 'Vehicle parking costs',
-      'Fuel surcharge': 'Additional fuel costs',
-      'Airport/departure tax': 'Airport taxes and fees'
-    }
-  },
-  'Use of Equipment': {
-    items: ['Use of SCUBA equipment', 'Use of Segway', 'Use of trikke', 'Use of snorkelling equipment', 'Use of bicycle', 'Booster seat', 'Locker', 'Safety equipment', 'Audio guides'],
-    descriptions: {
-      'Use of SCUBA equipment': 'Diving gear and equipment',
-      'Use of Segway': 'Personal transportation device',
-      'Use of trikke': 'Three-wheeled vehicle',
-      'Use of snorkelling equipment': 'Swimming and diving gear',
-      'Use of bicycle': 'Bicycle rental and use',
-      'Booster seat': 'Child safety seat',
-      'Locker': 'Storage facility',
-      'Safety equipment': 'Safety gear and equipment',
-      'Audio guides': 'Audio tour equipment'
-    }
-  }
-} as const;
-
-// Helper function to get description safely
-const getDescription = (category: string, item: string): string => {
-  const categoryData = predefinedCategories[category as keyof typeof predefinedCategories];
-  return categoryData?.descriptions[item as keyof typeof categoryData.descriptions] || '';
-};
-
-interface ItineraryDay {
-  day: number;
-  title: string;
-  description: string;
-  activities: ItineraryActivity[];
-  images: string[];
-}
-
-interface ItineraryActivity {
-  location: string;
-  lat?: number;
-  lng?: number;
-  placeId?: string;
-  isStop?: boolean;
-  stopDuration?: number;
-  durationUnit?: string; // New duration unit field
-  isAdmissionIncluded?: boolean; // New admission field
-  inclusions?: string[];
-  exclusions?: string[];
-  order?: number;
-}
-
-interface ProductContentTabProps {
-  formData: any;
-  updateFormData: (updates: any) => void;
-  isEdit: boolean;
-}
+import { BasicInfo } from '../productcontenttabs/Basicinfo';
+import { ProductImagesTab } from '../productcontenttabs/images';
+import type { ItineraryActivity, ItineraryDay, newItem, ProductContentTabProps } from '@/types.ts';
+import { ItineraryTab } from '../productcontenttabs/itinerary';
+import { PickupOptionsTab } from '../productcontenttabs/PickupOptions';
+import { getDescription } from '../productcontenttabs/predefinedcategories';
+import { ContentElements } from '../productcontenttabs/ContentElements';
+import { AdditionalDetailsTab } from '../productcontenttabs/AdditionalDetails';
+import { GuidesAndLang } from '../productcontenttabs/GuidesamdLang';
+import { validateTab, validateTabWithToast } from './Validation';
+import { EditItineraryModel } from '../productcontenttabs/edititinerarymodel';
 
 const contentTabs = [
   { id: 'basic', name: 'Basic Info', icon: Info },
@@ -119,18 +28,7 @@ const contentTabs = [
 
 export const ProductContentTab = ({ formData, updateFormData }: ProductContentTabProps) => {
   const [activeContentTab, setActiveContentTab] = useState('basic');
-  const [newItem, setNewItem] = useState<{
-    highlight: string;
-    inclusion: string;
-    inclusionText?: string;
-    exclusion: string;
-    exclusionText?: string;
-    tag: string;
-    pickupLocation: string;
-    guide: string;
-    language: string;
-    accessibilityFeature?: string;
-  }>({
+  const [newItem, setNewItem] = useState<newItem>({
     highlight: '',
     inclusion: '',
     inclusionText: '',
@@ -150,13 +48,12 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
     location: '',
     isStop: false,
     stopDuration: undefined,
-    durationUnit: 'minutes', // New duration unit field
-    isAdmissionIncluded: false, // New admission field
+    durationUnit: 'minutes',
+    isAdmissionIncluded: false,
     inclusions: [],
     exclusions: [],
     order: 0,
   });
-  const [editingActivityIndex, setEditingActivityIndex] = useState<number | null>(null);
   const [isDestinationModalOpen, setIsDestinationModalOpen] = useState(false);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [destinations, setDestinations] = useState<any[]>([]);
@@ -166,34 +63,18 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
   const [pickupOption, setPickupOption] = useState(formData.pickupOption || '');
   const isDraft = formData.isDraft;
 
-  const healthRestrictionOptions = [
-    "Not recommended for travelers with back problems",
-    "Not recommended for pregnant travelers",
-    "Not recommended for travelers with heart problems or other serious medical conditions"
-  ];
-  const [customHealthRestrictions, setCustomHealthRestrictions] = useState<string[]>([]);
-  const [newCustomHealthRestriction, setNewCustomHealthRestriction] = useState('');
-
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [selectedSubcategory, setSelectedSubcategory] = useState('');
-  const [customTitle, setCustomTitle] = useState('');
-  const [customCategory, setCustomCategory] = useState('');
-  const [customDescription, setCustomDescription] = useState('');
-  const [showCustomForm, setShowCustomForm] = useState(false);
   const getAllowedDays = () => {
     if (formData.duration === 'Full Day' || formData.duration === 'Half Day') return 1;
     const n = parseInt(formData.duration?.split(' ')[0] || '0', 10);
     return isNaN(n) || n < 1 ? 0 : n;
   };
 
-  
-  // New state for itinerary activity inclusions/exclusions
   const [activityInclusionCategory, setActivityInclusionCategory] = useState('');
   const [activityInclusionSubcategory, setActivityInclusionSubcategory] = useState('');
   const [activityInclusionCustomTitle, setActivityInclusionCustomTitle] = useState('');
   const [activityInclusionCustomDescription, setActivityInclusionCustomDescription] = useState('');
   const [showActivityInclusionCustomForm, setShowActivityInclusionCustomForm] = useState(false);
-  
+
   const [activityExclusionCategory, setActivityExclusionCategory] = useState('');
   const [activityExclusionSubcategory, setActivityExclusionSubcategory] = useState('');
   const [activityExclusionCustomTitle, setActivityExclusionCustomTitle] = useState('');
@@ -208,124 +89,14 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
     fetchExperienceCategories();
   }, [formData.itineraries]);
 
-  const validateTab = (tabId: string) => {
-    switch (tabId) {
-      case 'basic':
-        return formData.title && formData.productCode && formData.description &&
-          formData.type && formData.location && formData.duration && formData.capacity;
-      case 'images':
-        return formData.images && formData.images.length > 0;
-      case 'itinerary':
-        return formData.type !== 'TOUR' || (formData.itinerary && formData.itinerary.length > 0);
-      case 'pickup':
-        return formData.pickupOption;
-      case 'content':
-        return (
-          (formData.highlights && formData.highlights.length > 0) ||
-          (formData.inclusions && formData.inclusions.length > 0) ||
-          (formData.exclusions && formData.exclusions.length > 0) ||
-          (formData.tags && formData.tags.length > 0)
-        );
-      case 'details':
-        return (
-          !!formData.difficulty ||
-          (formData.accessibilityFeatures && formData.accessibilityFeatures.length > 0) ||
-          !!formData.wheelchairAccessible ||
-          !!formData.strollerAccessible ||
-          !!formData.serviceAnimalsAllowed ||
-          !!formData.publicTransportAccess ||
-          !!formData.infantSeatsRequired ||
-          !!formData.infantSeatsAvailable ||
-          (formData.healthRestrictions && formData.healthRestrictions.length > 0)
-        );
-      case 'guides':
-        return formData.guides && formData.guides.length > 0;
-      default:
-        return true;
-    }
-  };
-
-  const validateTabWithToast = (tabId: string): boolean => {
-    switch (tabId) {
-      case 'basic':
-        const missingBasicFields = [];
-        if (!formData.title) missingBasicFields.push('Title');
-        if (!formData.productCode) missingBasicFields.push('Product Code');
-        if (!formData.description) missingBasicFields.push('Description');
-        if (!formData.type) missingBasicFields.push('Product Type');
-        if (!formData.location) missingBasicFields.push('Location');
-        if (!formData.duration) missingBasicFields.push('Duration');
-        if (!formData.capacity) missingBasicFields.push('Max Capacity');
-        if (formData.type === 'EXPERIENCE' && !formData.category) missingBasicFields.push('Category');
-
-        if (missingBasicFields.length > 0) {
-          toast({
-            message: `Please fill the following required fields: ${missingBasicFields.join(', ')}`,
-            type: 'error'
-          })
-          return false;
-        }
-        return true;
-
-      case 'images':
-        if (!formData.images || formData.images.length === 0) {
-          toast({
-            message: 'Please upload at least one product image',
-            type: 'error'
-          })
-          return false;
-        }
-        return true;
-
-      case 'itinerary':
-        if (formData.type === 'TOUR' && (!formData.itinerary || formData.itinerary.length === 0)) {
-          toast({
-            message: 'Please add at least one day to the itinerary for tours',
-            type: 'error'
-          })
-          return false;
-        }
-        return true;
-
-      case 'pickup':
-        if (!formData.pickupOption) {
-          toast({
-            message: 'Please select a pickup option',
-            type: 'error'
-          })
-          return false;
-        }
-        if ((formData.pickupOption === 'We can pick up travelers or meet them at a meeting point' ||
-          formData.pickupOption === 'No, we meet all travelers at a meeting point') &&
-          !formData.meetingPoint && (!formData.meetingPoints || formData.meetingPoints.length === 0)) {
-          toast({
-            message: 'Please provide at least one meeting point',
-            type: 'error'
-          })
-          return false;
-        }
-        return true;
-
-      case 'content':
-      case 'details':
-      case 'guides':
-        return true;
-
-      default:
-        return true;
-    }
-  };
-
   const handleTabChange = (newTabId: string) => {
-    // If trying to move forward, validate current tab
     const currentTabIndex = contentTabs.findIndex(tab => tab.id === activeContentTab);
     const newTabIndex = contentTabs.findIndex(tab => tab.id === newTabId);
 
     if (newTabIndex > currentTabIndex && !isDraft) {
-      // Validate all previous tabs including current one
       for (let i = 0; i <= currentTabIndex; i++) {
         const tabToValidate = contentTabs[i].id;
-        if (!validateTabWithToast(tabToValidate)) {
+        if (!validateTabWithToast(tabToValidate, formData, toast)) {
           return;
         }
       }
@@ -349,8 +120,8 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
         location: '',
         isStop: false,
         stopDuration: undefined,
-        durationUnit: 'minutes', // New duration unit field
-        isAdmissionIncluded: false, // New admission field
+        durationUnit: 'minutes',
+        isAdmissionIncluded: false,
         inclusions: [],
         exclusions: [],
         order: 0,
@@ -503,22 +274,21 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
   const addActivityInclusion = () => {
     let itemToAdd = '';
     if (showActivityInclusionCustomForm && activityInclusionCustomTitle) {
-      itemToAdd = activityInclusionCustomDescription ? 
-        `${activityInclusionCustomTitle} - ${activityInclusionCustomDescription}` : 
+      itemToAdd = activityInclusionCustomDescription ?
+        `${activityInclusionCustomTitle} - ${activityInclusionCustomDescription}` :
         activityInclusionCustomTitle;
     } else if (activityInclusionSubcategory) {
       const description = getDescription(activityInclusionCategory, activityInclusionSubcategory);
-      itemToAdd = description ? 
-        `${activityInclusionSubcategory} - ${description}` : 
+      itemToAdd = description ?
+        `${activityInclusionSubcategory} - ${description}` :
         activityInclusionSubcategory;
     }
-    
+
     if (itemToAdd) {
       setNewActivity({
         ...newActivity,
         inclusions: [...(newActivity.inclusions || []), itemToAdd]
       });
-      // Reset form
       setActivityInclusionCategory('');
       setActivityInclusionSubcategory('');
       setActivityInclusionCustomTitle('');
@@ -530,22 +300,21 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
   const addActivityExclusion = () => {
     let itemToAdd = '';
     if (showActivityExclusionCustomForm && activityExclusionCustomTitle) {
-      itemToAdd = activityExclusionCustomDescription ? 
-        `${activityExclusionCustomTitle} - ${activityExclusionCustomDescription}` : 
+      itemToAdd = activityExclusionCustomDescription ?
+        `${activityExclusionCustomTitle} - ${activityExclusionCustomDescription}` :
         activityExclusionCustomTitle;
     } else if (activityExclusionSubcategory) {
       const description = getDescription(activityExclusionCategory, activityExclusionSubcategory);
-      itemToAdd = description ? 
-        `${activityExclusionSubcategory} - ${description}` : 
+      itemToAdd = description ?
+        `${activityExclusionSubcategory} - ${description}` :
         activityExclusionSubcategory;
     }
-    
+
     if (itemToAdd) {
       setNewActivity({
         ...newActivity,
         exclusions: [...(newActivity.exclusions || []), itemToAdd]
       });
-      // Reset form
       setActivityExclusionCategory('');
       setActivityExclusionSubcategory('');
       setActivityExclusionCustomTitle('');
@@ -558,1527 +327,83 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
     switch (activeContentTab) {
       case 'basic':
         return (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Product Type *
-                </label>
-                <select
-                  value={formData.type}
-                  onChange={(e) => updateFormData({ type: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                  required
-                >
-                  <option value="TOUR">Tour</option>
-                  <option value="EXPERIENCE">Experience</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Title *
-                </label>
-                <input
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) => updateFormData({ title: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                  placeholder="Enter product title"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Product Code *
-                </label>
-                <input
-                  type="text"
-                  value={formData.productCode}
-                  onChange={(e) => updateFormData({ productCode: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                  placeholder="Enter unique product code"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Location *
-                </label>
-                <div className="flex">
-                  <LocationAutocomplete
-                    value={formData.location || ''}
-                    onChange={(location, lat, lng, placeId) => {
-                      // Find matching destination by name or coordinates
-                      const matchingDestination = destinations.find(d =>
-                        d.name === location ||
-                        (lat && lng && d.lat && d.lng &&
-                          Math.abs(d.lat - lat) < 0.001 &&
-                          Math.abs(d.lng - lng) < 0.001)
-                      );
-
-                      updateFormData({
-                        location: location,
-                        destinationId: matchingDestination?.id || null,
-                        locationLat: lat,
-                        locationLng: lng,
-                        locationPlaceId: placeId
-                      });
-                    }}
-                    placeholder="Search for a location..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setIsDestinationModalOpen(true)}
-                    className="px-3 py-2 bg-[#ff914d] text-white rounded-r-md hover:bg-[#e8823d] transition-colors"
-                  >
-                    <PlusCircle className="h-5 w-5" />
-                  </button>
-                </div>
-                {isLoadingDestinations && (
-                  <p className="text-sm text-gray-500 mt-1">Loading destinations...</p>
-                )}
-                {formData.locationLat && formData.locationLng && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    Coordinates: {formData.locationLat.toFixed(6)}, {formData.locationLng.toFixed(6)}
-                  </p>
-                )}
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Duration *
-                </label>
-                <div className="flex space-x-2 items-center">
-                  {/* Only show input if "Days" is selected */}
-                  <input
-                    type="number"
-                    min={1}
-                    value={
-                      formData.duration === 'Full Day' || formData.duration === 'Half Day'
-                        ? 1
-                        : formData.duration && formData.duration !== 'Full Day' && formData.duration !== 'Half Day'
-                          ? parseInt(formData.duration.split(' ')[0]) || ''
-                          : ''
-                    }
-                    onChange={e => {
-                      const value = Number(e.target.value);
-                      if (value === 1) {
-                        // Default to Full Day if not already set to Half Day
-                        updateFormData({ duration: 'Full Day' });
-                      } else if (value > 1) {
-                        updateFormData({ duration: `${value} Days` });
-                      }
-                    }}
-                    className="w-32 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                    placeholder="e.g., 7"
-                    required
-                    disabled={formData.duration === 'Full Day' || formData.duration === 'Half Day'}
-                  />
-                  <select
-                    value={
-                      formData.duration === 'Full Day'
-                        ? 'full'
-                        : formData.duration === 'Half Day'
-                          ? 'half'
-                          : 'days'
-                    }
-                    onChange={e => {
-                      const currentValue =
-                        formData.duration && formData.duration !== 'Full Day' && formData.duration !== 'Half Day'
-                          ? parseInt(formData.duration.split(' ')[0]) || 1
-                          : 1;
-
-                      if (e.target.value === 'full') {
-                        updateFormData({ duration: 'Full Day' });
-                      } else if (e.target.value === 'half') {
-                        updateFormData({ duration: 'Half Day' });
-                      } else {
-                        updateFormData({ duration: `${currentValue > 1 ? currentValue : 2} Days` });
-                      }
-                    }}
-                    className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                    required
-                  >
-                    <option value="full">Full Day</option>
-                    <option value="half" disabled={
-                      formData.duration !== 'Full Day' && formData.duration !== 'Half Day' &&
-                      parseInt(formData.duration?.split(' ')[0]) > 1
-                    }>Half Day</option>
-                    <option value="days">Days</option>
-                  </select>
-                  {/* Show a label when Full Day or Half Day is selected */}
-                  {(formData.duration === 'Full Day' || formData.duration === 'Half Day') && (
-                    <span className="ml-2 text-gray-500 text-sm">
-                      {formData.duration}
-                    </span>
-                  )}
-                </div>
-                {/* Helper text for clarity */}
-                <div className="text-xs text-gray-500 mt-1">
-                  {formData.duration === 'Full Day' && 'A single full day experience.'}
-                  {formData.duration === 'Half Day' && 'A single half day experience.'}
-                  {formData.duration && formData.duration.includes('Days') && 'Enter the number of days for this tour.'}
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Tour Type *
-                </label>
-                <select
-                  value={formData.tourType || ''}
-                  onChange={e => updateFormData({ tourType: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                  required
-                >
-                  <option value="">Select tour type</option>
-                  <option value="public">Public</option>
-                  <option value="private">Private</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Max Capacity *
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  value={formData.capacity}
-                  onChange={(e) => updateFormData({ capacity: parseInt(e.target.value) })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                  placeholder="Max number of people"
-                  required
-                />
-              </div>
-            </div>
-
-            {formData.type === 'EXPERIENCE' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Category *
-                </label>
-                <div className="flex">
-                  <select
-                    value={formData.category}
-                    onChange={(e) => updateFormData({
-                      category: e.target.value,
-                      experienceCategoryId: experienceCategories.find(c => c.name === e.target.value)?.id || null
-                    })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                    required={formData.type === 'EXPERIENCE'}
-                  >
-                    <option value="">Select a category</option>
-                    {experienceCategories.map(category => (
-                      <option key={category.id} value={category.name}>
-                        {category.name}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    onClick={() => setIsCategoryModalOpen(true)}
-                    className="px-3 py-2 bg-[#ff914d] text-white rounded-r-md hover:bg-[#e8823d] transition-colors"
-                  >
-                    <PlusCircle className="h-5 w-5" />
-                  </button>
-                </div>
-                {isLoadingCategories && (
-                  <p className="text-sm text-gray-500 mt-1">Loading categories...</p>
-                )}
-              </div>
-            )}
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Description *
-              </label>
-              <textarea
-                rows={5}
-                value={formData.description}
-                onChange={(e) => updateFormData({ description: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                placeholder="Enter detailed description"
-                required
-              />
-            </div>
-            <div className="flex justify-end mt-8">
-              <button
-                type="button"
-                onClick={handleSaveAndContinue}
-                className="px-6 py-2 bg-[#ff914d] text-white rounded-md hover:bg-[#e8823d] font-semibold transition-colors"
-              >
-                Save &amp; Continue
-              </button>
-            </div>
-          </div>
+          <BasicInfo
+            formData={formData}
+            updateFormData={updateFormData}
+            destinations={destinations}
+            experienceCategories={experienceCategories}
+            setIsCategoryModalOpen={setIsCategoryModalOpen}
+            setIsDestinationModalOpen={setIsDestinationModalOpen}
+            isLoadingCategories={isLoadingCategories}
+            isLoadingDestinations={isLoadingDestinations}
+            handleSaveAndContinue={handleSaveAndContinue}
+          />
         );
-
       case 'images':
         return (
-          <div className="space-y-6">
-            <div className="text-center">
-              <h4 className="text-lg font-medium text-gray-900 mb-2">Product Images</h4>
-              <p className="text-sm text-gray-600 mb-6">Upload high-quality images to showcase your product</p>
-            </div>
-            <ImageUploader
-              images={formData.images || []}
-              onChange={(images) => updateFormData({ images })}
-              maxImages={10}
-              folder="products"
-              title="Product Images *"
-            />
-            <div className="flex justify-end mt-8">
-              <button
-                type="button"
-                onClick={handleSaveAndContinue}
-                className="px-6 py-2 bg-[#ff914d] text-white rounded-md hover:bg-[#e8823d] font-semibold transition-colors"
-              >
-                Save &amp; Continue
-              </button>
-            </div>
-          </div>
+          <ProductImagesTab
+            formData={formData}
+            updateFormData={updateFormData}
+            handleSaveAndContinue={handleSaveAndContinue}
+          />
         );
 
       case 'itinerary':
         return (
-          <div className="space-y-6">
-            {formData.type === 'TOUR' ? (
-              <>
-                <div className="mb-4 text-red-600 text-sm">
-                  {formData.itinerary?.length < (formData.duration && formData.duration !== 'Full Day' ?
-                    parseInt(formData.duration.split(' ')[0]) || 2 : 2) &&
-                    `You must add at least ${formData.duration && formData.duration !== 'Full Day' ?
-                      parseInt(formData.duration.split(' ')[0]) || 2 : 2} days to the itinerary for a ${formData.duration && formData.duration !== 'Full Day' ?
-                        parseInt(formData.duration.split(' ')[0]) || 2 : 2}-day tour.`}
-                </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="text-lg font-medium text-gray-900">Tour Itinerary</h4>
-                    <p className="text-sm text-gray-600">Plan your tour day by day</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={createNewDay}
-                    className={`flex items-center px-4 py-2 rounded-md transition-colors text-white ${
-                      (formData.itinerary?.length || 0) >= getAllowedDays()
-                        ? 'bg-gray-300 cursor-not-allowed'
-                        : 'bg-[#ff914d] hover:bg-[#e8823d]'
-                    }`}
-                    disabled={(formData.itinerary?.length || 0) >= getAllowedDays()}
-                  >
-                    <Calendar className="h-4 w-4 mr-2" />
-                    Add Day
-                  </button>
-                </div>
-
-                {formData.itinerary && formData.itinerary.length > 0 ? (
-                  <div className="space-y-4">
-                    {formData.itinerary.map((day: ItineraryDay) => (
-                      <div key={day.day} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                        <div className="flex items-center justify-between mb-2">
-                          <h4 className="font-medium text-gray-900">Day {day.day}: {day.title}</h4>
-                          <div className="flex space-x-2">
-                            <button
-                              type="button"
-                              onClick={() => editDay(day)}
-                              className="text-blue-600 hover:text-blue-800 text-sm"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => removeDay(day.day)}
-                              className="text-red-600 hover:text-red-800 text-sm"
-                            >
-                              Remove
-                            </button>
-                          </div>
-                        </div>
-                        <p className="text-sm text-gray-600 mb-2">{day.description}</p>
-                        {day.activities.length > 0 && (
-                          <div className="mb-2">
-                            <p className="text-xs font-medium text-gray-700 mb-1">Activities:</p>
-                            <ul className="text-xs text-gray-600 space-y-1">
-                              {day.activities.map((activity, idx) => (
-                                <li key={idx} className="flex items-start space-x-2">
-                                  <div className="flex-1">
-                                    <div className="font-medium text-sm text-gray-900">{activity.location}</div>
-                                    {activity.isStop && (
-                                      <div className="text-xs text-blue-600 mt-1">
-                                        Stop • {activity.stopDuration || 0} minutes
-                                      </div>
-                                    )}
-                                    {activity.isAdmissionIncluded && (
-                                      <div className="text-xs text-emerald-600 mt-1">
-                                        ✓ Admission included
-                                      </div>
-                                    )}
-                                    {(activity.inclusions && activity.inclusions.length > 0) && (
-                                      <div className="text-xs text-green-600 mt-1">
-                                        Includes: {activity.inclusions.join(', ')}
-                                      </div>
-                                    )}
-                                    {(activity.exclusions && activity.exclusions.length > 0) && (
-                                      <div className="text-xs text-red-600 mt-1">
-                                        Excludes: {activity.exclusions.join(', ')}
-                                      </div>
-                                    )}
-                                  </div>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                        {day.images.length > 0 && (
-                          <div className="flex space-x-2 mt-2">
-                            {day.images.slice(0, 3).map((img, idx) => (
-                              <img key={idx} src={img} alt="" className="w-12 h-12 object-cover rounded" />
-                            ))}
-                            {day.images.length > 3 && (
-                              <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center text-xs text-gray-600">
-                                +{day.images.length - 3}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 bg-gray-50 rounded-lg">
-                    <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600">No itinerary days added yet</p>
-                    <p className="text-sm text-gray-500">Click "Add Day" to start planning your tour</p>
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="text-center py-8 bg-gray-50 rounded-lg">
-                <Route className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600">Itinerary is only available for Tours</p>
-                <p className="text-sm text-gray-500">Switch to Tour type to add itinerary</p>
-              </div>
-            )}
-            <div className="flex justify-end mt-8">
-              <button
-                type="button"
-                onClick={handleSaveAndContinue}
-                className="px-6 py-2 bg-[#ff914d] text-white rounded-md hover:bg-[#e8823d] font-semibold transition-colors"
-                disabled={
-                  formData.type === 'TOUR' &&
-                  (formData.itinerary?.length || 0) !== getAllowedDays()
-                }
-              >
-                Save &amp; Continue
-              </button>
-            </div>
-          </div>
+          <ItineraryTab
+            formData={formData}
+            handleSaveAndContinue={handleSaveAndContinue}
+            createNewDay={createNewDay}
+            editDay={editDay}
+            removeDay={removeDay}
+            getAllowedDays={getAllowedDays}
+          />
         );
-
       case 'pickup':
         return (
-          <div className="space-y-6">
-            <div>
-              <h4 className="text-lg font-medium text-gray-900 mb-2">Pickup Configuration</h4>
-              <p className="text-sm text-gray-600 mb-6">Configure how travelers will meet or be picked up</p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Pickup Option *
-              </label>
-              <select
-                value={pickupOption}
-                onChange={e => {
-                  setPickupOption(e.target.value);
-                  updateFormData({ pickupOption: e.target.value });
-                  if (e.target.value === 'We pick up all travelers') {
-                    updateFormData({ meetingPoint: '', meetingPoints: [] });
-                  }
-                }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                required
-              >
-                <option value="">Select pickup option</option>
-                <option value="We pick up all travelers">We pick up all travelers</option>
-                <option value="We can pick up travelers or meet them at a meeting point">
-                  We can pick up travelers or meet them at a meeting point
-                </option>
-                <option value="No, we meet all travelers at a meeting point">
-                  No, we meet all travelers at a meeting point
-                </option>
-              </select>
-            </div>
-
-            {(pickupOption === 'We pick up all travelers' ||
-              pickupOption === 'We can pick up travelers or meet them at a meeting point') && (
-                <>
-                  <div className="mt-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Allow travelers to choose their pickup point?
-                    </label>
-                    <select
-                      value={formData.allowTravelersPickupPoint ? 'yes' : 'no'}
-                      onChange={e => updateFormData({ allowTravelersPickupPoint: e.target.value === 'yes' })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                    >
-                      <option value="no">No</option>
-                      <option value="yes">Yes</option>
-                    </select>
-                  </div>
-                  <div className="mt-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      How long before departure should travelers be at the pickup point?
-                    </label>
-                    <div className="flex space-x-2">
-                      <input
-                        type="number"
-                        min={1}
-                        value={formData.pickupStartTimeValue || ''}
-                        onChange={e => updateFormData({ pickupStartTimeValue: Number(e.target.value) })}
-                        className="w-32 px-3 py-2 border border-gray-300 rounded-md"
-                        placeholder="e.g., 15"
-                      />
-                      <select
-                        value={formData.pickupStartTimeUnit || 'minutes'}
-                        onChange={e => updateFormData({ pickupStartTimeUnit: e.target.value })}
-                        className="px-3 py-2 border border-gray-300 rounded-md"
-                      >
-                        <option value="minutes">minutes</option>
-                        <option value="hours">hours</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className="mt-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Additional Pickup Details
-                    </label>
-                    <textarea
-                      value={formData.additionalPickupDetails || ''}
-                      onChange={e => updateFormData({ additionalPickupDetails: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                      placeholder="Any extra info for travelers"
-                    />
-                  </div>
-                  <div className="mt-4">
-                    <PickupLocationMap
-                      locations={formData.pickupLocationDetails || []}
-                      onLocationsChange={locs => updateFormData({ pickupLocationDetails: locs })}
-                    />
-                  </div>
-                </>
-              )}
-
-            {(pickupOption === 'We can pick up travelers or meet them at a meeting point' ||
-              pickupOption === 'No, we meet all travelers at a meeting point') && (
-                <>
-                  <div className="mt-4">
-                    <MeetingPointMap
-                      meetingPoints={formData.meetingPoints || []}
-                      onMeetingPointsChange={points => updateFormData({ meetingPoints: points })}
-                    />
-                  </div>
-
-                  <div className="mt-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Does this tour end back at the meeting point(s)?
-                    </label>
-                    <div className="space-y-2">
-                      <label className="flex items-center space-x-3">
-                        <input
-                          type="radio"
-                          name="doesTourEndAtMeetingPoint"
-                          value="true"
-                          checked={formData.doesTourEndAtMeetingPoint === true}
-                          onChange={() => {
-                            updateFormData({ doesTourEndAtMeetingPoint: true });
-                            updateFormData({ endPoints: [] });
-                          }}
-                          className="h-4 w-4 text-[#ff914d] focus:ring-[#ff914d] border-gray-300"
-                        />
-                        <span className="text-sm text-gray-700">Yes - Tour ends back at meeting point(s)</span>
-                      </label>
-                      <label className="flex items-center space-x-3">
-                        <input
-                          type="radio"
-                          name="doesTourEndAtMeetingPoint"
-                          value="false"
-                          checked={formData.doesTourEndAtMeetingPoint === false}
-                          onChange={() => updateFormData({ doesTourEndAtMeetingPoint: false })}
-                          className="h-4 w-4 text-[#ff914d] focus:ring-[#ff914d] border-gray-300"
-                        />
-                        <span className="text-sm text-gray-700">No - Tour ends at a different location</span>
-                      </label>
-                    </div>
-                  </div>
-
-                  {/* End Points Section - Show when tour doesn't end at meeting point */}
-                  {formData.doesTourEndAtMeetingPoint === false && (
-                    <div className="mt-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
-                      <EndPointMap
-                        endPoints={formData.endPoints || []}
-                        onEndPointsChange={endPoints => updateFormData({ endPoints })}
-                      />
-                    </div>
-                  )}
-                </>
-              )}
-
-            <div className="flex justify-end mt-8">
-              <button
-                type="button"
-                onClick={handleSaveAndContinue}
-                className="px-6 py-2 bg-[#ff914d] text-white rounded-md hover:bg-[#e8823d] font-semibold transition-colors"
-              >
-                Save &amp; Continue
-              </button>
-            </div>
-          </div>
+          <PickupOptionsTab
+            formData={formData}
+            updateFormData={updateFormData}
+            handleSaveAndContinue={handleSaveAndContinue}
+            setPickupOption={setPickupOption}
+            pickupOption={pickupOption}
+          />
         );
 
       case 'content':
         return (
-          <div className="space-y-8">
-            {/* Highlights section remains the same */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="bg-gray-50 rounded-lg p-6">
-                <h4 className="text-lg font-semibold text-gray-900 mb-4">Highlights</h4>
-                <div className="space-y-4">
-                  <div className="flex">
-                    <input
-                      type="text"
-                      value={newItem.highlight}
-                      onChange={(e) => setNewItem({ ...newItem, highlight: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                      placeholder="Add a highlight"
-                      onKeyPress={(e) => e.key === 'Enter' && addItem('highlights', newItem.highlight)}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => addItem('highlights', newItem.highlight)}
-                      className="px-3 py-2 bg-[#ff914d] text-white rounded-r-md hover:bg-[#e8823d] transition-colors"
-                    >
-                      <Plus className="h-5 w-5" />
-                    </button>
-                  </div>
-                  <div className="border border-gray-200 rounded-md max-h-64 overflow-y-auto">
-                    <ul className="divide-y divide-gray-200">
-                      {(formData.highlights || []).map((highlight: string, index: number) => (
-                        <li key={index} className="flex justify-between items-center p-3 hover:bg-gray-50">
-                          <span className="text-gray-700">{highlight}</span>
-                          <button
-                            onClick={() => removeItem('highlights', index)}
-                            className="text-red-500 hover:text-red-700 transition-colors"
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
-                        </li>
-                      ))}
-                      {(!formData.highlights || formData.highlights.length === 0) && (
-                        <li className="p-3 text-gray-500 text-center">No highlights added</li>
-                      )}
-                    </ul>
-                  </div>
-                </div>
-              </div>
-
-              {/* Updated Inclusions section */}
-              <div className="bg-gray-50 rounded-lg p-6">
-                <h4 className="text-lg font-semibold text-gray-900 mb-4">Inclusions</h4>
-                <div className="space-y-4">
-                  {/* Category Selection */}
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
-                      <select
-                        value={selectedCategory}
-                        onChange={(e) => {
-                          setSelectedCategory(e.target.value);
-                          setSelectedSubcategory('');
-                          setShowCustomForm(e.target.value === 'Custom');
-                        }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                      >
-                        <option value="">Select category...</option>
-                        {Object.keys(predefinedCategories).map(category => (
-                          <option key={category} value={category}>{category}</option>
-                        ))}
-                        <option value="Custom">Custom</option>
-                      </select>
-                    </div>
-
-                    {selectedCategory && selectedCategory !== 'Custom' && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Item</label>
-                        <select
-                          value={selectedSubcategory}
-                          onChange={(e) => setSelectedSubcategory(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                        >
-                          <option value="">Select item...</option>
-                          {predefinedCategories[selectedCategory as keyof typeof predefinedCategories].items.map(item => (
-                            <option key={item} value={item}>{item}</option>
-                          ))}
-                        </select>
-                        {selectedSubcategory && (
-                          <p className="text-xs text-gray-500 mt-1">
-                            {getDescription(selectedCategory, selectedSubcategory)}
-                          </p>
-                        )}
-                      </div>
-                    )}
-
-                    {showCustomForm && (
-                      <div className="space-y-3 p-3 border border-gray-200 rounded-md bg-white">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Custom Category</label>
-                          <input
-                            type="text"
-                            value={customCategory}
-                            onChange={(e) => setCustomCategory(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                            placeholder="Enter custom category"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Custom Title</label>
-                          <input
-                            type="text"
-                            value={customTitle}
-                            onChange={(e) => setCustomTitle(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                            placeholder="Enter custom title"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Description (Optional)</label>
-                          <textarea
-                            value={customDescription}
-                            onChange={(e) => setCustomDescription(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                            placeholder="Enter description (optional)"
-                            rows={2}
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        let itemToAdd = '';
-                        if (showCustomForm && customTitle) {
-                          itemToAdd = customDescription ? `${customTitle} - ${customDescription}` : customTitle;
-                        } else if (selectedSubcategory) {
-                          const description = getDescription(selectedCategory, selectedSubcategory);
-                          itemToAdd = description ? `${selectedSubcategory} - ${description}` : selectedSubcategory;
-                        }
-                        
-                        if (itemToAdd) {
-                          addItem('inclusions', itemToAdd);
-                          setSelectedCategory('');
-                          setSelectedSubcategory('');
-                          setCustomTitle('');
-                          setCustomCategory('');
-                          setCustomDescription('');
-                          setShowCustomForm(false);
-                        }
-                      }}
-                      disabled={(!selectedSubcategory && !customTitle)}
-                      className="w-full px-4 py-2 bg-[#ff914d] text-white rounded-md hover:bg-[#e8823d] transition-colors disabled:bg-gray-300"
-                    >
-                      Add Inclusion
-                    </button>
-                  </div>
-
-                  <div className="border border-gray-200 rounded-md max-h-64 overflow-y-auto">
-                    <ul className="divide-y divide-gray-200">
-                      {(formData.inclusions || []).map((inclusion: string, index: number) => (
-                        <li key={index} className="flex justify-between items-center p-3 hover:bg-gray-50">
-                          <span className="text-gray-700 text-sm">{inclusion}</span>
-                          <button
-                            onClick={() => removeItem('inclusions', index)}
-                            className="text-red-500 hover:text-red-700 transition-colors"
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
-                        </li>
-                      ))}
-                      {(!formData.inclusions || formData.inclusions.length === 0) && (
-                        <li className="p-3 text-gray-500 text-center">No inclusions added</li>
-                      )}
-                    </ul>
-                  </div>
-                </div>
-              </div>
-
-              {/* Updated Exclusions section */}
-              <div className="bg-gray-50 rounded-lg p-6">
-                <h4 className="text-lg font-semibold text-gray-900 mb-4">Exclusions</h4>
-                <div className="space-y-4">
-                  {/* Category Selection for Exclusions */}
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
-                      <select
-                        value={newItem.exclusion}
-                        onChange={(e) => {
-                          setNewItem({ ...newItem, exclusion: e.target.value });
-                          setShowCustomForm(e.target.value === 'Custom');
-                        }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                      >
-                        <option value="">Select category...</option>
-                        {Object.keys(predefinedCategories).map(category => (
-                          <option key={category} value={category}>{category}</option>
-                        ))}
-                        <option value="Custom">Custom</option>
-                      </select>
-                    </div>
-
-                    {newItem.exclusion && newItem.exclusion !== 'Custom' && newItem.exclusion !== '' && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Item</label>
-                        <select
-                          value={newItem.exclusionText || ''}
-                          onChange={(e) => setNewItem({ ...newItem, exclusionText: e.target.value })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                        >
-                          <option value="">Select item...</option>
-                          {predefinedCategories[newItem.exclusion as keyof typeof predefinedCategories].items.map(item => (
-                            <option key={item} value={item}>{item}</option>
-                          ))}
-                        </select>
-                        {newItem.exclusionText && (
-                          <p className="text-xs text-gray-500 mt-1">
-                            {getDescription(newItem.exclusion, newItem.exclusionText)}
-                          </p>
-                        )}
-                      </div>
-                    )}
-
-                    {newItem.exclusion === 'Custom' && (
-                      <div className="space-y-3 p-3 border border-gray-200 rounded-md bg-white">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Custom Category</label>
-                          <input
-                            type="text"
-                            value={customCategory}
-                            onChange={(e) => setCustomCategory(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                            placeholder="Enter custom category"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Custom Title</label>
-                          <input
-                            type="text"
-                            value={newItem.exclusionText || ''}
-                            onChange={(e) => setNewItem({ ...newItem, exclusionText: e.target.value })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                            placeholder="Enter custom title"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Description (Optional)</label>
-                          <textarea
-                            value={customDescription}
-                            onChange={(e) => setCustomDescription(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                            placeholder="Enter description (optional)"
-                            rows={2}
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        let itemToAdd = '';
-                        if (newItem.exclusion === 'Custom' && newItem.exclusionText) {
-                          itemToAdd = customDescription ? `${newItem.exclusionText} - ${customDescription}` : newItem.exclusionText;
-                        } else if (newItem.exclusionText && newItem.exclusion) {
-                          const description = getDescription(newItem.exclusion, newItem.exclusionText);
-                          itemToAdd = description ? `${newItem.exclusionText} - ${description}` : newItem.exclusionText;
-                        }
-                        
-                        if (itemToAdd) {
-                          addItem('exclusions', itemToAdd);
-                          setNewItem({ ...newItem, exclusion: '', exclusionText: '' });
-                          setCustomCategory('');
-                          setCustomDescription('');
-                          setShowCustomForm(false);
-                        }
-                      }}
-                      disabled={!newItem.exclusionText}
-                      className="w-full px-4 py-2 bg-[#ff914d] text-white rounded-md hover:bg-[#e8823d] transition-colors disabled:bg-gray-300"
-                    >
-                      Add Exclusion
-                    </button>
-                  </div>
-
-                  <div className="border border-gray-200 rounded-md max-h-64 overflow-y-auto">
-                    <ul className="divide-y divide-gray-200">
-                      {(formData.exclusions || []).map((exclusion: string, index: number) => (
-                        <li key={index} className="flex justify-between items-center p-3 hover:bg-gray-50">
-                          <span className="text-gray-700 text-sm">{exclusion}</span>
-                          <button
-                            onClick={() => removeItem('exclusions', index)}
-                            className="text-red-500 hover:text-red-700 transition-colors"
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
-                        </li>
-                      ))}
-                      {(!formData.exclusions || formData.exclusions.length === 0) && (
-                        <li className="p-3 text-gray-500 text-center">No exclusions added</li>
-                      )}
-                    </ul>
-                  </div>
-                </div>
-              </div>
-
-              {/* Tags section remains the same */}
-              <div className="bg-gray-50 rounded-lg p-6">
-                <h4 className="text-lg font-semibold text-gray-900 mb-4">Tags</h4>
-                <div className="space-y-4">
-                  <div className="flex">
-                    <input
-                      type="text"
-                      value={newItem.tag}
-                      onChange={(e) => setNewItem({ ...newItem, tag: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                      placeholder="Add a tag"
-                      onKeyPress={(e) => e.key === 'Enter' && addItem('tags', newItem.tag)}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => addItem('tags', newItem.tag)}
-                      className="px-3 py-2 bg-[#ff914d] text-white rounded-r-md hover:bg-[#e8823d] transition-colors"
-                    >
-                      <Plus className="h-5 w-5" />
-                    </button>
-                  </div>
-                  <div className="border border-gray-200 rounded-md max-h-32 overflow-y-auto p-3">
-                    <div className="flex flex-wrap gap-2">
-                      {(formData.tags || []).map((tag: string, index: number) => (
-                        <span
-                          key={index}
-                          className="inline-flex items-center bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm"
-                        >
-                          {tag}
-                          <button
-                            onClick={() => removeItem('tags', index)}
-                            className="ml-2 text-gray-500 hover:text-gray-700"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </span>
-                      ))}
-                      {(!formData.tags || formData.tags.length === 0) && (
-                        <span className="text-gray-500 text-sm">No tags added</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="flex justify-end mt-8">
-              <button
-                type="button"
-                onClick={handleSaveAndContinue}
-                className="px-6 py-2 bg-[#ff914d] text-white rounded-md hover:bg-[#e8823d] font-semibold transition-colors"
-              >
-                Save &amp; Continue
-              </button>
-            </div>
-          </div>
+          <ContentElements
+            formData={formData}
+            newItem={newItem}
+            setNewItem={setNewItem}
+            addItem={addItem}
+            removeItem={removeItem}
+            getDescription={getDescription}
+            handleSaveAndContinue={handleSaveAndContinue}
+          />
         );
 
       case 'details':
         return (
-          <div className="space-y-8">
-            <div className="bg-white rounded-lg p-6 border border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Physical Difficulty Level</h3>
-              <p className="text-sm text-gray-600 mb-4">Select the physical difficulty level for this tour/experience</p>
-
-              <div className="space-y-4">
-                <label className="flex items-start space-x-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="difficulty"
-                    value="Easy"
-                    checked={formData.difficulty === 'Easy'}
-                    onChange={(e) => updateFormData({ difficulty: e.target.value })}
-                    className="mt-1 h-4 w-4 text-[#ff914d] focus:ring-[#ff914d] border-gray-300"
-                  />
-                  <div>
-                    <div className="font-medium text-gray-900">Easy</div>
-                    <div className="text-sm text-gray-600">Most travelers can participate</div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      • Minimal physical activity required
-                      • Suitable for all fitness levels
-                      • Mostly walking on flat surfaces
-                    </div>
-                  </div>
-                </label>
-
-                <label className="flex items-start space-x-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="difficulty"
-                    value="Moderate"
-                    checked={formData.difficulty === 'Moderate'}
-                    onChange={(e) => updateFormData({ difficulty: e.target.value })}
-                    className="mt-1 h-4 w-4 text-[#ff914d] focus:ring-[#ff914d] border-gray-300"
-                  />
-                  <div>
-                    <div className="font-medium text-gray-900">Moderate</div>
-                    <div className="text-sm text-gray-600">Travelers should have a moderate physical fitness level</div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      • Some walking and standing involved
-                      • May include stairs or uneven surfaces
-                      • Basic fitness level recommended
-                    </div>
-                  </div>
-                </label>
-
-                <label className="flex items-start space-x-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="difficulty"
-                    value="Challenging"
-                    checked={formData.difficulty === 'Challenging'}
-                    onChange={(e) => updateFormData({ difficulty: e.target.value })}
-                    className="mt-1 h-4 w-4 text-[#ff914d] focus:ring-[#ff914d] border-gray-300"
-                  />
-                  <div>
-                    <div className="font-medium text-gray-900">Challenging</div>
-                    <div className="text-sm text-gray-600">Travelers should have a strong physical fitness level</div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      • Significant physical activity required
-                      • May involve hiking, climbing, or extended walking
-                      • Good fitness level essential
-                    </div>
-                  </div>
-                </label>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg p-6 border border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">General Accessibility</h3>
-              <p className="text-sm text-gray-600 mb-6">Check all accessibility features that apply to your tour/experience</p>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <h4 className="font-medium text-gray-900">Wheelchair Accessibility</h4>
-                  <div className="space-y-3">
-                    <label className="flex items-center space-x-3">
-                      <input
-                        type="radio"
-                        name="wheelchairAccessible"
-                        value="yes"
-                        checked={formData.wheelchairAccessible === 'yes'}
-                        onChange={(e) => updateFormData({ wheelchairAccessible: e.target.value })}
-                        className="h-4 w-4 text-[#ff914d] focus:ring-[#ff914d] border-gray-300"
-                      />
-                      <span className="text-sm text-gray-700">Yes - Fully wheelchair accessible</span>
-                    </label>
-                    <label className="flex items-center space-x-3">
-                      <input
-                        type="radio"
-                        name="wheelchairAccessible"
-                        value="no"
-                        checked={formData.wheelchairAccessible === 'no'}
-                        onChange={(e) => updateFormData({ wheelchairAccessible: e.target.value })}
-                        className="h-4 w-4 text-[#ff914d] focus:ring-[#ff914d] border-gray-300"
-                      />
-                      <span className="text-sm text-gray-700">No - Not wheelchair accessible</span>
-                    </label>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h4 className="font-medium text-gray-900">Stroller Accessibility</h4>
-                  <div className="space-y-3">
-                    <label className="flex items-center space-x-3">
-                      <input
-                        type="radio"
-                        name="strollerAccessible"
-                        value="yes"
-                        checked={formData.strollerAccessible === 'yes'}
-                        onChange={(e) => updateFormData({ strollerAccessible: e.target.value })}
-                        className="h-4 w-4 text-[#ff914d] focus:ring-[#ff914d] border-gray-300"
-                      />
-                      <span className="text-sm text-gray-700">Yes - Stroller friendly</span>
-                    </label>
-                    <label className="flex items-center space-x-3">
-                      <input
-                        type="radio"
-                        name="strollerAccessible"
-                        value="no"
-                        checked={formData.strollerAccessible === 'no'}
-                        onChange={(e) => updateFormData({ strollerAccessible: e.target.value })}
-                        className="h-4 w-4 text-[#ff914d] focus:ring-[#ff914d] border-gray-300"
-                      />
-                      <span className="text-sm text-gray-700">No - Not suitable for strollers</span>
-                    </label>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h4 className="font-medium text-gray-900">Service Animals</h4>
-                  <div className="space-y-3">
-                    <label className="flex items-center space-x-3">
-                      <input
-                        type="radio"
-                        name="serviceAnimalsAllowed"
-                        value="yes"
-                        checked={formData.serviceAnimalsAllowed === 'yes'}
-                        onChange={(e) => updateFormData({ serviceAnimalsAllowed: e.target.value })}
-                        className="h-4 w-4 text-[#ff914d] focus:ring-[#ff914d] border-gray-300"
-                      />
-                      <span className="text-sm text-gray-700">Yes - Service animals allowed</span>
-                    </label>
-                    <label className="flex items-center space-x-3">
-                      <input
-                        type="radio"
-                        name="serviceAnimalsAllowed"
-                        value="no"
-                        checked={formData.serviceAnimalsAllowed === 'no'}
-                        onChange={(e) => updateFormData({ serviceAnimalsAllowed: e.target.value })}
-                        className="h-4 w-4 text-[#ff914d] focus:ring-[#ff914d] border-gray-300"
-                      />
-                      <span className="text-sm text-gray-700">No - Service animals not permitted</span>
-                    </label>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h4 className="font-medium text-gray-900">Public Transportation Access</h4>
-                  <div className="space-y-3">
-                    <label className="flex items-center space-x-3">
-                      <input
-                        type="radio"
-                        name="publicTransportAccess"
-                        value="yes"
-                        checked={formData.publicTransportAccess === 'yes'}
-                        onChange={(e) => updateFormData({ publicTransportAccess: e.target.value })}
-                        className="h-4 w-4 text-[#ff914d] focus:ring-[#ff914d] border-gray-300"
-                      />
-                      <span className="text-sm text-gray-700">Yes - Easy access via public transport</span>
-                    </label>
-                    <label className="flex items-center space-x-3">
-                      <input
-                        type="radio"
-                        name="publicTransportAccess"
-                        value="no"
-                        checked={formData.publicTransportAccess === 'no'}
-                        onChange={(e) => updateFormData({ publicTransportAccess: e.target.value })}
-                        className="h-4 w-4 text-[#ff914d] focus:ring-[#ff914d] border-gray-300"
-                      />
-                      <span className="text-sm text-gray-700">No - Limited public transport access</span>
-                    </label>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h4 className="font-medium text-gray-900">Infant Seating</h4>
-                  <div className="space-y-3">
-                    <label className="flex items-center space-x-3">
-                      <input
-                        type="radio"
-                        name="infantSeatsRequired"
-                        value="yes"
-                        checked={formData.infantSeatsRequired === 'yes'}
-                        onChange={(e) => updateFormData({ infantSeatsRequired: e.target.value })}
-                        className="h-4 w-4 text-[#ff914d] focus:ring-[#ff914d] border-gray-300"
-                      />
-                      <span className="text-sm text-gray-700">Yes - Infants must sit on laps</span>
-                    </label>
-                    <label className="flex items-center space-x-3">
-                      <input
-                        type="radio"
-                        name="infantSeatsRequired"
-                        value="no"
-                        checked={formData.infantSeatsRequired === 'no'}
-                        onChange={(e) => updateFormData({ infantSeatsRequired: e.target.value })}
-                        className="h-4 w-4 text-[#ff914d] focus:ring-[#ff914d] border-gray-300"
-                      />
-                      <span className="text-sm text-gray-700">No - Separate seating available</span>
-                    </label>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h4 className="font-medium text-gray-900">Infant Seats</h4>
-                  <div className="space-y-3">
-                    <label className="flex items-center space-x-3">
-                      <input
-                        type="radio"
-                        name="infantSeatsAvailable"
-                        value="yes"
-                        checked={formData.infantSeatsAvailable === 'yes'}
-                        onChange={(e) => updateFormData({ infantSeatsAvailable: e.target.value })}
-                        className="h-4 w-4 text-[#ff914d] focus:ring-[#ff914d] border-gray-300"
-                      />
-                      <span className="text-sm text-gray-700">Yes - Infant seats available</span>
-                    </label>
-                    <label className="flex items-center space-x-3">
-                      <input
-                        type="radio"
-                        name="infantSeatsAvailable"
-                        value="no"
-                        checked={formData.infantSeatsAvailable === 'no'}
-                        onChange={(e) => updateFormData({ infantSeatsAvailable: e.target.value })}
-                        className="h-4 w-4 text-[#ff914d] focus:ring-[#ff914d] border-gray-300"
-                      />
-                      <span className="text-sm text-gray-700">No - No infant seats provided</span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-white rounded-lg p-6 border border-gray-200 p-4 mt-6">
-                <p className="text-sm text-gray-600 mb-6">Add specific accessibility features available for this tour/experience</p>
-
-                <div className="space-y-4">
-                  <div className="flex">
-                    <input
-                      type="text"
-                      value={newItem.accessibilityFeature || ''}
-                      onChange={(e) => setNewItem({ ...newItem, accessibilityFeature: e.target.value })}
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                      placeholder="e.g., Wheelchair accessible entrance, Audio descriptions available"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => addItem('accessibilityFeatures', newItem.accessibilityFeature || '')}
-                      className="px-3 py-2 bg-[#ff914d] text-white rounded-r-md hover:bg-[#e8823d] transition-colors"
-                    >
-                      <Plus className="h-5 w-5" />
-                    </button>
-                  </div>
-
-                  <div className="border border-gray-200 rounded-md max-h-64 overflow-y-auto">
-                    <ul className="divide-y divide-gray-200">
-                      {(formData.accessibilityFeatures || []).map((feature: string, index: number) => (
-                        <li key={index} className="flex justify-between items-center p-3 hover:bg-gray-50">
-                          <span className="text-gray-700">{feature}</span>
-                          <button
-                            onClick={() => removeItem('accessibilityFeatures', index)}
-                            className="text-red-500 hover:text-red-700 transition-colors"
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
-                        </li>
-                      ))}
-                      {(!formData.accessibilityFeatures || formData.accessibilityFeatures.length === 0) && (
-                        <li className="p-3 text-gray-500 text-center">No accessibility features added</li>
-                      )}
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg p-6 border border-gray-200">
-              <label className="block text-sm font-medium text-gray-700 mb-3">
-                Health Restrictions
-              </label>
-              <span className="block text-sm text-gray-500 mb-4">Check all that apply</span>
-              <div className="space-y-3 mb-4">
-                {healthRestrictionOptions.map(option => (
-                  <label key={option} className="flex items-center space-x-3">
-                    <input
-                      type="checkbox"
-                      checked={Array.isArray(formData.healthRestrictions) && formData.healthRestrictions.includes(option)}
-                      onChange={e => {
-                        let updated: string[] = Array.isArray(formData.healthRestrictions) ? [...formData.healthRestrictions] : [];
-                        if (e.target.checked) {
-                          updated.push(option);
-                        } else {
-                          updated = updated.filter(item => item !== option);
-                        }
-                        updateFormData({ healthRestrictions: updated });
-                      }}
-                      className="h-4 w-4 border-gray-300 rounded accent-blue-600 focus:ring-blue-500"
-                    />
-                    <span className="text-gray-700 text-sm">{option}</span>
-                  </label>
-                ))}
-                {customHealthRestrictions.map((custom, idx) => (
-                  <label key={custom} className="flex items-center space-x-3">
-                    <input
-                      type="checkbox"
-                      checked={Array.isArray(formData.healthRestrictions) && formData.healthRestrictions.includes(custom)}
-                      onChange={e => {
-                        let updated: string[] = Array.isArray(formData.healthRestrictions) ? [...formData.healthRestrictions] : [];
-                        if (e.target.checked) {
-                          updated.push(custom);
-                        } else {
-                          updated = updated.filter(item => item !== custom);
-                        }
-                        updateFormData({ healthRestrictions: updated });
-                      }}
-                      className="h-4 w-4 border-gray-300 rounded accent-blue-600 focus:ring-blue-500"
-                    />
-                    <span className="text-gray-700 text-sm">{custom}</span>
-                    <button
-                      type="button"
-                      className="ml-2 text-red-500 hover:text-red-700"
-                      onClick={() => {
-                        setCustomHealthRestrictions(customHealthRestrictions.filter((_, i) => i !== idx));
-                        if (Array.isArray(formData.healthRestrictions) && formData.healthRestrictions.includes(custom)) {
-                          updateFormData({
-                            healthRestrictions: formData.healthRestrictions.filter((item: string) => item !== custom)
-                          });
-                        }
-                      }}
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </label>
-                ))}
-              </div>
-              <div className="flex items-center space-x-2">
-                <input
-                  type="text"
-                  value={newCustomHealthRestriction}
-                  onChange={e => setNewCustomHealthRestriction(e.target.value)}
-                  placeholder="Custom restriction"
-                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2563eb] focus:border-transparent text-sm w-96"
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' && newCustomHealthRestriction.trim()) {
-                      setCustomHealthRestrictions([...customHealthRestrictions, newCustomHealthRestriction.trim()]);
-                      setNewCustomHealthRestriction('');
-                    }
-                  }}
-                />
-                <button
-                  type="button"
-                  className="p-3 bg-orange-400 hover:bg-orange-500 text-white rounded-md"
-                  onClick={() => {
-                    if (newCustomHealthRestriction.trim()) {
-                      setCustomHealthRestrictions([...customHealthRestrictions, newCustomHealthRestriction.trim()]);
-                      setNewCustomHealthRestriction('');
-                    }
-                  }}
-                  title="Add custom restriction"
-                >
-                  <Plus className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-            <div className="flex justify-end mt-8">
-              <button
-                type="button"
-                onClick={handleSaveAndContinue}
-                className="px-6 py-2 bg-[#ff914d] text-white rounded-md hover:bg-[#e8823d] font-semibold transition-colors"
-              >
-                Save &amp; Continue
-              </button>
-            </div>
-          </div>
+          <AdditionalDetailsTab
+            formData={formData}
+            updateFormData={updateFormData}
+            handleSaveAndContinue={handleSaveAndContinue}
+            newItem={newItem}
+            setNewItem={setNewItem}
+            removeItem={removeItem}
+            addItem={addItem}
+          />
         );
 
       case 'guides':
         return (
-          <div className="space-y-8">
-            <div className="bg-gray-50 rounded-lg p-6">
-              <h4 className="text-lg font-semibold text-gray-900 mb-4">Guide & Language Matrix</h4>
-              <p className="text-sm text-gray-600 mb-6">
-                Configure what type of guide is available for each language
-              </p>
-
-              <div className="mb-6">
-                <div className="flex items-center space-x-2">
-                  <select
-                    value=""
-                    onChange={(e) => {
-                      if (e.target.value) {
-                        const existingGuides = formData.guides || [];
-                        const languageExists = existingGuides.some((guide: any) => guide.language === e.target.value);
-
-                        if (!languageExists) {
-                          const newGuide = {
-                            language: e.target.value,
-                            inPerson: false,
-                            audio: false,
-                            written: false
-                          };
-                          updateFormData({
-                            guides: [...existingGuides, newGuide]
-                          });
-                        }
-                      }
-                    }}
-                    className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                  >
-                    <option value="">Add another language</option>
-                    <option value="English">English</option>
-                    <option value="Spanish">Spanish</option>
-                    <option value="French">French</option>
-                    <option value="German">German</option>
-                    <option value="Italian">Italian</option>
-                    <option value="Portuguese">Portuguese</option>
-                    <option value="Dutch">Dutch</option>
-                    <option value="Russian">Russian</option>
-                    <option value="Japanese">Japanese</option>
-                    <option value="Chinese">Chinese</option>
-                    <option value="Korean">Korean</option>
-                    <option value="Arabic">Arabic</option>
-                    <option value="Hindi">Hindi</option>
-                    <option value="Bengali">Bengali</option>
-                    <option value="Tamil">Tamil</option>
-                    <option value="Telugu">Telugu</option>
-                    <option value="Marathi">Marathi</option>
-                    <option value="Gujarati">Gujarati</option>
-                    <option value="Kannada">Kannada</option>
-                    <option value="Malayalam">Malayalam</option>
-                    <option value="Punjabi">Punjabi</option>
-                    <option value="Urdu">Urdu</option>
-                  </select>
-                </div>
-              </div>
-
-              {formData.guides && formData.guides.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse border border-gray-300">
-                    <thead>
-                      <tr className="bg-gray-100">
-                        <th className="border border-gray-300 px-4 py-3 text-left font-semibold text-gray-900">
-                          Languages
-                        </th>
-                        <th className="border border-gray-300 px-4 py-3 text-center font-semibold text-gray-900">
-                          <div className="flex flex-col items-center">
-                            <Users className="h-5 w-5 mb-1 text-blue-600" />
-                            <span>In-person</span>
-                          </div>
-                        </th>
-                        <th className="border border-gray-300 px-4 py-3 text-center font-semibold text-gray-900">
-                          <div className="flex flex-col items-center">
-                            <svg className="h-5 w-5 mb-1 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                              <path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v6.114a4 4 0 100 1.772V6.114l8-1.6v4.9a4 4 0 100 1.772V3z" />
-                            </svg>
-                            <span>Audio</span>
-                          </div>
-                        </th>
-                        <th className="border border-gray-300 px-4 py-3 text-center font-semibold text-gray-900">
-                          <div className="flex flex-col items-center">
-                            <svg className="h-5 w-5 mb-1 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
-                            </svg>
-                            <span>Written</span>
-                          </div>
-                        </th>
-                        <th className="border border-gray-300 px-4 py-3 text-center font-semibold text-gray-900">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {formData.guides.map((guide: any, index: number) => (
-                        <tr key={index} className="hover:bg-gray-50">
-                          <td className="border border-gray-300 px-4 py-3 font-medium text-gray-900">
-                            {guide.language}
-                          </td>
-                          <td className="border border-gray-300 px-4 py-3 text-center">
-                            <input
-                              type="checkbox"
-                              checked={guide.inPerson || false}
-                              onChange={(e) => {
-                                const updatedGuides = [...formData.guides];
-                                updatedGuides[index] = {
-                                  ...updatedGuides[index],
-                                  inPerson: e.target.checked
-                                };
-                                updateFormData({ guides: updatedGuides });
-                              }}
-                              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                            />
-                          </td>
-                          <td className="border border-gray-300 px-4 py-3 text-center">
-                            <input
-                              type="checkbox"
-                              checked={guide.audio || false}
-                              onChange={(e) => {
-                                const updatedGuides = [...formData.guides];
-                                updatedGuides[index] = {
-                                  ...updatedGuides[index],
-                                  audio: e.target.checked
-                                };
-                                updateFormData({ guides: updatedGuides });
-                              }}
-                              className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-                            />
-                          </td>
-                          <td className="border border-gray-300 px-4 py-3 text-center">
-                            <input
-                              type="checkbox"
-                              checked={guide.written || false}
-                              onChange={(e) => {
-                                const updatedGuides = [...formData.guides];
-                                updatedGuides[index] = {
-                                  ...updatedGuides[index],
-                                  written: e.target.checked
-                                };
-                                updateFormData({ guides: updatedGuides });
-                              }}
-                              className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
-                            />
-                          </td>
-                          <td className="border border-gray-300 px-4 py-3 text-center">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const updatedGuides = formData.guides.filter((_: any, i: number) => i !== index);
-                                updateFormData({ guides: updatedGuides });
-                              }}
-                              className="text-red-600 hover:text-red-800 transition-colors"
-                              title="Remove language"
-                            >
-                              <X className="h-4 w-4" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="text-center py-8 text-gray-500 border-2 border-dashed border-gray-300 rounded-lg">
-                  <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-lg font-medium">No languages configured</p>
-                  <p className="text-sm">Add a language from the dropdown above to start configuring guide types</p>
-                </div>
-              )}
-
-              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <h5 className="font-medium text-blue-900 mb-2">Guide Types:</h5>
-                <ul className="text-sm text-blue-800 space-y-1">
-                  <li>• <strong>In-person:</strong> Live guide physically present with the group</li>
-                  <li>• <strong>Audio:</strong> Pre-recorded audio commentary or live audio guide</li>
-                  <li>• <strong>Written:</strong> Written materials, brochures, or digital text guides</li>
-                </ul>
-              </div>
-            </div>
-
-            <div className="flex justify-end mt-8">
-              <button
-                type="button"
-                onClick={handleSaveAndContinue}
-                className="px-6 py-2 bg-[#ff914d] text-white rounded-md hover:bg-[#e8823d] font-semibold transition-colors"
-              >
-                Save & Continue
-              </button>
-            </div>
-          </div>
+          <GuidesAndLang
+            formData={formData}
+            updateFormData={updateFormData}
+            handleSaveAndContinue={handleSaveAndContinue}
+          />
         );
-
       default:
         return null;
     }
@@ -2091,7 +416,7 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
           <nav className="-mb-px flex space-x-1 overflow-x-auto px-4">
             {contentTabs.map((tab) => {
               const Icon = tab.icon;
-              const isValid = validateTab(tab.id);
+              const isValid = validateTab(tab.id, formData);
               return (
                 <button
                   key={tab.id}
@@ -2119,513 +444,39 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
         </div>
       </div>
 
-      {showItineraryBuilder && editingDay && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium text-gray-900">
-                Day {editingDay.day} Itinerary
-              </h3>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowItineraryBuilder(false);
-                  setEditingDay(null);
-                }}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="h-6 w-6" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Day Title *
-                </label>
-                <input
-                  type="text"
-                  value={editingDay.title}
-                  onChange={(e) => setEditingDay({ ...editingDay, title: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                  placeholder="e.g., Explore Old Delhi"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Description *
-                </label>
-                <textarea
-                  rows={3}
-                  value={editingDay.description}
-                  onChange={(e) => setEditingDay({ ...editingDay, description: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                  placeholder="Brief description of the day's activities"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Activities
-                </label>
-                <div className="space-y-4">
-                  <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
-                          Location *
-                        </label>
-                        <LocationAutocomplete
-                          value={newActivity.location}
-                          onChange={(location, lat, lng, placeId) =>
-                            setNewActivity({
-                              ...newActivity,
-                              location: location,
-                              lat,
-                              lng,
-                              placeId,
-                            })
-                          }
-                          placeholder="Activity location"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-sm"
-                        />
-                      </div>
-
-                      <div className="flex items-center space-x-4">
-                        <label className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            checked={newActivity.isStop || false}
-                            onChange={(e) => setNewActivity({ ...newActivity, isStop: e.target.checked })}
-                            className="h-4 w-4 text-[#ff914d] focus:ring-[#ff914d] border-gray-300 rounded"
-                          />
-                          <span className="text-xs text-gray-700">Is Stop?</span>
-                        </label>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
-                      {/* Duration Fields - Only show when isStop is true */}
-                      {newActivity.isStop && (
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">
-                            Activity Duration
-                          </label>
-                          <div className="flex space-x-2">
-                            <input
-                              type="number"
-                              min="1"
-                              value={newActivity.stopDuration || ''}
-                              onChange={(e) => setNewActivity({
-                                ...newActivity,
-                                stopDuration: e.target.value ? parseInt(e.target.value) : undefined
-                              })}
-                              placeholder="2"
-                              className="w-20 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-sm"
-                            />
-                            <select
-                              value={newActivity.durationUnit || 'minutes'}
-                              onChange={(e) => setNewActivity({
-                                ...newActivity,
-                                durationUnit: e.target.value as 'minutes' | 'hours'
-                              })}
-                              className="px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-sm"
-                            >
-                              <option value="minutes">Minutes</option>
-                              <option value="hours">Hours</option>
-                            </select>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Admission Inclusion Field */}
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
-                          Admission
-                        </label>
-                        <label className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            checked={newActivity.isAdmissionIncluded || false}
-                            onChange={(e) => setNewActivity({
-                              ...newActivity,
-                              isAdmissionIncluded: e.target.checked
-                            })}
-                            className="h-4 w-4 text-[#ff914d] focus:ring-[#ff914d] border-gray-300 rounded"
-                          />
-                          <span className="text-xs text-gray-700">Is admission to this place included in the price of your tour?</span>
-                        </label>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
-                          Inclusions
-                        </label>
-                        <div className="space-y-2">
-                          <div className="space-y-2">
-                            <div>
-                              <label className="block text-xs font-medium text-gray-700 mb-1">Category</label>
-                              <select
-                                value={activityInclusionCategory}
-                                onChange={(e) => {
-                                  setActivityInclusionCategory(e.target.value);
-                                  setActivityInclusionSubcategory('');
-                                  setShowActivityInclusionCustomForm(e.target.value === 'Custom');
-                                }}
-                                className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-xs"
-                              >
-                                <option value="">Select category...</option>
-                                {Object.keys(predefinedCategories).map(category => (
-                                  <option key={category} value={category}>{category}</option>
-                                ))}
-                                <option value="Custom">Custom</option>
-                              </select>
-                            </div>
-
-                            {activityInclusionCategory && activityInclusionCategory !== 'Custom' && (
-                              <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">Item</label>
-                                <select
-                                  value={activityInclusionSubcategory}
-                                  onChange={(e) => setActivityInclusionSubcategory(e.target.value)}
-                                  className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-xs"
-                                >
-                                  <option value="">Select item...</option>
-                                  {predefinedCategories[activityInclusionCategory as keyof typeof predefinedCategories].items.map(item => (
-                                    <option key={item} value={item}>{item}</option>
-                                  ))}
-                                </select>
-                                {activityInclusionSubcategory && (
-                                  <p className="text-xs text-gray-500 mt-1">
-                                    {getDescription(activityInclusionCategory, activityInclusionSubcategory)}
-                                  </p>
-                                )}
-                              </div>
-                            )}
-
-                            {showActivityInclusionCustomForm && (
-                              <div className="space-y-2 p-2 border border-gray-200 rounded-md bg-white">
-                                <div>
-                                  <label className="block text-xs font-medium text-gray-700 mb-1">Custom Title</label>
-                                  <input
-                                    type="text"
-                                    value={activityInclusionCustomTitle}
-                                    onChange={(e) => setActivityInclusionCustomTitle(e.target.value)}
-                                    className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-xs"
-                                    placeholder="Enter custom title"
-                                  />
-                                </div>
-                                <div>
-                                  <label className="block text-xs font-medium text-gray-700 mb-1">Description (Optional)</label>
-                                  <textarea
-                                    value={activityInclusionCustomDescription}
-                                    onChange={(e) => setActivityInclusionCustomDescription(e.target.value)}
-                                    className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-xs"
-                                    placeholder="Enter description (optional)"
-                                    rows={2}
-                                  />
-                                </div>
-                              </div>
-                            )}
-
-                            <button
-                              type="button"
-                              onClick={addActivityInclusion}
-                              disabled={(!activityInclusionSubcategory && !activityInclusionCustomTitle)}
-                              className="w-full px-2 py-1 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors disabled:bg-gray-300 text-xs"
-                            >
-                              Add Inclusion
-                            </button>
-                          </div>
-                          
-                          <div className="flex flex-wrap gap-1">
-                            {(newActivity.inclusions || []).map((inclusion, idx) => (
-                              <span key={idx} className="inline-flex items-center bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
-                                {inclusion.length > 25 ? `${inclusion.substring(0, 25)}...` : inclusion}
-                                <button
-                                  type="button"
-                                  onClick={() => setNewActivity({
-                                    ...newActivity,
-                                    inclusions: (newActivity.inclusions || []).filter((_, i) => i !== idx)
-                                  })}
-                                  className="ml-1 text-green-600 hover:text-green-800"
-                                  title={inclusion}
-                                >
-                                  <X className="h-3 w-3" />
-                                </button>
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
-                          Exclusions
-                        </label>
-                        <div className="space-y-2">
-                          <div className="space-y-2">
-                            <div>
-                              <label className="block text-xs font-medium text-gray-700 mb-1">Category</label>
-                              <select
-                                value={activityExclusionCategory}
-                                onChange={(e) => {
-                                  setActivityExclusionCategory(e.target.value);
-                                  setActivityExclusionSubcategory('');
-                                  setShowActivityExclusionCustomForm(e.target.value === 'Custom');
-                                }}
-                                className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-xs"
-                              >
-                                <option value="">Select category...</option>
-                                {Object.keys(predefinedCategories).map(category => (
-                                  <option key={category} value={category}>{category}</option>
-                                ))}
-                                <option value="Custom">Custom</option>
-                              </select>
-                            </div>
-
-                            {activityExclusionCategory && activityExclusionCategory !== 'Custom' && (
-                              <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">Item</label>
-                                <select
-                                  value={activityExclusionSubcategory}
-                                  onChange={(e) => setActivityExclusionSubcategory(e.target.value)}
-                                  className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-xs"
-                                >
-                                  <option value="">Select item...</option>
-                                  {predefinedCategories[activityExclusionCategory as keyof typeof predefinedCategories].items.map(item => (
-                                    <option key={item} value={item}>{item}</option>
-                                  ))}
-                                </select>
-                                {activityExclusionSubcategory && (
-                                  <p className="text-xs text-gray-500 mt-1">
-                                    {getDescription(activityExclusionCategory, activityExclusionSubcategory)}
-                                  </p>
-                                )}
-                              </div>
-                            )}
-
-                            {showActivityExclusionCustomForm && (
-                              <div className="space-y-2 p-2 border border-gray-200 rounded-md bg-white">
-                                <div>
-                                  <label className="block text-xs font-medium text-gray-700 mb-1">Custom Title</label>
-                                  <input
-                                    type="text"
-                                    value={activityExclusionCustomTitle}
-                                    onChange={(e) => setActivityExclusionCustomTitle(e.target.value)}
-                                    className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-xs"
-                                    placeholder="Enter custom title"
-                                  />
-                                </div>
-                                <div>
-                                  <label className="block text-xs font-medium text-gray-700 mb-1">Description (Optional)</label>
-                                  <textarea
-                                    value={activityExclusionCustomDescription}
-                                    onChange={(e) => setActivityExclusionCustomDescription(e.target.value)}
-                                    className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-xs"
-                                    placeholder="Enter description (optional)"
-                                    rows={2}
-                                  />
-                                </div>
-                              </div>
-                            )}
-
-                            <button
-                              type="button"
-                              onClick={addActivityExclusion}
-                              disabled={(!activityExclusionSubcategory && !activityExclusionCustomTitle)}
-                              className="w-full px-2 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors disabled:bg-gray-300 text-xs"
-                            >
-                              Add Exclusion
-                            </button>
-                          </div>
-                          
-                          <div className="flex flex-wrap gap-1">
-                            {(newActivity.exclusions || []).map((exclusion, idx) => (
-                              <span key={idx} className="inline-flex items-center bg-red-100 text-red-800 px-2 py-1 rounded text-xs">
-                                {exclusion.length > 25 ? `${exclusion.substring(0, 25)}...` : exclusion}
-                                <button
-                                  type="button"
-                                  onClick={() => setNewActivity({
-                                    ...newActivity,
-                                    exclusions: (newActivity.exclusions || []).filter((_, i) => i !== idx)
-                                  })}
-                                  className="ml-1 text-red-600 hover:text-red-800"
-                                  title={exclusion}
-                                >
-                                  <X className="h-3 w-3" />
-                                </button>
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-end mt-3">
-                      {editingActivityIndex === null ? (
-                        <button
-                          type="button"
-                          onClick={addActivity}
-                          disabled={!newActivity.location}
-                          className="px-4 py-2 bg-[#ff914d] text-white rounded-md hover:bg-[#e8823d] transition-colors disabled:bg-gray-300 text-sm"
-                        >
-                          <Plus className="h-4 w-4 inline mr-1" />
-                          Add Activity
-                        </button>
-                      ) : (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setNewActivity({
-                                location: '',
-                                isStop: false,
-                                stopDuration: undefined,
-                                durationUnit: 'minutes', // New duration unit field
-                                isAdmissionIncluded: false, // New admission field
-                                inclusions: [],
-                                exclusions: [],
-                                order: 0,
-                              });
-                              setEditingActivityIndex(null);
-                            }}
-                            className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors mr-2 text-sm"
-                          >
-                            Cancel Edit
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (editingDay && editingActivityIndex !== null) {
-                                const updatedActivities = [...editingDay.activities];
-                                updatedActivities[editingActivityIndex] = { ...newActivity, order: editingActivityIndex };
-                                setEditingDay({ ...editingDay, activities: updatedActivities });
-                                setNewActivity({
-                                  location: '',
-                                  isStop: false,
-                                  stopDuration: undefined, // New duration field
-                                  durationUnit: 'minutes', // New duration unit field
-                                  isAdmissionIncluded: false, // New admission field
-                                  inclusions: [],
-                                  exclusions: [],
-                                  order: 0,
-                                });
-                                setEditingActivityIndex(null);
-                              }
-                            }}
-                            disabled={!newActivity.location}
-                            className="px-4 py-2 bg-[#ff914d] text-white rounded-md hover:bg-[#e8823d] transition-colors disabled:bg-gray-300 text-sm"
-                          >
-                            Save Activity
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    {editingDay.activities.map((activity, index) => (
-                      <div key={index} className="flex items-start justify-between bg-white border border-gray-200 px-4 py-3 rounded-md">
-                        <div className="flex-1">
-                          <div className="font-medium text-sm text-gray-900">{activity.location}</div>
-                          {activity.stopDuration && (
-                            <div className="text-xs text-purple-600 mt-1">
-                              Duration: {activity.stopDuration} {activity.durationUnit || 'minutes'}
-                            </div>
-                          )}
-                          {activity.isStop && (
-                            <div className="text-xs text-blue-600 mt-1">
-                              Stop • {activity.stopDuration || 0} minutes
-                            </div>
-                          )}
-                          {activity.isAdmissionIncluded && (
-                            <div className="text-xs text-emerald-600 mt-1">
-                              ✓ Admission included
-                            </div>
-                          )}
-                          {(activity.inclusions && activity.inclusions.length > 0) && (
-                            <div className="text-xs text-green-600 mt-1">
-                              Includes: {activity.inclusions.join(', ')}
-                            </div>
-                          )}
-                          {(activity.exclusions && activity.exclusions.length > 0) && (
-                            <div className="text-xs text-red-600 mt-1">
-                              Excludes: {activity.exclusions.join(', ')}
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex items-center space-x-2 ml-3">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setNewActivity(activity);
-                              setEditingActivityIndex(index);
-                            }}
-                            className="text-blue-500 hover:text-blue-700"
-                            title="Edit Activity"
-                          >
-                            <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536M9 13l6-6m2 2l-6 6m-2 2h6a2 2 0 002-2v-6a2 2 0 00-2-2h-6a2 2 0 00-2 2v6a2 2 0 002 2z" /></svg>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => removeActivity(index)}
-                            className="text-red-500 hover:text-red-700"
-                            title="Remove Activity"
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Images (Optional)
-                </label>
-                <ImageUploader
-                  images={editingDay.images}
-                  onChange={(images) =>
-                    setEditingDay({ ...editingDay, images })
-                  }
-                  maxImages={10}
-                  folder="itinerary"
-                  title="Day Images"
-                  allowReordering={false}
-                  className="mb-4"
-                />
-              </div>
-
-              <div className="flex justify-end space-x-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowItineraryBuilder(false);
-                    setEditingDay(null);
-                  }}
-                  className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={saveItineraryDay}
-                  className="px-4 py-2 bg-[#ff914d] text-white rounded-md hover:bg-[#e8823d] transition-colors"
-                  disabled={!editingDay.title || !editingDay.description}
-                >
-                  Save Day
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <EditItineraryModel
+        showItineraryBuilder={showItineraryBuilder}
+        setShowItineraryBuilder={setShowItineraryBuilder}
+        editingDay={editingDay}
+        setEditingDay={setEditingDay}
+        newActivity={newActivity}
+        setNewActivity={setNewActivity}
+        activityInclusionCategory={activityInclusionCategory}
+        setActivityInclusionCategory={setActivityInclusionCategory}
+        activityInclusionSubcategory={activityInclusionSubcategory}
+        setActivityInclusionSubcategory={setActivityInclusionSubcategory}
+        activityInclusionCustomTitle={activityInclusionCustomTitle}
+        setActivityInclusionCustomTitle={setActivityInclusionCustomTitle}
+        activityInclusionCustomDescription={activityInclusionCustomDescription}
+        setActivityInclusionCustomDescription={setActivityInclusionCustomDescription}
+        showActivityInclusionCustomForm={showActivityInclusionCustomForm}
+        setShowActivityInclusionCustomForm={setShowActivityInclusionCustomForm}
+        activityExclusionCategory={activityExclusionCategory}
+        setActivityExclusionCategory={setActivityExclusionCategory}
+        activityExclusionSubcategory={activityExclusionSubcategory}
+        setActivityExclusionSubcategory={setActivityExclusionSubcategory}
+        activityExclusionCustomTitle={activityExclusionCustomTitle}
+        setActivityExclusionCustomTitle={setActivityExclusionCustomTitle}
+        activityExclusionCustomDescription={activityExclusionCustomDescription}
+        setActivityExclusionCustomDescription={setActivityExclusionCustomDescription}
+        showActivityExclusionCustomForm={showActivityExclusionCustomForm}
+        setShowActivityExclusionCustomForm={setShowActivityExclusionCustomForm}
+        addActivityInclusion={addActivityInclusion}
+        addActivityExclusion={addActivityExclusion}
+        addActivity={addActivity}
+        removeActivity={removeActivity}
+        saveItineraryDay={saveItineraryDay}
+      />
 
       {isDestinationModalOpen && (
         <DestinationModal
