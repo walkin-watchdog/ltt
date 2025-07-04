@@ -1,9 +1,79 @@
 import { useState } from 'react';
-import { Plus, Trash, PlusCircle, MinusCircle, Clock, Save, X } from 'lucide-react';
+import { X, Plus, Clock, Package, Trash2, ChevronDown,  Save } from 'lucide-react';
 import dayjs from 'dayjs'; 
+import { useToast } from '../ui/toaster';
+
+// Add predefined categories and subcategories (same as ProductContentTab)
+const predefinedCategories = {
+  'Food and Drink': {
+    items: ['Meals', 'Breakfast', 'Lunch', 'Dinner', 'Snacks', 'Beverages', 'Bottled water', 'Alcoholic drinks'],
+    descriptions: {
+      'Meals': 'General meal provision',
+      'Breakfast': 'Morning meal included',
+      'Lunch': 'Midday meal included',
+      'Dinner': 'Evening meal included',
+      'Snacks': 'Light refreshments',
+      'Beverages': 'Drinks and refreshments',
+      'Bottled water': 'Complimentary water',
+      'Alcoholic drinks': 'Alcoholic beverages'
+    }
+  },
+  'Excess Charges': {
+    items: ['Excess baggage', 'Overweight limit', 'Extra luggage fees', 'Oversized items'],
+    descriptions: {
+      'Excess baggage': 'Additional baggage beyond limits',
+      'Overweight limit': 'Charges for overweight luggage',
+      'Extra luggage fees': 'Additional luggage costs',
+      'Oversized items': 'Charges for large items'
+    }
+  },
+  'Transportation Amenities': {
+    items: ['Private transportation', 'WiFi on board', 'Public transportation', 'Air conditioned vehicle', 'Pick-up and drop-off', 'Fuel surcharge'],
+    descriptions: {
+      'Private transportation': 'Dedicated vehicle service',
+      'WiFi on board': 'Internet connectivity during travel',
+      'Public transportation': 'Use of public transport systems',
+      'Air conditioned vehicle': 'Climate controlled transport',
+      'Pick-up and drop-off': 'Hotel/location transfers',
+      'Fuel surcharge': 'Additional fuel costs'
+    }
+  },
+  'Fees': {
+    items: ['Landing and facility fees', 'Gratuities', 'Government fees', 'Entrance fees', 'Parking', 'Fuel surcharge', 'Airport/departure tax'],
+    descriptions: {
+      'Landing and facility fees': 'Airport and facility charges',
+      'Gratuities': 'Tips and service charges',
+      'Government fees': 'Official government charges',
+      'Entrance fees': 'Admission to attractions',
+      'Parking': 'Vehicle parking costs',
+      'Fuel surcharge': 'Additional fuel costs',
+      'Airport/departure tax': 'Airport taxes and fees'
+    }
+  },
+  'Use of Equipment': {
+    items: ['Use of SCUBA equipment', 'Use of Segway', 'Use of trikke', 'Use of snorkelling equipment', 'Use of bicycle', 'Booster seat', 'Locker', 'Safety equipment', 'Audio guides'],
+    descriptions: {
+      'Use of SCUBA equipment': 'Diving gear and equipment',
+      'Use of Segway': 'Personal transportation device',
+      'Use of trikke': 'Three-wheeled vehicle',
+      'Use of snorkelling equipment': 'Swimming and diving gear',
+      'Use of bicycle': 'Bicycle rental and use',
+      'Booster seat': 'Child safety seat',
+      'Locker': 'Storage facility',
+      'Safety equipment': 'Safety gear and equipment',
+      'Audio guides': 'Audio tour equipment'
+    }
+  }
+} as const;
+
+// Helper function to get description safely
+const getDescription = (category: string, item: string): string => {
+  const categoryData = predefinedCategories[category as keyof typeof predefinedCategories];
+  return categoryData?.descriptions[item as keyof typeof categoryData.descriptions] || '';
+};
+
 interface Package {
   pricingType: string;
-  maxTravellersPerBooking?: number;
   ageGroups: any;
   id?: string;
   name: string;
@@ -46,7 +116,6 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
     startDate: new Date().toISOString().split('T')[0],
     endDate: '',
     pricingType: 'per_person',
-    maxTravellersPerBooking: undefined,
     ageGroups: {
       adult: { enabled: true, min: 18, max: 99 },
       child: { enabled: false, min: 6, max: 17 },
@@ -66,74 +135,36 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
     childTiers: [{ min: 1, max: 10, price: 0 }]
   });
   const [editingSlotIndex, setEditingSlotIndex] = useState<number | null>(null);
-  const [autoSlot, setAutoSlot] = useState({
+  const [slotPicker, setSlotPicker] = useState({
     start: '',
     end: '',
-    duration: 60,
-    durationUnit: 'minutes', // or 'hours'
+    duration: 30,
+    durationUnit: 'minutes',
+    availableTimes: [] as string[],
+    selectedTime: '',
   });
 
-  const generateTimeSlots = (start: string, end: string, duration: number, unit: string) => {
-    console.log('generateTimeSlots called with:', { start, end, duration, unit });
-    
-    if (!start || !end || !duration || duration <= 0) {
-      console.log('Invalid inputs - returning empty array');
-      return [];
-    }
-    
-    const slots: string[] = [];
+  const [selectedInclusionCategory, setSelectedInclusionCategory] = useState('');
+  const [selectedInclusionSubcategory, setSelectedInclusionSubcategory] = useState('');
+  const [customInclusionTitle, setCustomInclusionTitle] = useState('');
+  const [customInclusionDescription, setCustomInclusionDescription] = useState('');
+  const [showCustomInclusionForm, setShowCustomInclusionForm] = useState(false);
+
+  const getAvailableTimes = (start: string, end: string, duration: number, unit: string) => {
+    if (!start || !end || !duration || duration <= 0) return [];
+    const times: string[] = [];
     const today = dayjs().format('YYYY-MM-DD');
     let current = dayjs(`${today}T${start}`);
     let endTime = dayjs(`${today}T${end}`);
-
-    
-    // Handle case where end time is next day (e.g., start: 23:00, end: 01:00)
-    if (endTime.isBefore(current)) {
-      endTime = endTime.add(1, 'day');
-    }
-    
+    if (endTime.isBefore(current)) endTime = endTime.add(1, 'day');
     const step = unit === 'hours' ? duration * 60 : duration;
-  
-    console.log('Parsed values:', {
-      currentValid: current.isValid(),
-      endTimeValid: endTime.isValid(),
-      currentTime: current.format('HH:mm'),
-      endTimeFormatted: endTime.format('HH:mm'),
-      step
-    });
-  
-    // Prevent infinite loop: start must be before end, and step must be positive
-    if (!current.isValid() || !endTime.isValid() || current.isAfter(endTime) || step <= 0) {
-      console.log('Validation failed - returning empty array');
-      return [];
+    while (current.isBefore(endTime) || current.isSame(endTime)) {
+      times.push(current.format('HH:mm'));
+      current = current.add(step, 'minute');
     }
-  
-    let safety = 0; // Safety counter to prevent infinite loop
-    while (current.isBefore(endTime) && safety < 100) {
-      const slotStart = current.format('HH:mm');
-      const slotEnd = current.add(step, 'minute');
-      
-      console.log(`Iteration ${safety}:`, {
-        slotStart,
-        slotEndTime: slotEnd.format('HH:mm'),
-        isAfterEnd: slotEnd.isAfter(endTime)
-      });
-      
-      // Check if the slot end time exceeds the end time
-      if (slotEnd.isAfter(endTime)) {
-        console.log('Slot end exceeds end time - breaking');
-        break;
-      }
-      
-      slots.push(`${slotStart} - ${slotEnd.format('HH:mm')}`);
-      current = slotEnd;
-      safety++;
-    }
-    
-    console.log('Generated slots:', slots);
-    return slots;
+    return times;
   };
-
+  const toast = useToast()
   // Days of the week for slot selection
   const daysOfWeek = [
     'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
@@ -142,7 +173,7 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
   const handlePackageChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     // Convert numeric fields to numbers
-    if (['basePrice', 'discountValue', 'maxPeople', 'maxTravellersPerBooking'].includes(name)) {
+    if (['basePrice', 'discountValue', 'maxPeople'].includes(name)) {
       setPackageFormData(prev => ({
         ...prev,
         [name]: name === 'discountValue' && value === '' ? 0 : Number(value)
@@ -173,6 +204,28 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
     }
   };
 
+  const handleAddInclusionFromCategory = () => {
+    let itemToAdd = '';
+    if (showCustomInclusionForm && customInclusionTitle) {
+      itemToAdd = customInclusionDescription ? `${customInclusionTitle} - ${customInclusionDescription}` : customInclusionTitle;
+    } else if (selectedInclusionSubcategory) {
+      const description = getDescription(selectedInclusionCategory, selectedInclusionSubcategory);
+      itemToAdd = description ? `${selectedInclusionSubcategory} - ${description}` : selectedInclusionSubcategory;
+    }
+    
+    if (itemToAdd) {
+      setPackageFormData(prev => ({
+        ...prev,
+        inclusions: [...prev.inclusions, itemToAdd]
+      }));
+      setSelectedInclusionCategory('');
+      setSelectedInclusionSubcategory('');
+      setCustomInclusionTitle('');
+      setCustomInclusionDescription('');
+      setShowCustomInclusionForm(false);
+    }
+  };
+
   const handleRemoveInclusion = (index: number) => {
     setPackageFormData(prev => ({
       ...prev,
@@ -196,7 +249,6 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
       endDate: '',
       slotConfigs: [],
       pricingType: 'per_person',
-      maxTravellersPerBooking: 10,
       ageGroups: {
         adult: { enabled: true, min: 18, max: 99 },
         child: { enabled: false, min: 6, max: 17 },
@@ -211,7 +263,6 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
       ...packageData,
       startDate: packageData.startDate ? packageData.startDate.split('T')[0] : new Date().toISOString().split('T')[0],
       endDate: packageData.endDate ? packageData.endDate.split('T')[0] : '',
-      maxTravellersPerBooking: packageData.maxTravellersPerBooking,
       ageGroups: packageData.ageGroups || {
         adult: { enabled: true, min: 18, max: 99 },
         child: { enabled: false, min: 6, max: 17 },
@@ -231,7 +282,6 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
     const packageToSave = {
       ...packageFormData,
       pricingType: packageFormData.pricingType || 'per_person',
-      maxTravellersPerBooking: packageFormData.pricingType === 'per_group' ? packageFormData.maxTravellersPerBooking : undefined,
       ageGroups, // Always use the new object
       basePrice: Number(packageFormData.basePrice),
       discountValue: Number(packageFormData.discountValue || 0),
@@ -264,7 +314,6 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
       startDate: new Date().toISOString().split('T')[0],
       endDate: '',
       pricingType: 'per_person',
-      maxTravellersPerBooking: 10,
       ageGroups: {
         adult: { enabled: true, min: 18, max: 99 },
         child: { enabled: false, min: 6, max: 17 },
@@ -321,18 +370,6 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
     );
   };
 
-  const handleSlotChange = (e: React.ChangeEvent<HTMLInputElement>, field: string, index: number) => {
-    const { value } = e.target;
-
-    if (field === 'times') {
-      const updatedTimes = [...slotFormData.times];
-      updatedTimes[index] = value;
-      setSlotFormData(prev => ({
-        ...prev,
-        times: updatedTimes
-      }));
-    }
-  };
 
   const handleTierChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -343,11 +380,8 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
     const { value } = e.target;
     const updatedTiers = [...slotFormData[tierType]];
 
-    if (field === 'min' || field === 'max' || field === 'price') {
-      updatedTiers[tierIndex][field] = Number(value);
-    } else {
-      updatedTiers[tierIndex][field] = value;
-    }
+    // All fields are numbers, so always assign Number(value)
+    updatedTiers[tierIndex][field] = Number(value);
 
     setSlotFormData(prev => ({
       ...prev,
@@ -369,12 +403,6 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
     }));
   };
 
-  const handleAddTimeSlot = () => {
-    setSlotFormData(prev => ({
-      ...prev,
-      times: [...prev.times, '']
-    }));
-  };
 
   const handleRemoveTimeSlot = (index: number) => {
     setSlotFormData(prev => ({
@@ -396,27 +424,39 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
   };
 
   const handleSaveSlot = () => {
-    if (slotFormData.times.some(time => !time.trim()) || slotFormData.days.length === 0) {
-      alert('Please fill in all time slots and select at least one day');
+    // Only keep non-empty slots
+    const filteredTimes = slotFormData.times.filter(time => !!time && time.trim() !== '');
+  
+    if (filteredTimes.length === 0) {
+      toast({
+        message: 'Please add at least one valid time slot.',
+        type: 'error',
+      })
       return;
     }
-
+    if (slotFormData.days.length === 0) {
+      toast({
+        message: 'Please select at least one day for the slot.',
+        type: 'error',
+      })
+      return;
+    }
+  
     const slotData = {
       ...slotFormData,
+      times: filteredTimes,
       adultTiers: slotFormData.adultTiers,
       childTiers: packageFormData.ageGroups?.child?.enabled
         ? slotFormData.childTiers
         : undefined,
     };
-
+  
     const updatedPackages = formData.packages.map((pkg: any) => {
       if (pkg.id === editingPackageId) {
         const updatedSlotConfigs = pkg.slotConfigs ? [...pkg.slotConfigs] : [];
         if (editingSlotIndex !== null) {
-          // Edit
           updatedSlotConfigs[editingSlotIndex] = slotData;
         } else {
-          // Add
           updatedSlotConfigs.push(slotData);
         }
         return {
@@ -426,7 +466,7 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
       }
       return pkg;
     });
-
+  
     updateFormData({ packages: updatedPackages });
     setIsAddingSlot(false);
     setEditingPackageId(null);
@@ -504,11 +544,6 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                         {pkg.pricingType === 'per_person' ? 'Per Person' : 'Per Group'}
                       </span>
-                      {pkg.pricingType === 'per_group' && pkg.maxTravellersPerBooking && (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                          Max Travellers/Booking: {pkg.maxTravellersPerBooking}
-                        </span>
-                      )}
                     </div>
                     <div className="mt-2 text-xs text-gray-700">
                       <strong>Age Groups:</strong>
@@ -534,7 +569,7 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
                       onClick={() => handleRemovePackage(index)}
                       className="p-1 text-red-600 hover:text-red-800 transition-colors"
                     >
-                      <Trash className="h-4 w-4" />
+                      <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
@@ -594,7 +629,7 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
                             onClick={() => handleRemoveSlot(index, slotIndex)}
                             className="text-red-600 hover:text-red-800"
                           >
-                            <Trash className="h-4 w-4" />
+                            <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
                       ))}
@@ -657,7 +692,7 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
                   </label>
                   <input
                     type="number"
-                    name="maxPeople"
+                    name="MaxTravellersPerBooking"
                     min={1}
                     value={packageFormData.maxPeople}
                     onChange={handlePackageChange}
@@ -694,7 +729,7 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
                       name="pricingType"
                       value="per_person"
                       checked={packageFormData.pricingType === 'per_person'}
-                      onChange={() => setPackageFormData(prev => ({ ...prev, pricingType: 'per_person', maxTravellersPerBooking: undefined }))}
+                      onChange={() => setPackageFormData(prev => ({ ...prev, pricingType: 'per_person'}))}
                       className="h-4 w-4 text-[#ff914d] border-gray-300"
                     />
                     <span className="ml-2 text-sm">Per person</span>
@@ -907,18 +942,97 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
                 </label>
               </div>
 
-              {/* Inclusions */}
+              {/* Updated Inclusions section */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Inclusions
                 </label>
+                
+                {/* Category-based inclusion selector */}
+                <div className="space-y-3 mb-4">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Category</label>
+                    <select
+                      value={selectedInclusionCategory}
+                      onChange={(e) => {
+                        setSelectedInclusionCategory(e.target.value);
+                        setSelectedInclusionSubcategory('');
+                        setShowCustomInclusionForm(e.target.value === 'Custom');
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-sm"
+                    >
+                      <option value="">Select category...</option>
+                      {Object.keys(predefinedCategories).map(category => (
+                        <option key={category} value={category}>{category}</option>
+                      ))}
+                      <option value="Custom">Custom</option>
+                    </select>
+                  </div>
+
+                  {selectedInclusionCategory && selectedInclusionCategory !== 'Custom' && (
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Item</label>
+                      <select
+                        value={selectedInclusionSubcategory}
+                        onChange={(e) => setSelectedInclusionSubcategory(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-sm"
+                      >
+                        <option value="">Select item...</option>
+                        {predefinedCategories[selectedInclusionCategory as keyof typeof predefinedCategories].items.map(item => (
+                          <option key={item} value={item}>{item}</option>
+                        ))}
+                      </select>
+                      {selectedInclusionSubcategory && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          {getDescription(selectedInclusionCategory, selectedInclusionSubcategory)}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {showCustomInclusionForm && (
+                    <div className="space-y-2 p-3 border border-gray-200 rounded-md bg-white">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Custom Title</label>
+                        <input
+                          type="text"
+                          value={customInclusionTitle}
+                          onChange={(e) => setCustomInclusionTitle(e.target.value)}
+                          className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-sm"
+                          placeholder="Enter custom title"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Description (Optional)</label>
+                        <textarea
+                          value={customInclusionDescription}
+                          onChange={(e) => setCustomInclusionDescription(e.target.value)}
+                          className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-sm"
+                          placeholder="Enter description (optional)"
+                          rows={2}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleAddInclusionFromCategory}
+                    disabled={(!selectedInclusionSubcategory && !customInclusionTitle)}
+                    className="w-full px-3 py-2 bg-[#ff914d] text-white rounded-md hover:bg-[#e8823d] transition-colors disabled:bg-gray-300 text-sm"
+                  >
+                    Add Inclusion
+                  </button>
+                </div>
+
+                {/* Legacy text input for quick additions */}
                 <div className="flex mb-2">
                   <input
                     type="text"
                     value={newInclusion}
                     onChange={(e) => setNewInclusion(e.target.value)}
                     className="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                    placeholder="e.g., Hotel pickup, Lunch, Guide"
+                    placeholder="Or add quick inclusion..."
                     onKeyPress={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault();
@@ -934,6 +1048,7 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
                     <Plus className="h-5 w-5" />
                   </button>
                 </div>
+
                 {packageFormData.inclusions.length > 0 ? (
                   <div className="space-y-2">
                     {packageFormData.inclusions.map((inclusion, index) => (
@@ -983,120 +1098,151 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
 
       {/* Add/Edit Slot Modal */}
       {isAddingSlot && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg max-h-[90vh] overflow-y-auto w-full max-w-2xl">
-            <div className="flex justify-between items-center border-b border-gray-200 p-4">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Add Time Slot
-              </h3>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsAddingSlot(false);
-                  setEditingPackageId(null);
-                }}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="h-6 w-6" />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-6">
-              {/* Time Slots */}
-              <div className="mb-4 p-3 bg-blue-50 rounded">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Start Time</label>
-              <input
-                type="time"
-                value={autoSlot.start}
-                onChange={e => setAutoSlot(prev => ({ ...prev, start: e.target.value }))}
-                className="w-full px-2 py-1 border border-gray-300 rounded-md"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">End Time</label>
-              <input
-                type="time"
-                value={autoSlot.end}
-                onChange={e => setAutoSlot(prev => ({ ...prev, end: e.target.value }))}
-                className="w-full px-2 py-1 border border-gray-300 rounded-md"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Duration</label>
-              <input
-                type="number"
-                min={1}
-                value={autoSlot.duration}
-                onChange={e => setAutoSlot(prev => ({ ...prev, duration: Number(e.target.value) }))}
-                className="w-full px-2 py-1 border border-gray-300 rounded-md"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Unit</label>
-              <select
-                value={autoSlot.durationUnit}
-                onChange={e => setAutoSlot(prev => ({ ...prev, durationUnit: e.target.value }))}
-                className="w-full px-2 py-1 border border-gray-300 rounded-md"
-              >
-                <option value="minutes">Minutes</option>
-                <option value="hours">Hours</option>
-              </select>
-            </div>
-          </div>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg max-h-[90vh] overflow-y-auto w-full max-w-2xl">
+        <div className="flex justify-between items-center border-b border-gray-200 p-4">
+          <h3 className="text-lg font-semibold text-gray-900">
+            Add Time Slot
+          </h3>
           <button
             type="button"
-            className="mt-3 px-4 py-2 bg-[#ff914d] text-white rounded hover:bg-[#e8823d] text-sm"
             onClick={() => {
-              const slots = generateTimeSlots(autoSlot.start, autoSlot.end, autoSlot.duration, autoSlot.durationUnit);
-              if (slots.length === 0) {
-                alert('No slots generated. Please check your inputs.');
-                return;
-              }
-              setSlotFormData(prev => ({
-                ...prev,
-                times: slots
-              }));
+              setIsAddingSlot(false);
+              setEditingPackageId(null);
             }}
+            className="text-gray-400 hover:text-gray-600"
           >
-            Auto-generate Time Slots
+            <X className="h-6 w-6" />
           </button>
         </div>
+        <div className="p-6 space-y-6">
+          {/* Slot Picker */}
+          <div className="mb-4 p-3 bg-blue-50 rounded">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Time Slots *
-                </label>
-                <div className="space-y-3">
-                  {slotFormData.times.map((time, index) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        value={time}
-                        onChange={(e) => handleSlotChange(e, 'times', index)}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                        placeholder="e.g., 9:00 AM - 12:00 PM"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveTimeSlot(index)}
-                        disabled={slotFormData.times.length <= 1}
-                        className="p-2 text-red-600 hover:text-red-800 disabled:text-gray-400 disabled:cursor-not-allowed"
-                      >
-                        <MinusCircle className="h-5 w-5" />
-                      </button>
-                    </div>
-                  ))}
+                <label className="block text-xs font-medium text-gray-700 mb-1">Start Time</label>
+                <input
+                  type="time"
+                  value={slotPicker.start}
+                  onChange={e => {
+                    const start = e.target.value;
+                    const availableTimes = getAvailableTimes(start, slotPicker.end, slotPicker.duration, slotPicker.durationUnit);
+                    setSlotPicker(prev => ({
+                      ...prev,
+                      start,
+                      availableTimes,
+                      selectedTime: '',
+                    }));
+                  }}
+                  className="w-full px-2 py-1 border border-gray-300 rounded-md"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">End Time</label>
+                <input
+                  type="time"
+                  value={slotPicker.end}
+                  onChange={e => {
+                    const end = e.target.value;
+                    const availableTimes = getAvailableTimes(slotPicker.start, end, slotPicker.duration, slotPicker.durationUnit);
+                    setSlotPicker(prev => ({
+                      ...prev,
+                      end,
+                      availableTimes,
+                      selectedTime: '',
+                    }));
+                  }}
+                  className="w-full px-2 py-1 border border-gray-300 rounded-md"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Duration</label>
+                <input
+                  type="number"
+                  min={1}
+                  value={slotPicker.duration}
+                  onChange={e => {
+                    const duration = Number(e.target.value);
+                    const availableTimes = getAvailableTimes(slotPicker.start, slotPicker.end, duration, slotPicker.durationUnit);
+                    setSlotPicker(prev => ({
+                      ...prev,
+                      duration,
+                      availableTimes,
+                      selectedTime: '',
+                    }));
+                  }}
+                  className="w-full px-2 py-1 border border-gray-300 rounded-md"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Unit</label>
+                <select
+                  value={slotPicker.durationUnit}
+                  onChange={e => {
+                    const durationUnit = e.target.value;
+                    const availableTimes = getAvailableTimes(slotPicker.start, slotPicker.end, slotPicker.duration, durationUnit);
+                    setSlotPicker(prev => ({
+                      ...prev,
+                      durationUnit,
+                      availableTimes,
+                      selectedTime: '',
+                    }));
+                  }}
+                  className="w-full px-2 py-1 border border-gray-300 rounded-md"
+                >
+                  <option value="minutes">Minutes</option>
+                  <option value="hours">Hours</option>
+                </select>
+              </div>
+            </div>
+            <div className="mt-3 flex items-center gap-2">
+              <select
+                value={slotPicker.selectedTime}
+                onChange={e => setSlotPicker(prev => ({ ...prev, selectedTime: e.target.value }))}
+                className="px-3 py-2 border border-gray-300 rounded-md"
+              >
+                <option value="">Select time to add</option>
+                {slotPicker.availableTimes.map(time => (
+                  <option key={time} value={time}>{time}</option>
+                ))}
+              </select>
+              <button
+                type="button"
+                className="px-4 py-2 bg-[#ff914d] text-white rounded hover:bg-[#e8823d] text-sm"
+                onClick={() => {
+                  if (slotPicker.selectedTime && !slotFormData.times.includes(slotPicker.selectedTime)) {
+                    setSlotFormData(prev => ({
+                      ...prev,
+                      times: [...prev.times, slotPicker.selectedTime]
+                    }));
+                  }
+                }}
+                disabled={!slotPicker.selectedTime}
+              >
+                Add Slot
+              </button>
+            </div>
+          </div>
+          {/* List of added slots */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Time Slots *
+            </label>
+            <div className="space-y-3">
+              {slotFormData.times.map((time, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <span className="flex-1 px-3 py-2 border border-gray-300 rounded-md bg-gray-50">{time}</span>
                   <button
                     type="button"
-                    onClick={handleAddTimeSlot}
-                    className="flex items-center text-blue-600 hover:text-blue-800 text-sm"
+                    onClick={() => handleRemoveTimeSlot(index)}
+                    className="p-2 text-red-600 hover:text-red-800"
                   >
-                    <PlusCircle className="h-4 w-4 mr-1" />
-                    Add Another Time Slot
+                    <ChevronDown className="h-5 w-5" />
                   </button>
                 </div>
-              </div>
+              ))}
+            </div>
+          </div>
 
               {/* Days of Week */}
               <div>
@@ -1176,7 +1322,7 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
                         disabled={slotFormData.adultTiers.length <= 1}
                         className="p-2 text-red-600 hover:text-red-800 disabled:text-gray-400 disabled:cursor-not-allowed self-end"
                       >
-                        <MinusCircle className="h-5 w-5" />
+                        <ChevronDown className="h-5 w-5" />
                       </button>
                     </div>
                   ))}
@@ -1244,7 +1390,7 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
                           disabled={slotFormData.childTiers.length <= 1}
                           className="p-2 text-red-600 hover:text-red-800 disabled:text-gray-400 disabled:cursor-not-allowed self-end"
                         >
-                          <MinusCircle className="h-5 w-5" />
+                          <ChevronDown className="h-5 w-5" />
                         </button>
                       </div>
                     ))}

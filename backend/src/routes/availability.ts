@@ -138,6 +138,15 @@ router.get('/package/:packageId/slots', async (req, res, next) => {
             children: true,
             status: true
           }
+        },
+        package: {
+          include: {
+            product: {
+              select: {
+                cutoffTime: true
+              }
+            }
+          }
         }
       },
       orderBy: { Time: 'asc' }
@@ -152,7 +161,8 @@ router.get('/package/:packageId/slots', async (req, res, next) => {
       return {
         ...slot,
         booked: totalBooked,
-        bookings: undefined // Remove bookings from response for privacy
+        bookings: undefined, // Remove bookings from response for privacy
+        cutoffTime: slot.package?.product?.cutoffTime || 24
       };
     });
 

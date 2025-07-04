@@ -4,7 +4,9 @@ import { useToast } from '../components/ui/toaster';
 import { useAuth } from '../contexts/AuthContext';
 import { ProductContentTab } from '../components/products/ProductContentTab';
 import { SchedulePriceTab } from '../components/products/SchedulePriceTab';
-import { BookingDetailsTab } from '../components/products/BookingDetailsTab';
+import { BookingProcessTab } from '../components/products/BookingProcessTab';
+import { CancellationPolicyTab } from '../components/products/CancellationPolicyTab';
+import { TravelerRequirementsTab } from '../components/products/TravelerRequirementsTab';
 import { AvailabilityTab } from '../components/products/AvailabilityTab';
 import { Save, ArrowLeft, Eye } from 'lucide-react';
 import type { ProductFormData } from '../types.ts';
@@ -12,7 +14,9 @@ import type { ProductFormData } from '../types.ts';
 const tabs = [
   { id: 'content', name: 'Product Content', component: ProductContentTab },
   { id: 'schedule', name: 'Schedule & Price', component: SchedulePriceTab },
-  { id: 'booking', name: 'Booking Details', component: BookingDetailsTab },
+  { id: 'booking-process', name: 'Booking Process & Pricing', component: BookingProcessTab },
+  { id: 'cancellation', name: 'Cancellation Policy', component: CancellationPolicyTab },
+  { id: 'traveler-requirements', name: 'Traveler Requirements', component: TravelerRequirementsTab },
   { id: 'availability', name: 'Availability', component: AvailabilityTab },
 ];
 
@@ -85,6 +89,7 @@ export const ProductForm = () => {
     meetingPoints: [],
     phonenumber: '',
     tourType: '',
+    
   });
 
   useEffect(() => {
@@ -183,16 +188,16 @@ export const ProductForm = () => {
     const nextIndex = tabs.findIndex((tab) => tab.id === nextTab);
     if (nextIndex > currentIndex && !formData.isDraft) {
       const validate = tabValidations[activeTab];
-      if (validate) {
-        const missingFields = validate(formData);
-        if (missingFields.length > 0) {
-          toast({
-            message: `Please fill out: ${missingFields.join(', ')}`,
-            type: 'error',
-          });
-          return; // Block tab change
-        }
-      }
+      // if (validate) {
+      //   const missingFields = validate(formData);
+      //   if (missingFields.length > 0) {
+      //     toast({
+      //       message: `Please fill out: ${missingFields.join(', ')}`,
+      //       type: 'error',
+      //     });
+      //     return; // Block tab change
+      //   }
+      // }
     }
     setActiveTab(nextTab);
   };
@@ -320,10 +325,26 @@ export const ProductForm = () => {
         return;
       }
     }
+    if (
+      formData.type === 'TOUR' &&
+      formData.itinerary &&
+      formData.duration &&
+      formData.duration !== 'Full Day'
+    ) {
+      const expectedDays = parseInt(formData.duration.split(' ')[0]) || 2;
+      if (formData.itinerary.length < expectedDays) {
+        toast({
+          message: `You must add at least ${expectedDays} days to the itinerary for a ${formData.duration} tour.`,
+          type: 'error'
+        });
+        return; // Prevent update
+      }
+    }
     console.log('Submitting form data:', formData);
 
     const payload = {
       ...formData,
+      passportDetailsOption: formData.passportDetailsOption || "",
       pickupStartTime:
         formData.pickupStartTimeValue !== undefined && formData.pickupStartTimeUnit
           ? `${formData.pickupStartTimeValue} ${formData.pickupStartTimeUnit}`

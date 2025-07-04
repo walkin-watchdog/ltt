@@ -30,6 +30,7 @@ import { SEOHead } from '../components/seo/SEOHead';
 import { ReviewsWidget } from '../components/reviews/ReviewsWidget';
 import { formatDate, parse } from 'date-fns';
 import { setStep } from '../store/slices/bookingSlice';
+import { isSlotBookable } from '../lib/utils';
 
 // Helper function to calculate the effective price after discount
 const calculateEffectivePrice = (basePrice: number, discountType?: string, discountValue?: number) => {
@@ -302,7 +303,22 @@ export const ProductDetail = () => {
             const filteredSlots = data.slots.filter((slot: { days: string | string[]; }) =>
               Array.isArray(slot.days) && slot.days.includes(dayOfWeek)
             );
-            setSlotsForPackage(filteredSlots);
+            
+            // Filter slots based on cutoff time
+            const availableSlots = filteredSlots.filter((slot: any) => {
+              if (!slot.Time || !Array.isArray(slot.Time) || slot.Time.length === 0) {
+                return false;
+              }
+              
+              // Check if any time in the slot is still bookable
+              return slot.Time.some((time: string) => {
+                const cutoffTime = slot.cutoffTime || 24;
+                const { isBookable } = isSlotBookable(iso, time, cutoffTime);
+                return isBookable;
+              });
+            });
+            
+            setSlotsForPackage(availableSlots);
             // Reset selected time slot when slots change
             setSelectedSlot(null);
             setSelectedSlotId(null);
@@ -1450,8 +1466,8 @@ export const ProductDetail = () => {
             )}
 
             {/* Time Slot Selection */}
-            {!isMobile && selectedPackage && (
-              <div className="mb-4">
+            {!isMobile && isDateOk && availablePackages.length > 0 && selectedPackage && (
+              <div className="mb-6">
                 <h3 className="text-lg font-medium text-gray-900 mb-3">Select Time</h3>
                 {slotsLoading ? (
                   <div className="flex justify-center py-4">
@@ -1471,27 +1487,41 @@ export const ProductDetail = () => {
                       )
                       .map(({ slotId, time, slot }) => {
                         const availableSeats = slot.available - (slot.booked || 0);
-                        const isDisabled = availableSeats < (adultsCount + childrenCount);
-                        const isSelected =
-                          selectedSlotId === slotId && selectedTimeSlot === time;
+                        const cutoffTime = slot.cutoffTime || 24;
+                        const { isBookable, reason } = isSlotBookable(
+                          formatDate(parse(selectedDateStr, 'MM/dd/yyyy', new Date()), 'yyyy-MM-dd'), 
+                          time, 
+                          cutoffTime
+                        );
+                        
+                        const isDisabled = availableSeats < (adultsCount + childrenCount) || !isBookable;
+                        const isSelected = selectedSlotId === slotId && selectedTimeSlot === time;
 
                         return (
-                          <button
-                            key={`${slotId}-${time}`}
-                            onClick={() => {
-                              if (!isDisabled) {
-                                handleSlotSelect(slotId);
-                                setSelectedTimeSlot(time);
-                              }
-                            }}
-                            disabled={isDisabled}
-                            className={`border rounded-lg p-3 text-center cursor-pointer transition-colors ${isSelected
-                                ? 'border-[#ff914d] bg-orange-50'
-                                : 'border-gray-200 hover:border-[#ff914d]'
-                              } ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-                          >
-                            {time}
-                          </button>
+                          <div key={`${slotId}-${time}`} className="relative">
+                            <button
+                              onClick={() => {
+                                if (!isDisabled) {
+                                  setSelectedSlotId(slotId);
+                                  setSelectedTimeSlot(time);
+                                  setSelectedSlot(slot);
+                                }
+                              }}
+                              disabled={isDisabled}
+                              className={`border rounded-lg p-3 text-center cursor-pointer transition-colors ${isSelected
+                                  ? 'border-[#ff914d] bg-orange-50'
+                                  : 'border-gray-200 hover:border-[#ff914d]'
+                                } ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            >
+                              {time}
+                            </button>
+                            
+                            {!isBookable && reason && (
+                              <div className="mt-1 text-xs text-red-600 px-1">
+                                {reason}
+                              </div>
+                            )}
+                          </div>
                         );
                       })}
                   </div>

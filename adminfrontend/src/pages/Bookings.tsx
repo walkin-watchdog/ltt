@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Search, Filter, Calendar, User, Phone, Mail, Eye, Download, Plus, Send } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import type { BookingProp } from '../types.ts';
+import { useToast } from '@/components/ui/toaster.tsx';
 
 export const Bookings = () => {
   const [bookings, setBookings] = useState<BookingProp[]>([]);
@@ -16,7 +17,7 @@ export const Bookings = () => {
   const [selectAll, setSelectAll] = useState(false);
   const { token, user } = useAuth();
   const navigate = useNavigate();
-
+  const toast = useToast();
   // Filtered bookings must be declared before use in effects
   const filteredBookings = bookings.filter(booking => {
     const matchesSearch = 
@@ -107,7 +108,10 @@ export const Bookings = () => {
   
   const handleExportSelected = async () => {
     if (selectedBookings.length === 0) {
-      alert('Please select at least one booking to export');
+      toast({
+        message: 'Please select at least one booking to export.',
+        type: 'info',
+      })
       return;
     }
     
@@ -141,7 +145,10 @@ export const Bookings = () => {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error exporting bookings:', error);
-      alert('Failed to export bookings');
+      toast({
+        message: 'Failed to export bookings',
+        type: 'error',
+      });
     } finally {
       setIsExporting(false);
     }
@@ -181,7 +188,10 @@ export const Bookings = () => {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error exporting booking:', error);
-      alert('Failed to export booking');
+      toast({
+        message: 'Failed to export booking',
+        type: 'error',
+      });
     }
   };
   
@@ -219,7 +229,10 @@ export const Bookings = () => {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error exporting all bookings:', error);
-      alert('Failed to export bookings');
+      toast({
+        message: 'Failed to export all bookings',
+        type: 'error',
+      });
     } finally {
       setIsExporting(false);
     }

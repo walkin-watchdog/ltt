@@ -3,9 +3,11 @@ export interface ItineraryActivity {
   title: string;
   description: string;
   location: string;
-  duration?: number; // Duration in minutes
+  duration?: number; // Duration figure (number only)
+  durationUnit?: 'minutes' | 'hours'; // Duration unit
   isStop: boolean;
   stopDuration?: number; // Stop duration in minutes
+  isAdmissionIncluded?: boolean; // New field for admission inclusion
   inclusions: string[];
   exclusions: string[];
   order: number;
@@ -301,7 +303,7 @@ export interface ProductFormData {
   customRequirementFields: string[];
   phonenumber: string;
   tourType: string,
-
+  passportDetailsOption?: string;
 }
 
 export interface LocationDetail {

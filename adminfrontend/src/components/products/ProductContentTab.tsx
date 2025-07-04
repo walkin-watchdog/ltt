@@ -10,6 +10,75 @@ import { MeetingPointMap } from '../ui/MeetingPointMap';
 import { EndPointMap } from '../ui/EndPointMap';
 import { LocationAutocomplete } from '../ui/LocationAutocomplete';
 
+// Add predefined categories and subcategories
+const predefinedCategories = {
+  'Food and Drink': {
+    items: ['Meals', 'Breakfast', 'Lunch', 'Dinner', 'Snacks', 'Beverages', 'Bottled water', 'Alcoholic drinks'],
+    descriptions: {
+      'Meals': 'General meal provision',
+      'Breakfast': 'Morning meal included',
+      'Lunch': 'Midday meal included',
+      'Dinner': 'Evening meal included',
+      'Snacks': 'Light refreshments',
+      'Beverages': 'Drinks and refreshments',
+      'Bottled water': 'Complimentary water',
+      'Alcoholic drinks': 'Alcoholic beverages'
+    }
+  },
+  'Excess Charges': {
+    items: ['Excess baggage', 'Overweight limit', 'Extra luggage fees', 'Oversized items'],
+    descriptions: {
+      'Excess baggage': 'Additional baggage beyond limits',
+      'Overweight limit': 'Charges for overweight luggage',
+      'Extra luggage fees': 'Additional luggage costs',
+      'Oversized items': 'Charges for large items'
+    }
+  },
+  'Transportation Amenities': {
+    items: ['Private transportation', 'WiFi on board', 'Public transportation', 'Air conditioned vehicle', 'Pick-up and drop-off', 'Fuel surcharge'],
+    descriptions: {
+      'Private transportation': 'Dedicated vehicle service',
+      'WiFi on board': 'Internet connectivity during travel',
+      'Public transportation': 'Use of public transport systems',
+      'Air conditioned vehicle': 'Climate controlled transport',
+      'Pick-up and drop-off': 'Hotel/location transfers',
+      'Fuel surcharge': 'Additional fuel costs'
+    }
+  },
+  'Fees': {
+    items: ['Landing and facility fees', 'Gratuities', 'Government fees', 'Entrance fees', 'Parking', 'Fuel surcharge', 'Airport/departure tax'],
+    descriptions: {
+      'Landing and facility fees': 'Airport and facility charges',
+      'Gratuities': 'Tips and service charges',
+      'Government fees': 'Official government charges',
+      'Entrance fees': 'Admission to attractions',
+      'Parking': 'Vehicle parking costs',
+      'Fuel surcharge': 'Additional fuel costs',
+      'Airport/departure tax': 'Airport taxes and fees'
+    }
+  },
+  'Use of Equipment': {
+    items: ['Use of SCUBA equipment', 'Use of Segway', 'Use of trikke', 'Use of snorkelling equipment', 'Use of bicycle', 'Booster seat', 'Locker', 'Safety equipment', 'Audio guides'],
+    descriptions: {
+      'Use of SCUBA equipment': 'Diving gear and equipment',
+      'Use of Segway': 'Personal transportation device',
+      'Use of trikke': 'Three-wheeled vehicle',
+      'Use of snorkelling equipment': 'Swimming and diving gear',
+      'Use of bicycle': 'Bicycle rental and use',
+      'Booster seat': 'Child safety seat',
+      'Locker': 'Storage facility',
+      'Safety equipment': 'Safety gear and equipment',
+      'Audio guides': 'Audio tour equipment'
+    }
+  }
+} as const;
+
+// Helper function to get description safely
+const getDescription = (category: string, item: string): string => {
+  const categoryData = predefinedCategories[category as keyof typeof predefinedCategories];
+  return categoryData?.descriptions[item as keyof typeof categoryData.descriptions] || '';
+};
+
 interface ItineraryDay {
   day: number;
   title: string;
@@ -25,6 +94,8 @@ interface ItineraryActivity {
   placeId?: string;
   isStop?: boolean;
   stopDuration?: number;
+  durationUnit?: string; // New duration unit field
+  isAdmissionIncluded?: boolean; // New admission field
   inclusions?: string[];
   exclusions?: string[];
   order?: number;
@@ -79,6 +150,8 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
     location: '',
     isStop: false,
     stopDuration: undefined,
+    durationUnit: 'minutes', // New duration unit field
+    isAdmissionIncluded: false, // New admission field
     inclusions: [],
     exclusions: [],
     order: 0,
@@ -100,6 +173,26 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
   ];
   const [customHealthRestrictions, setCustomHealthRestrictions] = useState<string[]>([]);
   const [newCustomHealthRestriction, setNewCustomHealthRestriction] = useState('');
+
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedSubcategory, setSelectedSubcategory] = useState('');
+  const [customTitle, setCustomTitle] = useState('');
+  const [customCategory, setCustomCategory] = useState('');
+  const [customDescription, setCustomDescription] = useState('');
+  const [showCustomForm, setShowCustomForm] = useState(false);
+  
+  // New state for itinerary activity inclusions/exclusions
+  const [activityInclusionCategory, setActivityInclusionCategory] = useState('');
+  const [activityInclusionSubcategory, setActivityInclusionSubcategory] = useState('');
+  const [activityInclusionCustomTitle, setActivityInclusionCustomTitle] = useState('');
+  const [activityInclusionCustomDescription, setActivityInclusionCustomDescription] = useState('');
+  const [showActivityInclusionCustomForm, setShowActivityInclusionCustomForm] = useState(false);
+  
+  const [activityExclusionCategory, setActivityExclusionCategory] = useState('');
+  const [activityExclusionSubcategory, setActivityExclusionSubcategory] = useState('');
+  const [activityExclusionCustomTitle, setActivityExclusionCustomTitle] = useState('');
+  const [activityExclusionCustomDescription, setActivityExclusionCustomDescription] = useState('');
+  const [showActivityExclusionCustomForm, setShowActivityExclusionCustomForm] = useState(false);
 
   useEffect(() => {
     if (formData.itineraries && formData.itineraries.length > 0) {
@@ -250,6 +343,8 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
         location: '',
         isStop: false,
         stopDuration: undefined,
+        durationUnit: 'minutes', // New duration unit field
+        isAdmissionIncluded: false, // New admission field
         inclusions: [],
         exclusions: [],
         order: 0,
@@ -394,6 +489,60 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
     setIsCategoryModalOpen(false);
   };
 
+  const addActivityInclusion = () => {
+    let itemToAdd = '';
+    if (showActivityInclusionCustomForm && activityInclusionCustomTitle) {
+      itemToAdd = activityInclusionCustomDescription ? 
+        `${activityInclusionCustomTitle} - ${activityInclusionCustomDescription}` : 
+        activityInclusionCustomTitle;
+    } else if (activityInclusionSubcategory) {
+      const description = getDescription(activityInclusionCategory, activityInclusionSubcategory);
+      itemToAdd = description ? 
+        `${activityInclusionSubcategory} - ${description}` : 
+        activityInclusionSubcategory;
+    }
+    
+    if (itemToAdd) {
+      setNewActivity({
+        ...newActivity,
+        inclusions: [...(newActivity.inclusions || []), itemToAdd]
+      });
+      // Reset form
+      setActivityInclusionCategory('');
+      setActivityInclusionSubcategory('');
+      setActivityInclusionCustomTitle('');
+      setActivityInclusionCustomDescription('');
+      setShowActivityInclusionCustomForm(false);
+    }
+  };
+
+  const addActivityExclusion = () => {
+    let itemToAdd = '';
+    if (showActivityExclusionCustomForm && activityExclusionCustomTitle) {
+      itemToAdd = activityExclusionCustomDescription ? 
+        `${activityExclusionCustomTitle} - ${activityExclusionCustomDescription}` : 
+        activityExclusionCustomTitle;
+    } else if (activityExclusionSubcategory) {
+      const description = getDescription(activityExclusionCategory, activityExclusionSubcategory);
+      itemToAdd = description ? 
+        `${activityExclusionSubcategory} - ${description}` : 
+        activityExclusionSubcategory;
+    }
+    
+    if (itemToAdd) {
+      setNewActivity({
+        ...newActivity,
+        exclusions: [...(newActivity.exclusions || []), itemToAdd]
+      });
+      // Reset form
+      setActivityExclusionCategory('');
+      setActivityExclusionSubcategory('');
+      setActivityExclusionCustomTitle('');
+      setActivityExclusionCustomDescription('');
+      setShowActivityExclusionCustomForm(false);
+    }
+  };
+
   const renderTabContent = () => {
     switch (activeContentTab) {
       case 'basic':
@@ -487,21 +636,82 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                   </p>
                 )}
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Duration *
                 </label>
-                <input
-                  type="text"
-                  value={formData.duration}
-                  onChange={(e) => updateFormData({ duration: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                  placeholder="e.g., 3 hours, 2 days"
-                  required
-                />
-              </div>
+                <div className="flex space-x-2 items-center">
+                  {/* Only show input if "Days" is selected */}
+                  <input
+                    type="number"
+                    min={1}
+                    value={
+                      formData.duration === 'Full Day' || formData.duration === 'Half Day'
+                        ? 1
+                        : formData.duration && formData.duration !== 'Full Day' && formData.duration !== 'Half Day'
+                          ? parseInt(formData.duration.split(' ')[0]) || ''
+                          : ''
+                    }
+                    onChange={e => {
+                      const value = Number(e.target.value);
+                      if (value === 1) {
+                        // Default to Full Day if not already set to Half Day
+                        updateFormData({ duration: 'Full Day' });
+                      } else if (value > 1) {
+                        updateFormData({ duration: `${value} Days` });
+                      }
+                    }}
+                    className="w-32 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+                    placeholder="e.g., 7"
+                    required
+                    disabled={formData.duration === 'Full Day' || formData.duration === 'Half Day'}
+                  />
+                  <select
+                    value={
+                      formData.duration === 'Full Day'
+                        ? 'full'
+                        : formData.duration === 'Half Day'
+                          ? 'half'
+                          : 'days'
+                    }
+                    onChange={e => {
+                      const currentValue =
+                        formData.duration && formData.duration !== 'Full Day' && formData.duration !== 'Half Day'
+                          ? parseInt(formData.duration.split(' ')[0]) || 1
+                          : 1;
 
+                      if (e.target.value === 'full') {
+                        updateFormData({ duration: 'Full Day' });
+                      } else if (e.target.value === 'half') {
+                        updateFormData({ duration: 'Half Day' });
+                      } else {
+                        updateFormData({ duration: `${currentValue > 1 ? currentValue : 2} Days` });
+                      }
+                    }}
+                    className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+                    required
+                  >
+                    <option value="full">Full Day</option>
+                    <option value="half" disabled={
+                      formData.duration !== 'Full Day' && formData.duration !== 'Half Day' &&
+                      parseInt(formData.duration?.split(' ')[0]) > 1
+                    }>Half Day</option>
+                    <option value="days">Days</option>
+                  </select>
+                  {/* Show a label when Full Day or Half Day is selected */}
+                  {(formData.duration === 'Full Day' || formData.duration === 'Half Day') && (
+                    <span className="ml-2 text-gray-500 text-sm">
+                      {formData.duration}
+                    </span>
+                  )}
+                </div>
+                {/* Helper text for clarity */}
+                <div className="text-xs text-gray-500 mt-1">
+                  {formData.duration === 'Full Day' && 'A single full day experience.'}
+                  {formData.duration === 'Half Day' && 'A single half day experience.'}
+                  {formData.duration && formData.duration.includes('Days') && 'Enter the number of days for this tour.'}
+                </div>
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Tour Type *
@@ -626,6 +836,13 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
           <div className="space-y-6">
             {formData.type === 'TOUR' ? (
               <>
+                <div className="mb-4 text-red-600 text-sm">
+                  {formData.itinerary?.length < (formData.duration && formData.duration !== 'Full Day' ?
+                    parseInt(formData.duration.split(' ')[0]) || 2 : 2) &&
+                    `You must add at least ${formData.duration && formData.duration !== 'Full Day' ?
+                      parseInt(formData.duration.split(' ')[0]) || 2 : 2} days to the itinerary for a ${formData.duration && formData.duration !== 'Full Day' ?
+                        parseInt(formData.duration.split(' ')[0]) || 2 : 2}-day tour.`}
+                </div>
                 <div className="flex items-center justify-between">
                   <div>
                     <h4 className="text-lg font-medium text-gray-900">Tour Itinerary</h4>
@@ -671,14 +888,29 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                             <ul className="text-xs text-gray-600 space-y-1">
                               {day.activities.map((activity, idx) => (
                                 <li key={idx} className="flex items-start space-x-2">
-                                  <span className="flex-1">
-                                    {activity.location}
+                                  <div className="flex-1">
+                                    <div className="font-medium text-sm text-gray-900">{activity.location}</div>
                                     {activity.isStop && (
-                                      <span className="text-blue-600 ml-1">
-                                        (Stop - {activity.stopDuration || 0}min)
-                                      </span>
+                                      <div className="text-xs text-blue-600 mt-1">
+                                        Stop • {activity.stopDuration || 0} minutes
+                                      </div>
                                     )}
-                                  </span>
+                                    {activity.isAdmissionIncluded && (
+                                      <div className="text-xs text-emerald-600 mt-1">
+                                        ✓ Admission included
+                                      </div>
+                                    )}
+                                    {(activity.inclusions && activity.inclusions.length > 0) && (
+                                      <div className="text-xs text-green-600 mt-1">
+                                        Includes: {activity.inclusions.join(', ')}
+                                      </div>
+                                    )}
+                                    {(activity.exclusions && activity.exclusions.length > 0) && (
+                                      <div className="text-xs text-red-600 mt-1">
+                                        Excludes: {activity.exclusions.join(', ')}
+                                      </div>
+                                    )}
+                                  </div>
                                 </li>
                               ))}
                             </ul>
@@ -719,6 +951,11 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                 type="button"
                 onClick={handleSaveAndContinue}
                 className="px-6 py-2 bg-[#ff914d] text-white rounded-md hover:bg-[#e8823d] font-semibold transition-colors"
+                disabled={
+                  formData.type === 'TOUR' &&
+                  formData.itinerary?.length < (formData.duration && formData.duration !== 'Full Day' ?
+                    parseInt(formData.duration.split(' ')[0]) || 2 : 2)
+                }
               >
                 Save &amp; Continue
               </button>
@@ -904,6 +1141,7 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
       case 'content':
         return (
           <div className="space-y-8">
+            {/* Highlights section remains the same */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="bg-gray-50 rounded-lg p-6">
                 <h4 className="text-lg font-semibold text-gray-900 mb-4">Highlights</h4>
@@ -915,6 +1153,7 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                       onChange={(e) => setNewItem({ ...newItem, highlight: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
                       placeholder="Add a highlight"
+                      onKeyPress={(e) => e.key === 'Enter' && addItem('highlights', newItem.highlight)}
                     />
                     <button
                       type="button"
@@ -945,60 +1184,120 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                 </div>
               </div>
 
+              {/* Updated Inclusions section */}
               <div className="bg-gray-50 rounded-lg p-6">
                 <h4 className="text-lg font-semibold text-gray-900 mb-4">Inclusions</h4>
                 <div className="space-y-4">
-                  <div className="flex mb-2">
-                    <select
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                      value={newItem.inclusion}
-                      onChange={e => {
-                        const value = e.target.value;
-                        if (value && value !== 'Other') {
-                          addItem('inclusions', value);
-                          setNewItem(prev => ({ ...prev, inclusion: '' }));
-                        } else {
-                          setNewItem(prev => ({ ...prev, inclusion: value }));
+                  {/* Category Selection */}
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                      <select
+                        value={selectedCategory}
+                        onChange={(e) => {
+                          setSelectedCategory(e.target.value);
+                          setSelectedSubcategory('');
+                          setShowCustomForm(e.target.value === 'Custom');
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+                      >
+                        <option value="">Select category...</option>
+                        {Object.keys(predefinedCategories).map(category => (
+                          <option key={category} value={category}>{category}</option>
+                        ))}
+                        <option value="Custom">Custom</option>
+                      </select>
+                    </div>
+
+                    {selectedCategory && selectedCategory !== 'Custom' && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Item</label>
+                        <select
+                          value={selectedSubcategory}
+                          onChange={(e) => setSelectedSubcategory(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+                        >
+                          <option value="">Select item...</option>
+                          {predefinedCategories[selectedCategory as keyof typeof predefinedCategories].items.map(item => (
+                            <option key={item} value={item}>{item}</option>
+                          ))}
+                        </select>
+                        {selectedSubcategory && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            {getDescription(selectedCategory, selectedSubcategory)}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {showCustomForm && (
+                      <div className="space-y-3 p-3 border border-gray-200 rounded-md bg-white">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Custom Category</label>
+                          <input
+                            type="text"
+                            value={customCategory}
+                            onChange={(e) => setCustomCategory(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+                            placeholder="Enter custom category"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Custom Title</label>
+                          <input
+                            type="text"
+                            value={customTitle}
+                            onChange={(e) => setCustomTitle(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+                            placeholder="Enter custom title"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Description (Optional)</label>
+                          <textarea
+                            value={customDescription}
+                            onChange={(e) => setCustomDescription(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+                            placeholder="Enter description (optional)"
+                            rows={2}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        let itemToAdd = '';
+                        if (showCustomForm && customTitle) {
+                          itemToAdd = customDescription ? `${customTitle} - ${customDescription}` : customTitle;
+                        } else if (selectedSubcategory) {
+                          const description = getDescription(selectedCategory, selectedSubcategory);
+                          itemToAdd = description ? `${selectedSubcategory} - ${description}` : selectedSubcategory;
+                        }
+                        
+                        if (itemToAdd) {
+                          addItem('inclusions', itemToAdd);
+                          setSelectedCategory('');
+                          setSelectedSubcategory('');
+                          setCustomTitle('');
+                          setCustomCategory('');
+                          setCustomDescription('');
+                          setShowCustomForm(false);
                         }
                       }}
+                      disabled={(!selectedSubcategory && !customTitle)}
+                      className="w-full px-4 py-2 bg-[#ff914d] text-white rounded-md hover:bg-[#e8823d] transition-colors disabled:bg-gray-300"
                     >
-                      <option value="">Add from predefined...</option>
-                      <option value="Food and drink">Food and drink</option>
-                      <option value="Excess charges">Excess charges</option>
-                      <option value="Transportation amenities">Transportation amenities</option>
-                      <option value="Fees">Fees</option>
-                      <option value="Use of Equipment">Use of Equipment</option>
-                      <option value="Other">Other</option>
-                    </select>
-                    {newItem.inclusion === 'Other' && (
-                      <>
-                        <input
-                          type="text"
-                          value={newItem.inclusionText || ''}
-                          onChange={e => setNewItem(prev => ({ ...prev, inclusionText: e.target.value }))}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent ml-2"
-                          placeholder="Add a custom inclusion"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (newItem.inclusionText?.trim()) {
-                              addItem('inclusions', newItem.inclusionText);
-                              setNewItem(prev => ({ ...prev, inclusion: '', inclusionText: '' }));
-                            }
-                          }}
-                          className="px-3 py-2 bg-[#ff914d] text-white rounded-r-md hover:bg-[#e8823d] transition-colors ml-2"
-                        >
-                          <Plus className="h-5 w-5" />
-                        </button>
-                      </>
-                    )}
+                      Add Inclusion
+                    </button>
                   </div>
+
                   <div className="border border-gray-200 rounded-md max-h-64 overflow-y-auto">
                     <ul className="divide-y divide-gray-200">
                       {(formData.inclusions || []).map((inclusion: string, index: number) => (
                         <li key={index} className="flex justify-between items-center p-3 hover:bg-gray-50">
-                          <span className="text-gray-700">{inclusion}</span>
+                          <span className="text-gray-700 text-sm">{inclusion}</span>
                           <button
                             onClick={() => removeItem('inclusions', index)}
                             className="text-red-500 hover:text-red-700 transition-colors"
@@ -1015,60 +1314,117 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                 </div>
               </div>
 
+              {/* Updated Exclusions section */}
               <div className="bg-gray-50 rounded-lg p-6">
                 <h4 className="text-lg font-semibold text-gray-900 mb-4">Exclusions</h4>
                 <div className="space-y-4">
-                  <div className="flex mb-2">
-                    <select
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                      value={newItem.exclusion}
-                      onChange={e => {
-                        const value = e.target.value;
-                        if (value && value !== 'Other') {
-                          addItem('exclusions', value);
-                          setNewItem(prev => ({ ...prev, exclusion: '' }));
-                        } else {
-                          setNewItem(prev => ({ ...prev, exclusion: value }));
+                  {/* Category Selection for Exclusions */}
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                      <select
+                        value={newItem.exclusion}
+                        onChange={(e) => {
+                          setNewItem({ ...newItem, exclusion: e.target.value });
+                          setShowCustomForm(e.target.value === 'Custom');
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+                      >
+                        <option value="">Select category...</option>
+                        {Object.keys(predefinedCategories).map(category => (
+                          <option key={category} value={category}>{category}</option>
+                        ))}
+                        <option value="Custom">Custom</option>
+                      </select>
+                    </div>
+
+                    {newItem.exclusion && newItem.exclusion !== 'Custom' && newItem.exclusion !== '' && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Item</label>
+                        <select
+                          value={newItem.exclusionText || ''}
+                          onChange={(e) => setNewItem({ ...newItem, exclusionText: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+                        >
+                          <option value="">Select item...</option>
+                          {predefinedCategories[newItem.exclusion as keyof typeof predefinedCategories].items.map(item => (
+                            <option key={item} value={item}>{item}</option>
+                          ))}
+                        </select>
+                        {newItem.exclusionText && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            {getDescription(newItem.exclusion, newItem.exclusionText)}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {newItem.exclusion === 'Custom' && (
+                      <div className="space-y-3 p-3 border border-gray-200 rounded-md bg-white">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Custom Category</label>
+                          <input
+                            type="text"
+                            value={customCategory}
+                            onChange={(e) => setCustomCategory(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+                            placeholder="Enter custom category"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Custom Title</label>
+                          <input
+                            type="text"
+                            value={newItem.exclusionText || ''}
+                            onChange={(e) => setNewItem({ ...newItem, exclusionText: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+                            placeholder="Enter custom title"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Description (Optional)</label>
+                          <textarea
+                            value={customDescription}
+                            onChange={(e) => setCustomDescription(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+                            placeholder="Enter description (optional)"
+                            rows={2}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        let itemToAdd = '';
+                        if (newItem.exclusion === 'Custom' && newItem.exclusionText) {
+                          itemToAdd = customDescription ? `${newItem.exclusionText} - ${customDescription}` : newItem.exclusionText;
+                        } else if (newItem.exclusionText && newItem.exclusion) {
+                          const description = getDescription(newItem.exclusion, newItem.exclusionText);
+                          itemToAdd = description ? `${newItem.exclusionText} - ${description}` : newItem.exclusionText;
+                        }
+                        
+                        if (itemToAdd) {
+                          addItem('exclusions', itemToAdd);
+                          setNewItem({ ...newItem, exclusion: '', exclusionText: '' });
+                          setCustomCategory('');
+                          setCustomDescription('');
+                          setShowCustomForm(false);
                         }
                       }}
+                      disabled={!newItem.exclusionText}
+                      className="w-full px-4 py-2 bg-[#ff914d] text-white rounded-md hover:bg-[#e8823d] transition-colors disabled:bg-gray-300"
                     >
-                      <option value="">Add from predefined...</option>
-                      <option value="Food and drink">Food and drink</option>
-                      <option value="Excess charges">Excess charges</option>
-                      <option value="Transportation amenities">Transportation amenities</option>
-                      <option value="Fees">Fees</option>
-                      <option value="Use of Equipment">Use of Equipment</option>
-                      <option value="Other">Other</option>
-                    </select>
-                    {newItem.exclusion === 'Other' && (
-                      <>
-                        <input
-                          type="text"
-                          value={newItem.exclusionText || ''}
-                          onChange={e => setNewItem(prev => ({ ...prev, exclusionText: e.target.value }))}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent ml-2"
-                          placeholder="Add a custom exclusion"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (newItem.exclusionText?.trim()) {
-                              addItem('exclusions', newItem.exclusionText);
-                              setNewItem(prev => ({ ...prev, exclusion: '', exclusionText: '' }));
-                            }
-                          }}
-                          className="px-3 py-2 bg-[#ff914d] text-white rounded-r-md hover:bg-[#e8823d] transition-colors ml-2"
-                        >
-                          <Plus className="h-5 w-5" />
-                        </button>
-                      </>
-                    )}
+                      Add Exclusion
+                    </button>
                   </div>
+
                   <div className="border border-gray-200 rounded-md max-h-64 overflow-y-auto">
                     <ul className="divide-y divide-gray-200">
                       {(formData.exclusions || []).map((exclusion: string, index: number) => (
                         <li key={index} className="flex justify-between items-center p-3 hover:bg-gray-50">
-                          <span className="text-gray-700">{exclusion}</span>
+                          <span className="text-gray-700 text-sm">{exclusion}</span>
                           <button
                             onClick={() => removeItem('exclusions', index)}
                             className="text-red-500 hover:text-red-700 transition-colors"
@@ -1085,6 +1441,7 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                 </div>
               </div>
 
+              {/* Tags section remains the same */}
               <div className="bg-gray-50 rounded-lg p-6">
                 <h4 className="text-lg font-semibold text-gray-900 mb-4">Tags</h4>
                 <div className="space-y-4">
@@ -1095,6 +1452,7 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                       onChange={(e) => setNewItem({ ...newItem, tag: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
                       placeholder="Add a tag"
+                      onKeyPress={(e) => e.key === 'Enter' && addItem('tags', newItem.tag)}
                     />
                     <button
                       type="button"
@@ -1446,7 +1804,7 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                         }
                         updateFormData({ healthRestrictions: updated });
                       }}
-                      className="h-4 w-4 border-gray-300 rounded focus:ring-[#ff914d] accent-[#ff914d]"
+                      className="h-4 w-4 border-gray-300 rounded accent-blue-600 focus:ring-blue-500"
                     />
                     <span className="text-gray-700 text-sm">{option}</span>
                   </label>
@@ -1465,7 +1823,7 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                         }
                         updateFormData({ healthRestrictions: updated });
                       }}
-                      className="h-4 w-4 border-gray-300 rounded focus:ring-[#ff914d] accent-[#ff914d]"
+                      className="h-4 w-4 border-gray-300 rounded accent-blue-600 focus:ring-blue-500"
                     />
                     <span className="text-gray-700 text-sm">{custom}</span>
                     <button
@@ -1486,24 +1844,12 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                 ))}
               </div>
               <div className="flex items-center space-x-2">
-                <button
-                  type="button"
-                  className="text-[#ff914d] hover:underline font-medium text-sm"
-                  onClick={() => {
-                    if (newCustomHealthRestriction.trim()) {
-                      setCustomHealthRestrictions([...customHealthRestrictions, newCustomHealthRestriction.trim()]);
-                      setNewCustomHealthRestriction('');
-                    }
-                  }}
-                >
-                  + Add custom restriction
-                </button>
                 <input
                   type="text"
                   value={newCustomHealthRestriction}
                   onChange={e => setNewCustomHealthRestriction(e.target.value)}
                   placeholder="Custom restriction"
-                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-sm"
+                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2563eb] focus:border-transparent text-sm w-96"
                   onKeyDown={e => {
                     if (e.key === 'Enter' && newCustomHealthRestriction.trim()) {
                       setCustomHealthRestrictions([...customHealthRestrictions, newCustomHealthRestriction.trim()]);
@@ -1511,9 +1857,21 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                     }
                   }}
                 />
+                <button
+                  type="button"
+                  className="p-3 bg-orange-400 hover:bg-orange-500 text-white rounded-md"
+                  onClick={() => {
+                    if (newCustomHealthRestriction.trim()) {
+                      setCustomHealthRestrictions([...customHealthRestrictions, newCustomHealthRestriction.trim()]);
+                      setNewCustomHealthRestriction('');
+                    }
+                  }}
+                  title="Add custom restriction"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
               </div>
             </div>
-
             <div className="flex justify-end mt-8">
               <button
                 type="button"
@@ -1843,58 +2201,266 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                           />
                           <span className="text-xs text-gray-700">Is Stop?</span>
                         </label>
+                      </div>
+                    </div>
 
-                        {newActivity.isStop && (
-                          <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">
-                              Duration (mins)
-                            </label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                      {/* Duration Fields - Only show when isStop is true */}
+                      {newActivity.isStop && (
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Activity Duration
+                          </label>
+                          <div className="flex space-x-2">
                             <input
                               type="number"
+                              min="1"
                               value={newActivity.stopDuration || ''}
                               onChange={(e) => setNewActivity({
                                 ...newActivity,
                                 stopDuration: e.target.value ? parseInt(e.target.value) : undefined
                               })}
-                              placeholder="30"
+                              placeholder="2"
                               className="w-20 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-sm"
                             />
+                            <select
+                              value={newActivity.durationUnit || 'minutes'}
+                              onChange={(e) => setNewActivity({
+                                ...newActivity,
+                                durationUnit: e.target.value as 'minutes' | 'hours'
+                              })}
+                              className="px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-sm"
+                            >
+                              <option value="minutes">Minutes</option>
+                              <option value="hours">Hours</option>
+                            </select>
                           </div>
-                        )}
+                        </div>
+                      )}
+
+                      {/* Admission Inclusion Field */}
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Admission
+                        </label>
+                        <label className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            checked={newActivity.isAdmissionIncluded || false}
+                            onChange={(e) => setNewActivity({
+                              ...newActivity,
+                              isAdmissionIncluded: e.target.checked
+                            })}
+                            className="h-4 w-4 text-[#ff914d] focus:ring-[#ff914d] border-gray-300 rounded"
+                          />
+                          <span className="text-xs text-gray-700">Is admission to this place included in the price of your tour?</span>
+                        </label>
                       </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
                       <div>
                         <label className="block text-xs font-medium text-gray-700 mb-1">
-                          Inclusions (comma-separated)
+                          Inclusions
                         </label>
-                        <input
-                          type="text"
-                          value={(newActivity.inclusions || []).join(', ')}
-                          onChange={(e) => setNewActivity({
-                            ...newActivity,
-                            inclusions: e.target.value.split(',').map(s => s.trim()).filter(s => s)
-                          })}
-                          placeholder="Guide, Entry ticket"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-sm"
-                        />
+                        <div className="space-y-2">
+                          <div className="space-y-2">
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Category</label>
+                              <select
+                                value={activityInclusionCategory}
+                                onChange={(e) => {
+                                  setActivityInclusionCategory(e.target.value);
+                                  setActivityInclusionSubcategory('');
+                                  setShowActivityInclusionCustomForm(e.target.value === 'Custom');
+                                }}
+                                className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-xs"
+                              >
+                                <option value="">Select category...</option>
+                                {Object.keys(predefinedCategories).map(category => (
+                                  <option key={category} value={category}>{category}</option>
+                                ))}
+                                <option value="Custom">Custom</option>
+                              </select>
+                            </div>
+
+                            {activityInclusionCategory && activityInclusionCategory !== 'Custom' && (
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Item</label>
+                                <select
+                                  value={activityInclusionSubcategory}
+                                  onChange={(e) => setActivityInclusionSubcategory(e.target.value)}
+                                  className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-xs"
+                                >
+                                  <option value="">Select item...</option>
+                                  {predefinedCategories[activityInclusionCategory as keyof typeof predefinedCategories].items.map(item => (
+                                    <option key={item} value={item}>{item}</option>
+                                  ))}
+                                </select>
+                                {activityInclusionSubcategory && (
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    {getDescription(activityInclusionCategory, activityInclusionSubcategory)}
+                                  </p>
+                                )}
+                              </div>
+                            )}
+
+                            {showActivityInclusionCustomForm && (
+                              <div className="space-y-2 p-2 border border-gray-200 rounded-md bg-white">
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-700 mb-1">Custom Title</label>
+                                  <input
+                                    type="text"
+                                    value={activityInclusionCustomTitle}
+                                    onChange={(e) => setActivityInclusionCustomTitle(e.target.value)}
+                                    className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-xs"
+                                    placeholder="Enter custom title"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-700 mb-1">Description (Optional)</label>
+                                  <textarea
+                                    value={activityInclusionCustomDescription}
+                                    onChange={(e) => setActivityInclusionCustomDescription(e.target.value)}
+                                    className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-xs"
+                                    placeholder="Enter description (optional)"
+                                    rows={2}
+                                  />
+                                </div>
+                              </div>
+                            )}
+
+                            <button
+                              type="button"
+                              onClick={addActivityInclusion}
+                              disabled={(!activityInclusionSubcategory && !activityInclusionCustomTitle)}
+                              className="w-full px-2 py-1 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors disabled:bg-gray-300 text-xs"
+                            >
+                              Add Inclusion
+                            </button>
+                          </div>
+                          
+                          <div className="flex flex-wrap gap-1">
+                            {(newActivity.inclusions || []).map((inclusion, idx) => (
+                              <span key={idx} className="inline-flex items-center bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
+                                {inclusion.length > 25 ? `${inclusion.substring(0, 25)}...` : inclusion}
+                                <button
+                                  type="button"
+                                  onClick={() => setNewActivity({
+                                    ...newActivity,
+                                    inclusions: (newActivity.inclusions || []).filter((_, i) => i !== idx)
+                                  })}
+                                  className="ml-1 text-green-600 hover:text-green-800"
+                                  title={inclusion}
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
                       </div>
 
                       <div>
                         <label className="block text-xs font-medium text-gray-700 mb-1">
-                          Exclusions (comma-separated)
+                          Exclusions
                         </label>
-                        <input
-                          type="text"
-                          value={(newActivity.exclusions || []).join(', ')}
-                          onChange={(e) => setNewActivity({
-                            ...newActivity,
-                            exclusions: e.target.value.split(',').map(s => s.trim()).filter(s => s)
-                          })}
-                          placeholder="Food, Transport"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-sm"
-                        />
+                        <div className="space-y-2">
+                          <div className="space-y-2">
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Category</label>
+                              <select
+                                value={activityExclusionCategory}
+                                onChange={(e) => {
+                                  setActivityExclusionCategory(e.target.value);
+                                  setActivityExclusionSubcategory('');
+                                  setShowActivityExclusionCustomForm(e.target.value === 'Custom');
+                                }}
+                                className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-xs"
+                              >
+                                <option value="">Select category...</option>
+                                {Object.keys(predefinedCategories).map(category => (
+                                  <option key={category} value={category}>{category}</option>
+                                ))}
+                                <option value="Custom">Custom</option>
+                              </select>
+                            </div>
+
+                            {activityExclusionCategory && activityExclusionCategory !== 'Custom' && (
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Item</label>
+                                <select
+                                  value={activityExclusionSubcategory}
+                                  onChange={(e) => setActivityExclusionSubcategory(e.target.value)}
+                                  className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-xs"
+                                >
+                                  <option value="">Select item...</option>
+                                  {predefinedCategories[activityExclusionCategory as keyof typeof predefinedCategories].items.map(item => (
+                                    <option key={item} value={item}>{item}</option>
+                                  ))}
+                                </select>
+                                {activityExclusionSubcategory && (
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    {getDescription(activityExclusionCategory, activityExclusionSubcategory)}
+                                  </p>
+                                )}
+                              </div>
+                            )}
+
+                            {showActivityExclusionCustomForm && (
+                              <div className="space-y-2 p-2 border border-gray-200 rounded-md bg-white">
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-700 mb-1">Custom Title</label>
+                                  <input
+                                    type="text"
+                                    value={activityExclusionCustomTitle}
+                                    onChange={(e) => setActivityExclusionCustomTitle(e.target.value)}
+                                    className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-xs"
+                                    placeholder="Enter custom title"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-700 mb-1">Description (Optional)</label>
+                                  <textarea
+                                    value={activityExclusionCustomDescription}
+                                    onChange={(e) => setActivityExclusionCustomDescription(e.target.value)}
+                                    className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-xs"
+                                    placeholder="Enter description (optional)"
+                                    rows={2}
+                                  />
+                                </div>
+                              </div>
+                            )}
+
+                            <button
+                              type="button"
+                              onClick={addActivityExclusion}
+                              disabled={(!activityExclusionSubcategory && !activityExclusionCustomTitle)}
+                              className="w-full px-2 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors disabled:bg-gray-300 text-xs"
+                            >
+                              Add Exclusion
+                            </button>
+                          </div>
+                          
+                          <div className="flex flex-wrap gap-1">
+                            {(newActivity.exclusions || []).map((exclusion, idx) => (
+                              <span key={idx} className="inline-flex items-center bg-red-100 text-red-800 px-2 py-1 rounded text-xs">
+                                {exclusion.length > 25 ? `${exclusion.substring(0, 25)}...` : exclusion}
+                                <button
+                                  type="button"
+                                  onClick={() => setNewActivity({
+                                    ...newActivity,
+                                    exclusions: (newActivity.exclusions || []).filter((_, i) => i !== idx)
+                                  })}
+                                  className="ml-1 text-red-600 hover:text-red-800"
+                                  title={exclusion}
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
                       </div>
                     </div>
 
@@ -1918,6 +2484,8 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                                 location: '',
                                 isStop: false,
                                 stopDuration: undefined,
+                                durationUnit: 'minutes', // New duration unit field
+                                isAdmissionIncluded: false, // New admission field
                                 inclusions: [],
                                 exclusions: [],
                                 order: 0,
@@ -1938,7 +2506,9 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                                 setNewActivity({
                                   location: '',
                                   isStop: false,
-                                  stopDuration: undefined,
+                                  stopDuration: undefined, // New duration field
+                                  durationUnit: 'minutes', // New duration unit field
+                                  isAdmissionIncluded: false, // New admission field
                                   inclusions: [],
                                   exclusions: [],
                                   order: 0,
@@ -1961,9 +2531,19 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                       <div key={index} className="flex items-start justify-between bg-white border border-gray-200 px-4 py-3 rounded-md">
                         <div className="flex-1">
                           <div className="font-medium text-sm text-gray-900">{activity.location}</div>
+                          {activity.stopDuration && (
+                            <div className="text-xs text-purple-600 mt-1">
+                              Duration: {activity.stopDuration} {activity.durationUnit || 'minutes'}
+                            </div>
+                          )}
                           {activity.isStop && (
                             <div className="text-xs text-blue-600 mt-1">
                               Stop • {activity.stopDuration || 0} minutes
+                            </div>
+                          )}
+                          {activity.isAdmissionIncluded && (
+                            <div className="text-xs text-emerald-600 mt-1">
+                              ✓ Admission included
                             </div>
                           )}
                           {(activity.inclusions && activity.inclusions.length > 0) && (

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { GoogleMap } from './GoogleMap';
 import { MapPin, X, Edit2, Map, AlertCircle, Plus } from 'lucide-react';
 import { useGoogleMaps } from '../../hooks/useGoogleMaps';
+import { useToast } from './toaster';
 
 interface LocationDetail {
   address: string;
@@ -29,7 +30,7 @@ export const PickupLocationMap: React.FC<PickupLocationMapProps> = ({
   const [searchValue, setSearchValue] = useState('');
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  
+  const toast = useToast();
   const { isLoaded, loadError } = useGoogleMaps();
 
   useEffect(() => {
@@ -80,7 +81,10 @@ export const PickupLocationMap: React.FC<PickupLocationMapProps> = ({
       );
 
       if (existingLocation) {
-        alert('This location has already been added');
+        toast({
+          message: 'This location is already added.',
+          type: 'info',
+        })
         setSearchValue('');
         if (inputRef.current) {
           inputRef.current.value = '';
@@ -112,7 +116,10 @@ export const PickupLocationMap: React.FC<PickupLocationMapProps> = ({
 
   const handleLocationSelect = (location: LocationDetail) => {
     if (locations.length >= maxLocations) {
-      alert(`Maximum ${maxLocations} pickup locations allowed`);
+     toast({
+        message: `Maximum of ${maxLocations} pickup locations reached.`,
+        type: 'error',
+     })
       return;
     }
     onLocationsChange([...locations, location]);

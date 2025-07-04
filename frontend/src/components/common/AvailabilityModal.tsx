@@ -8,19 +8,18 @@ import { Sheet } from 'react-modal-sheet';
 import clsx from 'clsx';
 import { CheckCircle } from 'lucide-react';
 import { formatDate } from 'date-fns';
+import { isSlotBookable } from '../../lib/utils';
 
 interface Props {
   productId: string;
   packages: any[]; // Consider using a more specific type if possible
   open: boolean;
   onClose: () => void;
-  // This prop's name might be misleading if it's used for slotId later
-  // Consider renaming to onFinalSelection or having separate onPackageSelect and onSlotSelect
   onPackageSelect: (pkgOrSlotId: string) => void; 
   initialDate?: string;
   initialAdults?: number;
   initialChildren?: number;
-  selectedPackageFromProp?: { // Renamed to avoid confusion with internal state
+  selectedPackageFromProp?: { 
     id: string;
     inclusions?: string[];
     timeSlots?: string[];
@@ -34,7 +33,7 @@ export const AvailabilityModal = ({
   initialDate,
   initialAdults,
   initialChildren,
-  selectedPackageFromProp // Using the renamed prop
+  selectedPackageFromProp
 }: Props) => {
   const [date, setDate] = useState<Date | null>(initialDate ? new Date(initialDate) : null);
   const [adults, setAdults] = useState(initialAdults ?? 2);
@@ -47,11 +46,10 @@ export const AvailabilityModal = ({
   const [showDatepicker, setShowDatepicker] = useState(false);
   const [showTravellers, setShowTravellers] = useState(false);
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
-  // Internal state for selected package ID
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null); 
   const [step, setStep] = useState<'package'|'slot'>(
     selectedPackageFromProp ? 'slot' : 'package'
-  ); // Initialize step based on prop
+  );
   const [slotsLoading, setSlotsLoading] = useState(false);
   const isMobile = useMediaQuery('(max-width:1023px)');
   const datestr = date ? formatDate(date, 'MM/dd/yyyy') : '';
@@ -68,7 +66,6 @@ export const AvailabilityModal = ({
     setChildren(initialChildren ?? 0);
   }, [initialChildren]);
   
-  // Reset modal state when opened or when selectedPackageFromProp changes
   useEffect(() => {
     if (open) {
       if (selectedPackageFromProp && selectedPackageFromProp.id) {
@@ -82,16 +79,13 @@ export const AvailabilityModal = ({
     }
   }, [open, selectedPackageFromProp]);
 
-  /* fetch whenever the filter changes */
   useEffect(() => {
     if (!open || !date) return;
     
-    // Reset state when date or selectedPackageId changes
-    // This ensures we always fetch fresh data for the current selection
     setSlots([]);
     setPackages([]);
-    setIsDateOk(null); // Reset availability status
-    setSelectedSlotId(null); // Clear selected slot when date or package changes
+    setIsDateOk(null);
+    setSelectedSlotId(null);
     if (step === 'slot') {
       setSlotsLoading(true);
     }
@@ -102,7 +96,7 @@ export const AvailabilityModal = ({
         const iso = formatDate(date, 'yyyy-MM-dd');
         const base = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
         
-        if (!selectedPackageId || step === 'package') { // Fetch packages if none selected or if we're on package step
+        if (!selectedPackageId || step === 'package') {
           console.log("Checking product availability for date:", iso);
           const url = `${base}/availability/product/${productId}?startDate=${iso}&endDate=${iso}`;
           
@@ -120,12 +114,11 @@ export const AvailabilityModal = ({
                
               const uniquePackages = Array.from(
                 new Map(availableAvailabilities
-                  .filter((a: any) => a.package) // Ensure package exists
+                  .filter((a: any) => a.package)
                   .map((a: any) => [a.package.id, {
                     id: a.package.id,
                     name: a.package.name,
                     maxPeople: a.package.maxPeople,
-                    // Potentially add basePrice here if you need it for package display
                     basePrice: a.package.basePrice, 
                     currency: a.package.currency
                   }])
@@ -134,10 +127,9 @@ export const AvailabilityModal = ({
               
               console.log("Found available packages:", uniquePackages);
               setPackages(uniquePackages);
-              // If a package was selected from prop, and it's in the available list, set it
               if (selectedPackageFromProp && uniquePackages.some((p: any) => p.id === selectedPackageFromProp.id)) {
                   setSelectedPackageId(selectedPackageFromProp.id);
-                  setStep('slot'); // Automatically move to slot selection if initial package is valid
+                  setStep('slot');
               }
             }
           } else {
@@ -147,7 +139,7 @@ export const AvailabilityModal = ({
           }
         } 
         
-        if (selectedPackageId && step === 'slot') { // Fetch slots if a package is selected and we're on slot step
+        if (selectedPackageId && step === 'slot') {
           setSlotsLoading(true);
           try {
             const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'long' });
@@ -164,8 +156,21 @@ export const AvailabilityModal = ({
                 const filteredSlots = data.slots.filter((slot: { days: string | string[]; }) => 
                   Array.isArray(slot.days) && slot.days.includes(dayOfWeek)
                 );
-                setSlots(filteredSlots);
-                setIsDateOk(filteredSlots.length > 0);
+                
+                const availableSlots = filteredSlots.filter((slot: any) => {
+                  if (!slot.Time || !Array.isArray(slot.Time) || slot.Time.length === 0) {
+                    return false;
+                  }
+                  
+                  return slot.Time.some((time: string) => {
+                    const cutoffTime = slot.cutoffTime || 24;
+                    const { isBookable } = isSlotBookable(iso, time, cutoffTime);
+                    return isBookable;
+                  });
+                });
+                
+                setSlots(availableSlots);
+                setIsDateOk(availableSlots.length > 0);
               } else {
                 console.error('Invalid or empty slots data:', data);
                 setSlots([]);
@@ -194,11 +199,9 @@ export const AvailabilityModal = ({
       } 
     };
 
-    // Debounce or add a small delay if fetches are too frequent
     const timeoutId = setTimeout(fetchAvailability, 200);
-    return () => clearTimeout(timeoutId); // Cleanup on unmount or re-render
-  }, [open, date, adults, children, productId, selectedPackageId, step]); // Added selectedPackageId and step to dependency array
-
+    return () => clearTimeout(timeoutId);
+  }, [open, date, adults, children, productId, selectedPackageId, step]);
 
   if (!open || !isMobile) return null;
   return (
@@ -214,13 +217,11 @@ export const AvailabilityModal = ({
           isMobile ? 'w-full h-full rounded-none' : 'w-full max-w-md rounded-lg'
         )}
       >
-        {/* Header */}
         <div className="flex items-center px-6 py-4 border-b border-gray-200 relative">
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700 mr-4">
             <X className="h-6 w-6 rounded-full flex items-center justify-center bg-gray-200" />
           </button>
 
-          {/* date button */}
           <button
             onClick={() => setShowDatepicker((o) => !o)}
             className="flex items-center space-x-2 px-3 py-2 border border-gray-200 rounded-lg hover:border-gray-300 mr-3"
@@ -233,7 +234,6 @@ export const AvailabilityModal = ({
             </span>
           </button>
 
-          {/* travellers button */}
           <button
             onClick={() => setShowTravellers((o) => !o)}
             className="flex items-center space-x-2 px-3 py-2 border border-gray-200 rounded-lg hover:border-gray-300"
@@ -244,7 +244,6 @@ export const AvailabilityModal = ({
             </span>
           </button>
 
-          {/* date-picker overlay */}
           {!isMobile && showDatepicker && (
             <div className="absolute top-full right-0 mt-3 bg-white rounded-xl shadow-lg p-4 z-20">
               <DayPicker
@@ -308,7 +307,6 @@ export const AvailabilityModal = ({
             </Sheet>
           )}
 
-          {/* travellers overlay */}
           {!isMobile && showTravellers && (
             <div className="absolute top-full right-0 mt-3 bg-white border border-gray-200 rounded-xl p-5 shadow-lg z-20 w-60">
               {[
@@ -393,7 +391,6 @@ export const AvailabilityModal = ({
           )}
         </div>
 
-        {/* Time-slots grid + CTA */}
         <div className="p-6 h-full w-full">
           {loading && (
             <div className="flex justify-center items-center py-8 flex-col">
@@ -404,7 +401,6 @@ export const AvailabilityModal = ({
             </div>
           )}
 
-          {/* Package Selection Step */}
           {!loading && isDateOk === true && step === 'package' && packages.length > 0 && (
             <div>
               <h3 className="text-lg font-medium text-gray-900 mb-4">Select Package</h3>
@@ -415,7 +411,7 @@ export const AvailabilityModal = ({
                     onClick={() => {
                       setSelectedPackageId(pkg.id);
                       setSlotsLoading(true);
-                      setStep('slot'); // Move to slot selection after package is chosen
+                      setStep('slot');
                     }}
                     className={`w-full flex items-center justify-between px-4 py-3 border rounded-lg 
                       ${selectedPackageId === pkg.id 
@@ -429,7 +425,7 @@ export const AvailabilityModal = ({
                           Max {pkg.maxPeople} people
                         </p>
                       )}
-                      {selectedPackageId === pkg.id && ( // Check for selectedPackageId here
+                      {selectedPackageId === pkg.id && (
                         <div className="mt-1 flex items-center text-[#ff914d]">
                           <CheckCircle className="h-4 w-4 mr-1" />
                           <span className="text-xs">Selected</span>
@@ -451,15 +447,14 @@ export const AvailabilityModal = ({
             </div>
           )}
           
-          {/* Back button to return to package selection */}
           {step === 'slot' && !slotsLoading && (
             <div className="mb-4">
               <button
                 onClick={() => {
                   setSelectedPackageId(null);
                   setSelectedSlotId(null);
-                  setSlots([]); // Clear slots when going back
-                  setStep('package'); // Crucial line for navigation
+                  setSlots([]);
+                  setStep('package');
                 }}
                 className="text-[#104c57] hover:text-[#ff914d] transition-colors text-sm"
               >
@@ -468,10 +463,8 @@ export const AvailabilityModal = ({
             </div>
           )}
 
-          {/* Slot Selection Step */}
           {!loading && step === 'slot' && (
-            <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Select Time</h3>
+            <>
               {slotsLoading ? (
                 <div className="flex justify-center items-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ff914d] mr-3"></div>
@@ -479,6 +472,7 @@ export const AvailabilityModal = ({
                 </div>
               ) : slots.length > 0 ? (
                 <div className="space-y-2">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Select Time</h3>
                   {slots
                     .flatMap(slot =>
                       Array.isArray(slot.Time)
@@ -487,35 +481,46 @@ export const AvailabilityModal = ({
                     )
                     .map(({ slotId, time, slot }) => {
                       const availableSeats = slot.available - (slot.booked || 0);
-                      const isDisabled = availableSeats < (adults + children);
-                      const isSelected =
-                        selectedSlotId === slotId && selectedTime === time;
+                      const cutoffTime = slot.cutoffTime || 24;
+                      const { isBookable, reason } = isSlotBookable(
+                        formatDate(date!, 'yyyy-MM-dd'), 
+                        time, 
+                        cutoffTime
+                      );
+                      
+                      const isDisabled = availableSeats < (adults + children) || !isBookable;
+                      const isSelected = selectedSlotId === slotId && selectedTime === time;
 
                       return (
-                        <button
-                          key={`${slotId}-${time}`}
-                          onClick={() => {
-                            if (!isDisabled) {
-                              setSelectedSlotId(slotId);
-                              setSelectedTime(time);
-                            }
-                          }}
-                          disabled={isDisabled}
-                          className={clsx(
-                            'w-full flex items-center justify-between px-4 py-3 border rounded-lg',
-                            isSelected
-                              ? 'border-2 border-[#ff914d] bg-orange-50'
-                              : 'border-gray-200 hover:border-[#ff914d] hover:shadow-md',
-                            isDisabled && 'opacity-50 cursor-not-allowed'
-                          )}
-                        >
-                          <span className="font-medium">{time}</span>
-                          {isSelected && (
-                            <div className="bg-[#ff914d] text-white rounded-full h-5 w-5 flex items-center justify-center ml-2">
-                              ✓
+                        <div key={`${slotId}-${time}`} className="relative">
+                          <button
+                            onClick={() => {
+                              if (!isDisabled) {
+                                setSelectedSlotId(slotId);
+                                setSelectedTime(time);
+                              }
+                            }}
+                            disabled={isDisabled}
+                            className={clsx(
+                              'w-full flex items-center justify-between px-4 py-3 border rounded-lg',
+                              isSelected
+                                ? 'border-2 border-[#ff914d] bg-orange-50'
+                                : 'border-gray-200 hover:border-[#ff914d] hover:shadow-md',
+                              isDisabled && 'opacity-50 cursor-not-allowed'
+                            )}
+                          >
+                            <span className="font-medium">{time}</span>
+                            {isSelected && (
+                              <CheckCircle className="h-5 w-5 text-[#ff914d]" />
+                            )}
+                          </button>
+                          
+                          {!isBookable && reason && (
+                            <div className="mt-1 text-xs text-red-600 px-2">
+                              {reason}
                             </div>
                           )}
-                        </button>
+                        </div>
                       );
                     })}
 
@@ -542,10 +547,9 @@ export const AvailabilityModal = ({
                   No time slots available for this date for the selected package.
                 </p>
               )}
-            </div>
+            </>
           )}
 
-          {/* No availability message (if no packages found for the date, or initial check fails) */}
           {!loading && isDateOk === false && step === 'package' && (
             <p className="text-center text-red-600">
               No packages available for this date.

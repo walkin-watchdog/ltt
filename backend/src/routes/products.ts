@@ -16,13 +16,6 @@ const generateSlug = (title: string): string => {
 
 const router = express.Router();
 
-const ensureNumeric = (value: any): number => {
-  if (typeof value === 'string') {
-    return Number(value);
-  }
-  return value;
-};
-
 // Add validation schema for the new guide structure
 const guideSchema = z.object({
   language: z.string().min(1),
@@ -37,6 +30,9 @@ const itineraryActivitySchema = z.object({
   placeId: z.string().optional(),
   isStop: z.boolean().optional(),
   stopDuration: z.number().nullable().optional(),
+  duration: z.number().nullable().optional(), // New duration figure
+  durationUnit: z.enum(['minutes', 'hours']).optional().default('minutes'), // New duration unit
+  isAdmissionIncluded: z.boolean().optional().default(false), // New admission field
   inclusions: z.array(z.string()).optional().default([]),
   exclusions: z.array(z.string()).optional().default([]),
   order: z.number().optional(),
@@ -59,6 +55,7 @@ const productSchema = z.object({
   location: z.string().min(1),
   duration: z.string().min(1),
   capacity: z.number().min(1),
+  minparticipants: z.number().min(1).optional().default(1),
   highlights: z.array(z.string()),
   inclusions: z.array(z.string()),
   exclusions: z.array(z.string()),
@@ -178,6 +175,8 @@ const productSchema = z.object({
   infantSeatsAvailable: z.string().min(1).default('no').optional(),
   phonenumber: z.string().default(''),
   tourType: z.string().default(''),
+  cutoffTime: z.number().min(0).optional().default(24), 
+  passportDetailsOption: z.string().optional(),
 });
 
 // Get all products (public)
@@ -553,6 +552,9 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
                   locationPlaceId: act.placeId,
                   isStop: act.isStop ?? false,
                   stopDuration: act.stopDuration,
+                  duration: act.duration, // New duration field
+                  durationUnit: act.durationUnit, // New duration unit field
+                  isAdmissionIncluded: act.isAdmissionIncluded, // New admission field
                   inclusions: act.inclusions ?? [],
                   exclusions: act.exclusions ?? [],
                   order: act.order ?? 0,
@@ -819,6 +821,9 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
                     locationPlaceId: act.placeId,
                     isStop: act.isStop ?? false,
                     stopDuration: act.stopDuration,
+                    duration: act.duration, // New duration field
+                    durationUnit: act.durationUnit, // New duration unit field
+                    isAdmissionIncluded: act.isAdmissionIncluded, // New admission field
                     inclusions: act.inclusions ?? [],
                     exclusions: act.exclusions ?? [],
                     order: act.order ?? 0,
@@ -870,6 +875,7 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
                     min: tier.min,
                     max: tier.max,
                     price: tier.price,
+
                   }))
                 });
               }
@@ -1294,6 +1300,9 @@ router.post('/:id/clone', authenticate, authorize(['ADMIN', 'EDITOR']), async (r
                 ...actData,
                 itineraryId: createdItinerary.id,
                 stopDuration: actData.stopDuration === null ? undefined : actData.stopDuration,
+                duration: actData.duration, 
+                durationUnit: actData.durationUnit, 
+                isAdmissionIncluded: actData.isAdmissionIncluded, 
                 locationLat: actData.locationLat || undefined,
                 locationLng: actData.locationLng || undefined,
                 locationPlaceId: actData.locationPlaceId || undefined,

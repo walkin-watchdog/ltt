@@ -1,19 +1,20 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { 
-  ShoppingCart, 
-  Calendar, 
-  Mail, 
-  Clock, 
-  User, 
-  Send, 
-  ArrowRight, 
+import {
+  ShoppingCart,
+  Calendar,
+  Mail,
+  Clock,
+  User,
+  Send,
+  ArrowRight,
   Trash2,
   Search,
   Filter
 } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import type { AbandonedCartProp } from '../types.ts';
+import { useToast } from '@/components/ui/toaster.tsx';
 
 
 export const AbandonedCarts = () => {
@@ -21,17 +22,17 @@ export const AbandonedCarts = () => {
   const [filteredCarts, setFilteredCarts] = useState<AbandonedCartProp[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [emailFilter, setEmailFilter] = useState('');
-  const [isReminderSending, setIsReminderSending] = useState<{[key: string]: boolean}>({});
-  const [isConverting, setIsConverting] = useState<{[key: string]: boolean}>({});
+  const [isReminderSending, setIsReminderSending] = useState<{ [key: string]: boolean }>({});
+  const [isConverting, setIsConverting] = useState<{ [key: string]: boolean }>({});
   const { token } = useAuth();
-
+  const toast = useToast();
   useEffect(() => {
     fetchCarts();
   }, [token]);
-  
+
   useEffect(() => {
     if (emailFilter) {
-      setFilteredCarts(carts.filter(cart => 
+      setFilteredCarts(carts.filter(cart =>
         cart.email.toLowerCase().includes(emailFilter.toLowerCase()) ||
         cart.customerData.customerName.toLowerCase().includes(emailFilter.toLowerCase())
       ));
@@ -48,7 +49,7 @@ export const AbandonedCarts = () => {
           'Authorization': `Bearer ${token}`,
         },
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         setCarts(data.carts || []);
@@ -62,7 +63,7 @@ export const AbandonedCarts = () => {
   };
 
   const sendReminder = async (cartId: string) => {
-    setIsReminderSending({...isReminderSending, [cartId]: true});
+    setIsReminderSending({ ...isReminderSending, [cartId]: true });
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/abandoned-carts/${cartId}/reminder`, {
         method: 'POST',
@@ -70,26 +71,33 @@ export const AbandonedCarts = () => {
           'Authorization': `Bearer ${token}`,
         },
       });
-      
+
       if (response.ok) {
         // Update the cart to show one more reminder sent
-        setCarts(carts.map(cart => 
-          cart.id === cartId 
-            ? {...cart, remindersSent: cart.remindersSent + 1} 
+        setCarts(carts.map(cart =>
+          cart.id === cartId
+            ? { ...cart, remindersSent: cart.remindersSent + 1 }
             : cart
         ));
-        alert('Reminder sent successfully!');
+        toast({
+          message: 'Reminder sent successfully!',
+          type: 'success',
+        });
       }
     } catch (error) {
       console.error('Error sending reminder:', error);
-      alert('Failed to send reminder');
+      toast
+        ({
+          message: 'Failed to send reminder',
+          type: 'error',
+        });
     } finally {
-      setIsReminderSending({...isReminderSending, [cartId]: false});
+      setIsReminderSending({ ...isReminderSending, [cartId]: false });
     }
   };
 
   const convertToBooking = async (cartId: string) => {
-    setIsConverting({...isConverting, [cartId]: true});
+    setIsConverting({ ...isConverting, [cartId]: true });
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/abandoned-carts/${cartId}/convert`, {
         method: 'POST',
@@ -98,17 +106,23 @@ export const AbandonedCarts = () => {
           'Authorization': `Bearer ${token}`,
         },
       });
-      
+
       if (response.ok) {
         // Remove from the list
         setCarts(carts.filter(cart => cart.id !== cartId));
-        alert('Cart successfully converted to booking!');
+        toast({
+          message: 'Cart converted to booking successfully!',
+          type: 'success',
+        });
       }
     } catch (error) {
       console.error('Error converting cart to booking:', error);
-      alert('Failed to convert to booking');
+      toast({
+        message: 'Failed to convert cart to booking',
+        type: 'error',
+      });
     } finally {
-      setIsConverting({...isConverting, [cartId]: false});
+      setIsConverting({ ...isConverting, [cartId]: false });
     }
   };
 
@@ -116,7 +130,7 @@ export const AbandonedCarts = () => {
     if (!window.confirm('Are you sure you want to delete this abandoned cart?')) {
       return;
     }
-    
+
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/abandoned-carts/${cartId}`, {
         method: 'DELETE',
@@ -124,13 +138,16 @@ export const AbandonedCarts = () => {
           'Authorization': `Bearer ${token}`,
         },
       });
-      
+
       if (response.ok) {
         setCarts(carts.filter(cart => cart.id !== cartId));
       }
     } catch (error) {
       console.error('Error deleting abandoned cart:', error);
-      alert('Failed to delete cart');
+      toast({
+        message: 'Failed to delete abandoned cart',
+        type: 'error',
+      });
     }
   };
 
@@ -168,7 +185,7 @@ export const AbandonedCarts = () => {
               className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
             />
           </div>
-          
+
           <div className="flex items-center text-sm text-gray-600">
             <Filter className="h-4 w-4 mr-2" />
             {filteredCarts.length} results
@@ -210,14 +227,14 @@ export const AbandonedCarts = () => {
                   </div>
                 </div>
               </div>
-              
+
               {/* Cart Content */}
               <div className="p-4">
                 {/* Product Info */}
                 <div className="flex mb-4">
-                  <img 
-                    src={cart.product.images[0] || 'https://images.pexels.com/photos/2132227/pexels-photo-2132227.jpeg'} 
-                    alt={cart.product.title} 
+                  <img
+                    src={cart.product.images[0] || 'https://images.pexels.com/photos/2132227/pexels-photo-2132227.jpeg'}
+                    alt={cart.product.title}
                     className="w-20 h-20 object-cover rounded-lg mr-3"
                   />
                   <div>
@@ -233,7 +250,7 @@ export const AbandonedCarts = () => {
                     </div>
                   </div>
                 </div>
-                
+
                 {/* Price & Booking Time */}
                 <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-100">
                   <div className="text-lg font-bold text-[#ff914d]">
@@ -244,7 +261,7 @@ export const AbandonedCarts = () => {
                     Abandoned {format(new Date(cart.createdAt), 'dd MMM yyyy, h:mm a')}
                   </div>
                 </div>
-                
+
                 {/* Actions */}
                 <div className="flex flex-col space-y-2">
                   <button
@@ -258,7 +275,7 @@ export const AbandonedCarts = () => {
                       <><Send className="h-4 w-4 mr-2" /> Send Reminder</>
                     )}
                   </button>
-                  
+
                   <button
                     onClick={() => convertToBooking(cart.id)}
                     disabled={isConverting[cart.id]}
@@ -270,7 +287,7 @@ export const AbandonedCarts = () => {
                       <><ArrowRight className="h-4 w-4 mr-2" /> Convert to Booking</>
                     )}
                   </button>
-                  
+
                   <button
                     onClick={() => deleteCart(cart.id)}
                     className="flex items-center justify-center w-full py-2 px-3 bg-red-50 text-red-600 rounded hover:bg-red-100 transition-colors"

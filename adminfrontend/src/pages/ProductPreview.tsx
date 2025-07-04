@@ -748,23 +748,32 @@ export const ProductPreview = () => {
                   <p className="text-gray-600">{item.description}</p>
                   {item.activities?.length ? (
                     <ul className="list-disc list-inside text-gray-600 text-sm space-y-1 mt-2">
-                      {item.activities.map((act, i) => (
-                        <li key={i}>
-                          <div>
-                            <span className="font-medium">{act.location}</span>
-                            {act.isStop && (
-                              <span className="ml-2 text-blue-600">
-                                (Stop{act.stopDuration ? ` - ${act.stopDuration} min` : ''})
-                              </span>
-                            )}
-                          </div>
+                      {item.activities.map((act, idx) => (
+                        <li key={idx} className="border-l-4 border-[#ff914d] pl-4 mb-4">
+                          <div className="font-semibold text-gray-900">{act.location}</div>
+                          {act.duration && (
+                            <div className="text-sm text-purple-600 mt-1">
+                              Duration: {act.duration} {act.durationUnit || 'minutes'}
+                            </div>
+                          )}
+                          {act.isStop && (
+                            <div className="text-sm text-blue-600 mt-1">
+                              Stop duration: {act.stopDuration || 0} minutes
+                            </div>
+                          )}
+                          {act.isAdmissionIncluded && (
+                            <div className="text-sm text-emerald-600 mt-1 flex items-center">
+                              <CheckCircle className="h-4 w-4 mr-1" />
+                              Admission included in tour price
+                            </div>
+                          )}
                           {act.inclusions && act.inclusions.length > 0 && (
-                            <div className="ml-4 text-green-700 text-xs">
+                            <div className="text-sm text-green-600 mt-1">
                               Includes: {act.inclusions.join(', ')}
                             </div>
                           )}
                           {act.exclusions && act.exclusions.length > 0 && (
-                            <div className="ml-4 text-red-700 text-xs">
+                            <div className="text-sm text-red-600 mt-1">
                               Excludes: {act.exclusions.join(', ')}
                             </div>
                           )}

@@ -40,6 +40,7 @@ model Product {
   location    String?     @default("")
   duration    String?     @default("")
   capacity    Int?     @default(1)
+  minPeople   Int?     @default(1)
   tourType    String?     @default("")
   highlights  String[]     @default([])
   inclusions  String[]     @default([])
@@ -84,9 +85,11 @@ model Product {
   requireDietary Boolean @default(false)
   requireEmergencyContact Boolean @default(false)
   requirePassportDetails Boolean @default(false)
+  passportDetailsOption String? @default("")
   additionalRequirements String? // Custom additional requirements text
   customRequirementFields Json[] @default([]) // Array of custom requirement fields
   phonenumber String? @default("")
+  cutoffTime Int? @default(24) // Hours before tour start time when booking should be cut off
   isActive    Boolean @default(true)
   isDraft     Boolean @default(false)
   availabilityStartDate DateTime?
@@ -131,6 +134,9 @@ model ItineraryActivity {
   locationPlaceId String? 
   isStop      Boolean  @default(false)
   stopDuration Int?    
+  duration    Int?     // Duration figure (number only)
+  durationUnit String? @default("minutes") // "minutes" or "hours"
+  isAdmissionIncluded Boolean @default(false) // New field for admission inclusion
   inclusions  String[]
   exclusions  String[]
   order       Int      @default(0)

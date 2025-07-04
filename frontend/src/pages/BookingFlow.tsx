@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { Calendar, User, CreditCard, CheckCircle, Phone, Mail, MapPin, CalendarIcon } from 'lucide-react';
+import { Calendar, User, CreditCard, CheckCircle, Phone, Mail, MapPin, CalendarIcon, AlertTriangle, Clock } from 'lucide-react';
 import { useAbandonedCart } from '../hooks/useAbandonedCart';
 import { PriceDisplay } from '../components/common/PriceDisplay';
 import type { RootState, AppDispatch } from '../store/store';
@@ -10,6 +10,8 @@ import { createBooking } from '../store/slices/bookingSlice';
 import { trackBookingStart } from '../components/analytics/GoogleAnalytics';
 import { formatDate, parse } from 'date-fns';
 import { CouponForm } from '../components/payment/CouponForm';
+import { toast } from 'react-hot-toast';
+import { isSlotBookable } from '../lib/utils';
 
 interface BookingFormData {
   selectedDate: string;
@@ -71,6 +73,18 @@ export const BookingFlow = () => {
         ? currentProduct.packages.find(p => p.id === packageId)
         : currentProduct.packages[0];
   
+      // Validate cutoff time before setting the package
+      if (selectedPkg && date && timeParam) {
+        const cutoffTime = currentProduct.cutoffTime || 24;
+        const { isBookable, reason } = isSlotBookable(date, timeParam, cutoffTime);
+        
+        if (!isBookable) {
+          toast.error(reason || 'This time slot is no longer available for booking');
+          navigate(`/product/${currentProduct.id}`, { replace: true });
+          return;
+        }
+      }
+
       // Set selected package
       const updatedFormData = {
         ...formData,
@@ -94,7 +108,25 @@ export const BookingFlow = () => {
       
       setFormData(updatedFormData);
     }
-  }, [currentProduct, searchParams]);
+  }, [currentProduct, searchParams, navigate]);
+
+  useEffect(() => {
+    if (currentProduct && formData.selectedPackage && formData.selectedDate && formData.selectedTimeSlot) {
+      const cutoffTime = currentProduct.cutoffTime || 24;
+      const { isBookable, reason } = isSlotBookable(
+        formatDate(parse(formData.selectedDate, 'MM/dd/yyyy', new Date()), 'yyyy-MM-dd'),
+        formData.selectedTimeSlot,
+        cutoffTime
+      );
+      
+      if (!isBookable) {
+        toast.error(reason || 'This time slot is no longer available for booking');
+        // Redirect back to product page
+        navigate(`/product/${currentProduct.id}`, { replace: true });
+        return;
+      }
+    }
+  }, [currentProduct, formData.selectedPackage, formData.selectedDate, formData.selectedTimeSlot, navigate]);
 
   const calculateTotal = useCallback(() => {
     const basePrice = formData.selectedPackage?.basePrice || 0;
@@ -338,6 +370,113 @@ export const BookingFlow = () => {
     setAppliedDiscount(0);
   };
 
+  const renderBookingSummary = () => {
+    if (!formData.selectedPackage || !currentProduct) return null;
+
+    const cutoffTime = currentProduct.cutoffTime || 24;
+    const isValidBooking = formData.selectedDate && formData.selectedTimeSlot;
+    
+    let cutoffValidation = { isBookable: true, reason: '' };
+    if (isValidBooking) {
+      cutoffValidation = isSlotBookable(
+        formatDate(parse(formData.selectedDate, 'MM/dd/yyyy', new Date()), 'yyyy-MM-dd'),
+        formData.selectedTimeSlot,
+        cutoffTime
+      );
+    }
+
+    return (
+      <div className="bg-white rounded-lg shadow-lg p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Booking Summary</h3>
+        
+        {/* Cutoff Time Warning */}
+        {!cutoffValidation.isBookable && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-center">
+              <AlertTriangle className="h-5 w-5 text-red-600 mr-3" />
+              <div>
+                <p className="font-medium text-red-800">Booking Not Available</p>
+                <p className="text-sm text-red-600 mt-1">{cutoffValidation.reason}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Booking deadline info */}
+        {cutoffValidation.isBookable && formData.selectedDate && formData.selectedTimeSlot && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center">
+              <Clock className="h-4 w-4 text-blue-600 mr-2" />
+              <p className="text-sm text-blue-800">
+                Book by {(() => {
+                  const slotDate = parse(formData.selectedDate, 'MM/dd/yyyy', new Date());
+                  const [hours, minutes] = formData.selectedTimeSlot.split(':').map(Number);
+                  const slotDateTime = new Date(slotDate);
+                  slotDateTime.setHours(hours, minutes, 0, 0);
+                  const cutoffDateTime = new Date(slotDateTime);
+                  cutoffDateTime.setHours(cutoffDateTime.getHours() - cutoffTime);
+                  return cutoffDateTime.toLocaleString();
+                })()} to secure your spot
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Rest of booking summary */}
+        <div className="space-y-3">
+          <div className="flex justify-between">
+            <span className="text-gray-600">Experience:</span>
+            <span className="font-medium">{currentProduct.title}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">Package:</span>
+            <span className="font-medium">{formData.selectedPackage.name}</span>
+          </div>
+          {formData.selectedDate && (
+            <div className="flex justify-between">
+              <span className="text-gray-600">Date:</span>
+              <span className="font-medium">
+                {new Date(parse(formData.selectedDate, 'MM/dd/yyyy', new Date())).toLocaleDateString('en-US', {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                })}
+              </span>
+            </div>
+          )}
+          {formData.selectedTimeSlot && (
+            <div className="flex justify-between">
+              <span className="text-gray-600">Time:</span>
+              <span className="font-medium">{formData.selectedTimeSlot}</span>
+            </div>
+          )}
+          <div className="flex justify-between">
+            <span className="text-gray-600">Travelers:</span>
+            <span className="font-medium">
+              {formData.adults} Adult{formData.adults > 1 ? 's' : ''}
+              {formData.children > 0 && `, ${formData.children} Child${formData.children > 1 ? 'ren' : ''}`}
+            </span>
+          </div>
+        </div>
+
+        {/* Total amount */}
+        <div className="mt-6 pt-4 border-t border-gray-200">
+          <div className="flex justify-between items-center text-lg font-semibold">
+            <span>Total Amount:</span>
+            <PriceDisplay amount={calculateTotal()} currency="INR" />
+          </div>
+          {appliedDiscount > 0 && (
+            <div className="flex justify-between items-center text-sm text-green-600 mt-1">
+              <span>Discount Applied:</span>
+              <span>-₹{appliedDiscount.toLocaleString()}</span>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   if (productLoading || !currentProduct) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -561,50 +700,7 @@ export const BookingFlow = () => {
                   
                   <div className="space-y-6">
                     {/* Booking Summary */}
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <h3 className="font-semibold text-gray-900 mb-3">Booking Summary</h3>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span>Date:</span>
-                          <span>{new Date(formData.selectedDate).toLocaleDateString('en-IN')}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>People:</span>
-                          <span>{formData.adults} Adults{formData.children > 0 && `, ${formData.children} Children`}</span>
-                        </div>
-                        {formData.selectedPackage && (
-                          <div className="flex justify-between">
-                            <span>Package:</span>
-                            <span>{formData.selectedPackage.name}</span>
-                          </div>
-                        )}
-                        {formData.selectedPackage && (
-                        <div className="flex justify-between">
-                          <span>Time:</span>
-                          <span>{formData.selectedTimeSlot}</span>
-                        </div>
-                      )}
-                      </div>
-                    </div>
-
-                    {/* Customer Information */}
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <h3 className="font-semibold text-gray-900 mb-3">Customer Information</h3>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex items-center">
-                          <User className="h-4 w-4 mr-2 text-gray-500" />
-                          <span>{formData.customerName}</span>
-                        </div>
-                        <div className="flex items-center">
-                          <Mail className="h-4 w-4 mr-2 text-gray-500" />
-                          <span>{formData.customerEmail}</span>
-                        </div>
-                        <div className="flex items-center">
-                          <Phone className="h-4 w-4 mr-2 text-gray-500" />
-                          <span>{formData.customerPhone}</span>
-                        </div>
-                      </div>
-                    </div>
+                    {renderBookingSummary()}
 
                     {/* Terms */}
                     <div className="border border-gray-200 rounded-lg p-4">
