@@ -8,7 +8,7 @@ import { BookingProcessTab } from '../components/products/BookingProcessTab';
 import { CancellationPolicyTab } from '../components/products/CancellationPolicyTab';
 import { TravelerRequirementsTab } from '../components/products/TravelerRequirementsTab';
 import { AvailabilityTab } from '../components/products/AvailabilityTab';
-import { Save, ArrowLeft, Eye } from 'lucide-react';
+import { Save, Eye } from 'lucide-react';
 import type { ProductFormData } from '../types.ts';
 
 const tabs = [
@@ -423,12 +423,6 @@ export const ProductForm = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center">
-          <button
-            onClick={() => navigate('/products')}
-            className="mr-4 p-2 text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </button>
           <div>
             <h1 className="text-3xl font-bold text-gray-900">
               {isEdit ? 'Edit Product' : 'Create New Product'}
@@ -471,6 +465,20 @@ export const ProductForm = () => {
               />
             </button>
           </div>
+          {/* Discard Draft Button */}
+          {formData.isDraft && !isEdit && (
+            <button
+              onClick={() => {
+                if (window.confirm('Discard draft and leave?')) {
+                  navigate('/products');
+                }
+              }}
+              className="flex items-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              type="button"
+            >
+              Discard
+            </button>
+          )}
           {/* Status Toggle */}
           <div className="flex items-center space-x-2">
             {formData.isDraft ? null : (
@@ -497,6 +505,35 @@ export const ProductForm = () => {
               </>
             )}
           </div>
+          {/* Cancel */}
+          {!isEdit && !formData.isDraft && (
+            <button
+              onClick={() => {
+                if (
+                  window.confirm(
+                    'Are you sure you want to cancel? Unsaved changes will be lost.'
+                  )
+                ) {
+                  navigate('/products');
+                }
+              }}
+              className="flex items-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              type="button"
+            >
+              Cancel
+            </button>
+          )}
+
+          {/* Go Back */}
+          {isEdit && (
+            <button
+              onClick={() => navigate('/products')}
+              className="flex items-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              type="button"
+            >
+              Go Back
+            </button>
+          )}
           {isEdit && (
             <button
               className="flex items-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
