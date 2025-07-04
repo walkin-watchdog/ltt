@@ -180,6 +180,12 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
   const [customCategory, setCustomCategory] = useState('');
   const [customDescription, setCustomDescription] = useState('');
   const [showCustomForm, setShowCustomForm] = useState(false);
+  const getAllowedDays = () => {
+    if (formData.duration === 'Full Day' || formData.duration === 'Half Day') return 1;
+    const n = parseInt(formData.duration?.split(' ')[0] || '0', 10);
+    return isNaN(n) || n < 1 ? 0 : n;
+  };
+
   
   // New state for itinerary activity inclusions/exclusions
   const [activityInclusionCategory, setActivityInclusionCategory] = useState('');
@@ -376,13 +382,12 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
     const currentItinerary = formData.itinerary || formData.itineraries || [];
     const existingIndex = currentItinerary.findIndex((day: ItineraryDay) => day.day === dayToSave.day);
 
-    let updatedItinerary;
-    if (existingIndex >= 0) {
-      updatedItinerary = [...currentItinerary];
-      updatedItinerary[existingIndex] = dayToSave;
-    } else {
-      updatedItinerary = [...currentItinerary, dayToSave].sort((a, b) => a.day - b.day);
-    }
+    const next = existingIndex >= 0
+      ? currentItinerary.map((d: ItineraryDay, i: number) => i === existingIndex ? dayToSave : d)
+      : [...currentItinerary, dayToSave];
+    const updatedItinerary = next
+      .sort((a: ItineraryDay, b: ItineraryDay) => a.day - b.day)
+      .map((d: ItineraryDay, idx: number) => ({ ...d, day: idx + 1 }));
 
     updateFormData({ itinerary: updatedItinerary });
     setEditingDay(null);
@@ -391,7 +396,12 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
 
   const createNewDay = () => {
     const currentItinerary = formData.itinerary || formData.itineraries || [];
-    const nextDay = currentItinerary.length > 0 ? Math.max(...currentItinerary.map((d: ItineraryDay) => d.day)) + 1 : 1;
+    const maxDays = getAllowedDays();
+    if (currentItinerary.length >= maxDays) {
+      toast({ message: `Itinerary already has the maximum of ${maxDays} day${maxDays > 1 ? 's' : ''}.`, type: 'error' });
+      return;
+    }
+    const nextDay = currentItinerary.length + 1;
 
     setEditingDay({
       day: nextDay,
@@ -410,8 +420,9 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
 
   const removeDay = (dayNumber: number) => {
     const currentItinerary = formData.itinerary || formData.itineraries || [];
-    const updatedItinerary = currentItinerary.filter((day: ItineraryDay) => day.day !== dayNumber);
-    updateFormData({ itinerary: updatedItinerary });
+    const filtered = currentItinerary.filter((day: ItineraryDay) => day.day !== dayNumber);
+    const renumbered = filtered.map((d: ItineraryDay, idx: number) => ({ ...d, day: idx + 1 }));
+    updateFormData({ itinerary: renumbered });
   };
 
   const fetchDestinations = async () => {
@@ -851,7 +862,12 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                   <button
                     type="button"
                     onClick={createNewDay}
-                    className="flex items-center px-4 py-2 bg-[#ff914d] text-white rounded-md hover:bg-[#e8823d] transition-colors"
+                    className={`flex items-center px-4 py-2 rounded-md transition-colors text-white ${
+                      (formData.itinerary?.length || 0) >= getAllowedDays()
+                        ? 'bg-gray-300 cursor-not-allowed'
+                        : 'bg-[#ff914d] hover:bg-[#e8823d]'
+                    }`}
+                    disabled={(formData.itinerary?.length || 0) >= getAllowedDays()}
                   >
                     <Calendar className="h-4 w-4 mr-2" />
                     Add Day
@@ -953,8 +969,7 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                 className="px-6 py-2 bg-[#ff914d] text-white rounded-md hover:bg-[#e8823d] font-semibold transition-colors"
                 disabled={
                   formData.type === 'TOUR' &&
-                  formData.itinerary?.length < (formData.duration && formData.duration !== 'Full Day' ?
-                    parseInt(formData.duration.split(' ')[0]) || 2 : 2)
+                  (formData.itinerary?.length || 0) !== getAllowedDays()
                 }
               >
                 Save &amp; Continue
@@ -1061,19 +1076,6 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
               pickupOption === 'No, we meet all travelers at a meeting point') && (
                 <>
                   <div className="mt-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      General Meeting Point (Optional)
-                    </label>
-                    <textarea
-                      rows={3}
-                      value={formData.meetingPoint || ''}
-                      onChange={e => updateFormData({ meetingPoint: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                      placeholder="General meeting point description..."
-                    />
-                  </div>
-
-                  <div className="mt-4">
                     <MeetingPointMap
                       meetingPoints={formData.meetingPoints || []}
                       onMeetingPointsChange={points => updateFormData({ meetingPoints: points })}
@@ -1093,7 +1095,6 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                           checked={formData.doesTourEndAtMeetingPoint === true}
                           onChange={() => {
                             updateFormData({ doesTourEndAtMeetingPoint: true });
-                            // Clear end points when tour ends at meeting point
                             updateFormData({ endPoints: [] });
                           }}
                           className="h-4 w-4 text-[#ff914d] focus:ring-[#ff914d] border-gray-300"

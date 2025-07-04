@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { X, Plus, Clock, Package, Trash2, ChevronDown,  Save } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, Plus, Clock, Package, Trash2, Save } from 'lucide-react';
 import dayjs from 'dayjs'; 
 import { useToast } from '../ui/toaster';
 
@@ -159,6 +159,18 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
     if (endTime.isBefore(current)) endTime = endTime.add(1, 'day');
     const step = unit === 'hours' ? duration * 60 : duration;
     while (current.isBefore(endTime) || current.isSame(endTime)) {
+      times.push(current.format('HH:mm'));
+      current = current.add(step, 'minute');
+    }
+    return times;
+  };
+  const getManualTimes = (duration: number, unit: string) => {
+    const times: string[] = [];
+    const today = dayjs().format('YYYY-MM-DD');
+    let current = dayjs(`${today}T00:00`);
+    const step = 30;
+    const end   = dayjs(`${today}T23:59`);
+    while (current.isBefore(end)) {
       times.push(current.format('HH:mm'));
       current = current.add(step, 'minute');
     }
@@ -343,6 +355,15 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
       adultTiers: [{ min: 1, max: 10, price: 0 }],
       childTiers: [{ min: 1, max: 10, price: 0 }]
     });
+    setSlotMode('auto');
+    setSlotPicker({
+      start: '',
+      end: '',
+      duration: 30,
+      durationUnit: 'minutes',
+      availableTimes: [],
+      selectedTime: '',
+    });
   };
 
   const handleEditSlot = (packageId: string, slotIndex: number) => {
@@ -369,6 +390,7 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
       }
     );
   };
+  const [slotMode, setSlotMode] = useState<'auto' | 'manual'>('auto');
 
 
   const handleTierChange = (
@@ -503,6 +525,13 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
     }
     return basePrice;
   };
+
+  useEffect(() => {
+   if (slotMode === 'manual') {
+     const availableTimes = getManualTimes(slotPicker.duration, slotPicker.durationUnit);
+     setSlotPicker(prev => ({ ...prev, availableTimes, selectedTime: '' }));
+   }
+ }, [slotMode, slotPicker.duration, slotPicker.durationUnit]);
 
   return (
     <div className="space-y-8">
@@ -1117,6 +1146,26 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
         </div>
         <div className="p-6 space-y-6">
           {/* Slot Picker */}
+          <div className="flex items-center gap-6 mb-4">
+            <label className="flex items-center text-sm font-medium">
+              <input
+                type="radio"
+                checked={slotMode === 'auto'}
+                onChange={() => setSlotMode('auto')}
+                className="h-4 w-4 text-[#ff914d]"
+              />
+              <span className="ml-2">Generate Slots</span>
+            </label>
+            <label className="flex items-center text-sm font-medium">
+              <input
+                type="radio"
+                checked={slotMode === 'manual'}
+                onChange={() => setSlotMode('manual')}
+                className="h-4 w-4 text-[#ff914d]"
+              />
+              <span className="ml-2">Custom</span>
+            </label>
+          </div>
           <div className="mb-4 p-3 bg-blue-50 rounded">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               <div>
@@ -1195,33 +1244,53 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
                 </select>
               </div>
             </div>
-            <div className="mt-3 flex items-center gap-2">
-              <select
-                value={slotPicker.selectedTime}
-                onChange={e => setSlotPicker(prev => ({ ...prev, selectedTime: e.target.value }))}
-                className="px-3 py-2 border border-gray-300 rounded-md"
-              >
-                <option value="">Select time to add</option>
-                {slotPicker.availableTimes.map(time => (
-                  <option key={time} value={time}>{time}</option>
-                ))}
-              </select>
-              <button
-                type="button"
-                className="px-4 py-2 bg-[#ff914d] text-white rounded hover:bg-[#e8823d] text-sm"
-                onClick={() => {
-                  if (slotPicker.selectedTime && !slotFormData.times.includes(slotPicker.selectedTime)) {
-                    setSlotFormData(prev => ({
-                      ...prev,
-                      times: [...prev.times, slotPicker.selectedTime]
-                    }));
+            {slotMode === 'auto' && (
+              <div className="mt-3 flex items-center justify-between">
+                <span className="text-xs text-gray-600">
+                  {slotPicker.availableTimes.length} slot(s) will be created
+                </span>
+                <button
+                  type="button"
+                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
+                  onClick={() =>
+                    setSlotFormData(prev => ({ ...prev, times: slotPicker.availableTimes }))
                   }
-                }}
-                disabled={!slotPicker.selectedTime}
-              >
-                Add Slot
-              </button>
-            </div>
+                  disabled={slotPicker.availableTimes.length === 0}
+                >
+                  Generate all
+                </button>
+              </div>
+            )}
+
+            {slotMode === 'manual' && (
+              <div className="mt-3 flex items-center gap-2">
+                <select
+                  value={slotPicker.selectedTime}
+                  onChange={e => setSlotPicker(prev => ({ ...prev, selectedTime: e.target.value }))}
+                  className="px-3 py-2 border border-gray-300 rounded-md"
+                >
+                  <option value="">Select time to add</option>
+                  {slotPicker.availableTimes.map(time => (
+                    <option key={time} value={time}>{time}</option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className="px-4 py-2 bg-[#ff914d] text-white rounded hover:bg-[#e8823d] text-sm"
+                  onClick={() => {
+                    if (slotPicker.selectedTime && !slotFormData.times.includes(slotPicker.selectedTime)) {
+                      setSlotFormData(prev => ({
+                        ...prev,
+                        times: [...prev.times, slotPicker.selectedTime]
+                      }));
+                    }
+                  }}
+                  disabled={!slotPicker.selectedTime}
+                >
+                  Add Slot
+                </button>
+              </div>
+            )}
           </div>
           {/* List of added slots */}
           <div>
@@ -1237,7 +1306,7 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
                     onClick={() => handleRemoveTimeSlot(index)}
                     className="p-2 text-red-600 hover:text-red-800"
                   >
-                    <ChevronDown className="h-5 w-5" />
+                    <Trash2 className="h-5 w-5" />
                   </button>
                 </div>
               ))}
@@ -1322,7 +1391,7 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
                         disabled={slotFormData.adultTiers.length <= 1}
                         className="p-2 text-red-600 hover:text-red-800 disabled:text-gray-400 disabled:cursor-not-allowed self-end"
                       >
-                        <ChevronDown className="h-5 w-5" />
+                        <Trash2 className="h-5 w-5" />
                       </button>
                     </div>
                   ))}
@@ -1390,7 +1459,7 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
                           disabled={slotFormData.childTiers.length <= 1}
                           className="p-2 text-red-600 hover:text-red-800 disabled:text-gray-400 disabled:cursor-not-allowed self-end"
                         >
-                          <ChevronDown className="h-5 w-5" />
+                          <Trash2 className="h-5 w-5" />
                         </button>
                       </div>
                     ))}

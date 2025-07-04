@@ -1,4 +1,5 @@
 import { Plus, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 
 interface TravelerRequirementsTabProps {
   formData: any;
@@ -16,17 +17,17 @@ interface CustomRequirementField {
 }
 
 export const TravelerRequirementsTab = ({ formData, updateFormData }: TravelerRequirementsTabProps) => {
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const addCustomRequirement = () => {
     const newField: CustomRequirementField = {
       id: `custom_${Date.now()}`,
       label: '',
       type: 'text',
       required: false,
-      placeholder: ''
     };
-    updateFormData({
-      customRequirementFields: [...(formData.customRequirementFields || []), newField]
-    });
+    const updated = [...(formData.customRequirementFields || []), newField];
+    updateFormData({ customRequirementFields: updated });
+    setEditingIndex(updated.length - 1);
   };
 
   const updateCustomRequirement = (index: number, updates: Partial<CustomRequirementField>) => {
@@ -221,95 +222,44 @@ export const TravelerRequirementsTab = ({ formData, updateFormData }: TravelerRe
             </div>
 
             {formData.customRequirementFields?.map((field: CustomRequirementField, index: number) => (
-              <div key={field.id} className="bg-gray-50 p-4 rounded-lg border space-y-3 mb-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Custom Field {index + 1}</span>
-                  <button
-                    type="button"
-                    onClick={() => removeCustomRequirement(index)}
-                    className="text-red-600 hover:text-red-800"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                      Field Label *
-                    </label>
-                    <input
-                      type="text"
-                      value={field.label}
-                      onChange={(e) => updateCustomRequirement(index, { label: e.target.value })}
-                      placeholder="e.g., Fitness Level"
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                      Field Type
-                    </label>
-                    <select
-                      value={field.type}
-                      onChange={(e) => updateCustomRequirement(index, { type: e.target.value as any })}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d]"
-                    >
-                      <option value="text">Text Input</option>
-                      <option value="textarea">Text Area</option>
-                      <option value="select">Dropdown</option>
-                      <option value="checkbox">Checkbox</option>
-                      <option value="date">Date</option>
-                      <option value="file">File Upload</option>
-                    </select>
-                  </div>
-
-                  <div className="flex items-center space-x-4">
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        id={`required_${field.id}`}
-                        checked={field.required}
-                        onChange={(e) => updateCustomRequirement(index, { required: e.target.checked })}
-                        className="h-4 w-4 text-[#ff914d] focus:ring-[#ff914d] border-gray-300 rounded"
-                      />
-                      <label htmlFor={`required_${field.id}`} className="ml-2 text-xs text-gray-700">
-                        Required
-                      </label>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
-                    Placeholder/Help Text
-                  </label>
+              <div key={field.id} className="flex items-center mb-3 space-x-2">
+                {editingIndex === index ? (
                   <input
                     type="text"
-                    value={field.placeholder || ''}
-                    onChange={(e) => updateCustomRequirement(index, { placeholder: e.target.value })}
-                    placeholder="Help text for travelers"
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d]"
+                    value={field.label}
+                    onChange={(e) => updateCustomRequirement(index, { label: e.target.value })}
+                    placeholder="Enter field label"
+                    className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d]"
                   />
-                </div>
-
-                {field.type === 'select' && (
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                      Options (comma-separated)
-                    </label>
-                    <input
-                      type="text"
-                      value={field.options?.join(', ') || ''}
-                      onChange={(e) => updateCustomRequirement(index, {
-                        options: e.target.value.split(',').map(opt => opt.trim()).filter(opt => opt)
-                      })}
-                      placeholder="Option 1, Option 2, Option 3"
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d]"
-                    />
-                  </div>
+              ) : (
+                  <span className="flex-1 text-sm text-gray-800">{field.label || 'Unnamed field'}</span>
                 )}
+          
+                {editingIndex === index ? (
+                  <button
+                    type="button"
+                    onClick={() => setEditingIndex(null)}
+                    className="px-2 py-1 text-sm bg-[#ff914d] text-white rounded hover:bg-green-700"
+                  >
+                    Save
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setEditingIndex(index)}
+                    className="px-2 py-1 text-sm bg-[#104c57] text-white rounded hover:bg-blue-700"
+                  >
+                    Edit
+                  </button>
+                )}
+          
+                <button
+                  type="button"
+                  onClick={() => removeCustomRequirement(index)}
+                  className="text-red-600 hover:text-red-800"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
               </div>
             ))}
 
