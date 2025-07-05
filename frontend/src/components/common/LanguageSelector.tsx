@@ -18,7 +18,7 @@ export const LanguageSelector: React.FC = () => {
           focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500
         "
       >
-        <option value="en">🇺🇸 EN</option>
+        <option value="en" className="notranslate" data-no-translate>🇺🇸 EN</option>
         <option value="fr">🇫🇷 FR</option>
         <option value="es">🇪🇸 ES</option>
       </select>

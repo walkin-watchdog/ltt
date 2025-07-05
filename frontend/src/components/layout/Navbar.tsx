@@ -65,8 +65,8 @@ export const Navbar = () => {
           {/* Logo */}
           <Link to="/" className="flex items-center">
             <div className="text-2xl logo-text steelfish">
-              <span className="text-[#104c57] ml-18.5" style={{ fontSize: '18pt' }}>Luxé<br /></span>
-              <span className="text-[#ff914d]" style={{ fontSize: '33pt' }}>TimeTravel</span>
+              <span className="text-[#104c57] ml-18.5 notranslate" data-no-translate style={{ fontSize: '18pt' }}>Luxé<br /></span>
+              <span className="text-[#ff914d] notranslate" data-no-translate style={{ fontSize: '33pt' }}>TimeTravel</span>
             </div>
           </Link>
 

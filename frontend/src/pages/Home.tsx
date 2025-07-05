@@ -37,9 +37,9 @@ export const Home = () => {
         <div className="relative z-10 flex items-center justify-center h-full">
           <div className="text-center max-w-4xl mx-auto px-4">
             <h1 className="text-5xl steelfish mt-1.5 logo-text-big md:text-7xl mb-6">
-              <span className="text-[#104c57] ml-51" style={{ fontSize: '38.8pt' }}>Luxé<br /></span>
-              <span className="text-[#ff914d] font-regular" style={{ fontSize: '90pt' }}>Time</span>
-              <span className="text-[#ff914d] font-regular" style={{ fontSize: '90pt' }}>Travel</span>
+              <span className="text-[#104c57] ml-51 notranslate" data-no-translate style={{ fontSize: '38.8pt' }}>Luxé<br /></span>
+              <span className="text-[#ff914d] font-regular notranslate" data-no-translate style={{ fontSize: '90pt' }}>Time</span>
+              <span className="text-[#ff914d] font-regular notranslate" data-no-translate style={{ fontSize: '90pt' }}>Travel</span>
             </h1>
             <p className="text-xl md:text-2xl mb-60 text-gray-200">
               Discover the Extraordinary

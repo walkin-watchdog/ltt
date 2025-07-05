@@ -1,15 +1,18 @@
 import React, { createContext, useState, useContext, useMemo, useEffect } from 'react';
 import { translateDOM, installObserver } from '../lib/autoTranslate';
+import { toast } from 'react-hot-toast';
 
 interface TranslationContextValue {
   lang: string;
   setLang: (lang: string) => void;
   t: (text: string) => Promise<string>;
+  loading: boolean;
 }
 const TranslationContext = createContext<TranslationContextValue | null>(null);
 
 export const TranslationProvider: React.FC<React.PropsWithChildren<{}>> = ({ children }) => {
   const [lang, setLangState] = useState<string>(() => localStorage.getItem('lang') ?? 'en');
+  const [loading, setLoading] = useState(false);
 
   const setLang = (l: string) => {
     localStorage.setItem('lang', l);
@@ -18,9 +21,14 @@ export const TranslationProvider: React.FC<React.PropsWithChildren<{}>> = ({ chi
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    setLoading(true);
     translateDOM(document.body, lang, import.meta.env.VITE_API_URL)
       .then(() => installObserver(lang, import.meta.env.VITE_API_URL))
-      .catch(console.error);
+      .catch(err => {
+        console.error(err);
+        toast.error('Translation Failed');
+      })
+      .finally(() => setLoading(false));
   }, [lang]);
 
   const t = useMemo(() => {
@@ -52,6 +60,7 @@ export const TranslationProvider: React.FC<React.PropsWithChildren<{}>> = ({ chi
         jobs.forEach((j, i) => j.resolve(translated?.[i] ?? j.src));
       } catch (err) {
         jobs.forEach(j => j.reject(err));
+        toast.error('Translation Failed');
       }
     };
 
@@ -67,7 +76,7 @@ export const TranslationProvider: React.FC<React.PropsWithChildren<{}>> = ({ chi
   }, [lang]);
 
   return (
-    <TranslationContext.Provider value={{ lang, setLang, t }}>
+    <TranslationContext.Provider value={{ lang, setLang, t, loading }}>
       {children}
     </TranslationContext.Provider>
   );

@@ -34,6 +34,7 @@ import { FAQ } from './pages/FAQ';
 import { BookingFlow } from './pages/BookingFlow';
 import { NotFound } from './pages/NotFound';
 import { debounce } from './lib/utils';
+import { useTranslation } from './contexts/TranslationContext';
 
 function App() {
   const [abandonedCart, setAbandonedCart] = useState<any>(null);
@@ -108,6 +109,7 @@ function App() {
             <GoogleAnalytics />
           <div className="min-h-screen bg-background">
             <Navbar />
+            <TranslationOverlay />
             <main>
                 <ErrorBoundary>
               <Routes>
@@ -153,3 +155,13 @@ function App() {
 }
 
 export default App;
+
+const TranslationOverlay: React.FC = () => {
+  const { loading } = useTranslation();
+  if (!loading) return null;
+  return (
+    <div className="fixed top-2 right-2 z-50 text-sm text-gray-600 pointer-events-none">
+      Loading translation…
+    </div>
+  );
+};

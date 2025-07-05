@@ -2,13 +2,20 @@ const IGNORE = new Set([
   'SCRIPT','STYLE','NOSCRIPT','TEXTAREA','INPUT','CODE','PRE','META','TITLE','LINK'
 ]);
 
+const SHOULD_SKIP = (el: HTMLElement) =>
+  el.classList.contains('notranslate') || el.hasAttribute('data-no-translate');
+
 function collectTextNodes(root: Node, acc: Text[]) {
   if (root.nodeType === Node.TEXT_NODE) {
     const value = root.nodeValue?.trim();
     if (value) acc.push(root as Text);
     return;
   }
-  if (root.nodeType === Node.ELEMENT_NODE && !IGNORE.has((root as HTMLElement).tagName)) {
+  if (
+    root.nodeType === Node.ELEMENT_NODE &&
+    !IGNORE.has((root as HTMLElement).tagName) &&
+    !SHOULD_SKIP(root as HTMLElement)
+  ) {
     root.childNodes.forEach(n => collectTextNodes(n, acc));
   }
 }
@@ -17,16 +24,31 @@ export async function translateDOM(root: HTMLElement, to: string, endpoint: stri
   const textNodes: Text[] = [];
   collectTextNodes(root, textNodes);
 
-  const originals = [...new Set(textNodes.map(t => t.data))];
+  if (to === 'en') {
+    textNodes.forEach(n => {
+      const original = (n as any)._origText;
+      if (original) n.data = original;
+    });
+    return;
+  }
 
-  if (to === 'en' || originals.length === 0) return; // no work
+  textNodes.forEach(n => {
+    if (!(n as any)._origText) (n as any)._origText = n.data;
+  });
+
+  const originals = [
+    ...new Set(textNodes.map(t => (t as any)._origText as string))
+  ];
+  if (originals.length === 0) return;
 
   const resp = await fetch(`${endpoint}/translate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ text: originals, to })
   });
-  if (!resp.ok) return;
+  if (!resp.ok) {
+    throw new Error('Translation fetch failed');
+  }
 
   const { text: translated } = await resp.json() as { text: string[] };
 
