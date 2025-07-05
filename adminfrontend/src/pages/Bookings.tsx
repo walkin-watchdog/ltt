@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Search, Filter, Calendar, User, Phone, Mail, Eye, Download, Plus, Send } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import type { BookingProp } from '../types.ts';
-import { useToast } from '@/components/ui/toaster.tsx';
+import { useToast } from '../components/ui/toaster.tsx';
 
 export const Bookings = () => {
   const [bookings, setBookings] = useState<BookingProp[]>([]);

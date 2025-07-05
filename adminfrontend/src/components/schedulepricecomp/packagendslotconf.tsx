@@ -1,4 +1,4 @@
-import type { Package } from "@/types.ts"
+import type { Package } from "../../types.ts"
 import { Clock, Plus, Trash2 } from "lucide-react"
 
 interface PackageAndSlotConfigProps {

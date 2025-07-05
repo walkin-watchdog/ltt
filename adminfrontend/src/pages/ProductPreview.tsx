@@ -8,17 +8,17 @@ import type { Product, PackageOption } from '../types.ts';
 import { formatDate, parse } from 'date-fns';
 
 // Import the new refactored components
-import { BookingInfoCard } from '@/components/productpreviewcomp/Bookinginfocard.tsx';
-import { ProductImageGallery } from '@/components/productpreviewcomp/ProductImageGallery';
-import { AvailabilityStatusBanner } from '@/components/productpreviewcomp/AvailabilityStatusBanner';
-import { ProductNavigationTabs } from '@/components/productpreviewcomp/ProductNavigationTabs';
-import { ProductOverview } from '@/components/productpreviewcomp/ProductOverview';
-import { GuidesLanguages } from '@/components/productpreviewcomp/GuidesLanguages';
-import { AccessibilityFeatures } from '@/components/productpreviewcomp/AccessibilityFeatures';
-import { PickupMeetingInfo } from '@/components/productpreviewcomp/PickupMeetingInfo';
-import { ProductItinerary } from '@/components/productpreviewcomp/ProductItinerary';
-import { InclusionsExclusions } from '@/components/productpreviewcomp/InclusionsExclusions';
-import { ProductPolicies } from '@/components/productpreviewcomp/ProductPolicies';
+import { BookingInfoCard } from '../components/productpreviewcomp/Bookinginfocard.tsx';
+import { ProductImageGallery } from '../components/productpreviewcomp/ProductImageGallery';
+import { AvailabilityStatusBanner } from '../components/productpreviewcomp/AvailabilityStatusBanner';
+import { ProductNavigationTabs } from '../components/productpreviewcomp/ProductNavigationTabs';
+import { ProductOverview } from '../components/productpreviewcomp/ProductOverview';
+import { GuidesLanguages } from '../components/productpreviewcomp/GuidesLanguages';
+import { AccessibilityFeatures } from '../components/productpreviewcomp/AccessibilityFeatures';
+import { PickupMeetingInfo } from '../components/productpreviewcomp/PickupMeetingInfo';
+import { ProductItinerary } from '../components/productpreviewcomp/ProductItinerary';
+import { InclusionsExclusions } from '../components/productpreviewcomp/InclusionsExclusions';
+import { ProductPolicies } from '../components/productpreviewcomp/ProductPolicies';
 
 // Helper function to calculate the effective price after discount
 const calculateEffectivePrice = (basePrice: number, discountType?: string, discountValue?: number) => {

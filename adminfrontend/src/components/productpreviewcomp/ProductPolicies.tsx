@@ -1,4 +1,4 @@
-import type { Product } from '@/types.ts';
+import type { Product } from '../../types.ts';
 
 interface ProductPoliciesProps {
   product: Product;

@@ -21,6 +21,7 @@ export const LanguageSelector: React.FC = () => {
         <option value="en" className="notranslate" data-no-translate>🇺🇸 EN</option>
         <option value="fr">🇫🇷 FR</option>
         <option value="es">🇪🇸 ES</option>
+        <option value="de">🇩🇪 DE</option>
       </select>
     </div>
   );

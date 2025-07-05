@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import type { Product } from '@/types.ts';
+import type { Product } from '../../types.ts';
 
 interface ProductImageGalleryProps {
   product: Product;

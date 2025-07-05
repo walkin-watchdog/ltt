@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "dev:host": "vite --host",
+    "prebuild": "node scripts/update-sitemap.mjs",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
@@ -26,6 +27,7 @@
     "react-modal-sheet": "^4.4.0",
     "@reduxjs/toolkit": "^2.0.1",
     "react-redux": "^9.0.4",
+    "node-fetch": "^3.3.2",
     "tailwind-merge": "^3.3.1",
     "tailwindcss": "^4.1.10",
     "framer-motion": "^10.16.16",

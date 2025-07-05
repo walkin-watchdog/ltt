@@ -1,10 +1,13 @@
-import { LogOut, Search, Lock, X, User } from 'lucide-react';
+import { LogOut, Lock, X, User } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { useState } from 'react';
+import { useState, useContext } from 'react';
 import { PasswordChangeForm } from '../auth/PasswordChangeForm';
+import { Menu } from 'lucide-react';
+import { MobileMenuContext } from '../../contexts/MobileMenuContext';
 
 export const Header = () => {
   const { user, logout } = useAuth();
+  const { mobileOpen, setMobileOpen } = useContext(MobileMenuContext);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
 
@@ -16,22 +19,16 @@ export const Header = () => {
   return (
     <header className="bg-white shadow-sm border-b border-gray-100 px-6 py-4">
       <div className="flex items-center justify-between">
-        {/* Search Section */}
-        <div className="flex items-center flex-1 max-w-xl">
-          <div className="relative w-full">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Search className="h-5 w-5 text-gray-400" />
-            </div>
-            <input
-              type="text"
-              placeholder="Search destinations, bookings, users..."
-              className="block w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#ff914d]/20 focus:border-[#ff914d] focus:bg-white transition-all duration-200"
-            />
-          </div>
-        </div>
+        <button
+          className="md:hidden p-2 mr-4 text-gray-600 hover:bg-gray-100 rounded"
+          aria-label="Open sidebar"
+          onClick={() => setMobileOpen(true)}
+        >
+          <Menu className="h-6 w-6" />
+        </button>
 
         {/* Right Section */}
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-4 ml-auto">
           <div className="flex items-center">
             <div className="text-right">
               <p className="text-sm font-semibold text-gray-900">{user?.name}</p>

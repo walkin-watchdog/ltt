@@ -1,4 +1,4 @@
-import type { newItem } from "@/types.ts";
+import type { newItem } from "../../types.ts";
 import { Plus, X } from "lucide-react";
 import { useState } from "react";
 

@@ -1,5 +1,5 @@
 import { AlertCircle, Calendar, CheckCircle } from 'lucide-react';
-import type { Product } from '@/types.ts';
+import type { Product } from '../../types.ts';
 
 interface AvailabilityStatusBannerProps {
   product: Product;

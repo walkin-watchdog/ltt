@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useContext } from 'react';
 import { 
   Home, 
   Package, 
@@ -14,9 +14,11 @@ import {
   ShoppingCart,
   UsersIcon,
   Pin,
-  PinOff
+  PinOff,
+  Image,
+  X
 } from 'lucide-react';
-import { Image } from 'lucide-react';
+import { MobileMenuContext } from '../../contexts/MobileMenuContext';
 
 
 const navigation = [
@@ -40,13 +42,15 @@ export const Sidebar = () => {
   // const { user, logout } = useAuth();
   const [isPinned, setIsPinned] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  const isCollapsed = !isPinned && !isHovered;
+  const { mobileOpen, setMobileOpen }  = useContext(MobileMenuContext);
+  const isCollapsed = !isPinned && !isHovered && !mobileOpen;
 
   return (
     <div
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className={`bg-[#104c57] text-white flex flex-col min-h-screen transition-all duration-300`}
+      className={`bg-[#104c57] text-white flex-col min-h-screen overflow-y-auto transition-all duration-300
+        ${mobileOpen ? 'flex fixed inset-0 w-full z-50' : 'hidden md:flex'}`}
     >
       {isCollapsed && (
         <div className="">
@@ -59,26 +63,35 @@ export const Sidebar = () => {
       {/* Header with Toggle Button */}
       <div className="p-6 border-b border-[#0d3d47] flex items-center justify-between">
         {!isCollapsed && (
-          <div>
-            <div className="text-2xl font-bold">
-              <span className="text-[#ff914d]">Luxé</span>
-              <span className="text-white ml-1">TimeTravel</span>
+            <div>
+              <div className="text-2xl font-bold">
+                <span className="text-[#ff914d]">Luxé</span>
+                <span className="text-white ml-1">TimeTravel</span>
+              </div>
+              <p className="text-sm text-gray-300 mt-1">Admin Dashboard</p>
             </div>
-            <p className="text-sm text-gray-300 mt-1">Admin Dashboard</p>
-          </div>
-        )}
-        {!isCollapsed && (
-          <button
-            onClick={() => setIsPinned(!isPinned)}
-            className="p-2 rounded-lg hover:bg-[#0d3d47] transition-colors"
-          >
-            {isPinned ? (
-              <PinOff className="h-5 w-5" />
-            ) : (
-              <Pin className="h-5 w-5" />
-            )}
-          </button>
-        )}
+          )}
+
+          {/* Mobile close button */}
+          {mobileOpen && (
+            <button
+              onClick={() => setMobileOpen(false)}
+              className="p-2 rounded-lg hover:bg-[#0d3d47] transition-colors md:hidden"
+              aria-label="Close menu"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          )}
+
+          {/* Pin toggle for desktop */}
+          {!mobileOpen && !isCollapsed && (
+            <button
+              onClick={() => setIsPinned(!isPinned)}
+              className="p-2 rounded-lg hover:bg-[#0d3d47] transition-colors"
+            >
+              {isPinned ? <PinOff className="h-5 w-5" /> : <Pin className="h-5 w-5" />}
+            </button>
+          )}
       </div>
 
       {/* Navigation */}

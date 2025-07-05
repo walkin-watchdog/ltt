@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import type { AbandonedCartProp } from '../types.ts';
-import { useToast } from '@/components/ui/toaster.tsx';
+import { useToast } from '../components/ui/toaster.tsx';
 
 
 export const AbandonedCarts = () => {

@@ -1,6 +1,6 @@
 import { Plus, Trash2 } from "lucide-react";
 import React from "react";
-import type { Package, SlotFormData } from "@/types.ts";
+import type { Package, SlotFormData } from "../../types.ts";
 
 interface AdultAndChildTiersProps {
   slotFormData: SlotFormData;

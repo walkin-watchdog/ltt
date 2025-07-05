@@ -1,6 +1,6 @@
 import { Trash2 } from "lucide-react";
 import { getAvailableTimes } from "./schedulepricefunc";
-import type { SlotPickerState, SlotFormData } from "@/types.ts";
+import type { SlotPickerState, SlotFormData } from "../../types.ts";
 
 type SlotPickerProps = {
     slotFormData: SlotFormData;

@@ -1,7 +1,7 @@
 import { Plus, X } from "lucide-react";
 import { useState } from "react";
 import { predefinedCategories } from "./predefinedcategories";
-import type { newItem } from "@/types.ts";
+import type { newItem } from "../../types.ts";
 
 interface ContentElementsProps {
   formData: any

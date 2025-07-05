@@ -1,4 +1,4 @@
-import type { PackageOption, Product } from "@/types.ts";
+import type { PackageOption, Product } from "../../types.ts";
 import { Clock, MapPin, Users } from "lucide-react";
 import { AdminAvailabilityBar } from "../common/AdminAvailabilityBar";
 

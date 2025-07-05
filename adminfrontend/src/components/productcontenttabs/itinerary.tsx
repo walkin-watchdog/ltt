@@ -1,4 +1,4 @@
-import type { ItineraryDay } from "@/types.ts";
+import type { ItineraryDay } from "../../types.ts";
 import { Calendar, Route } from "lucide-react";
 
 interface ItineraryTabProps {
