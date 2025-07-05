@@ -37,7 +37,9 @@ dotenv.config();
 
 const app = express();
 
-const PORT = process.env.PORT || 3001;
+const PORT = Number(process.env.PORT) || 3001;
+const HOST = process.env.HOST || '0.0.0.0';
+const displayHost = HOST === '0.0.0.0' ? 'localhost': HOST;
 
 // // Middleware
 app.set('trust proxy', 1);
@@ -123,8 +125,8 @@ app.get('/sitemap.xml', async (req, res, next) => {
 app.use(errorHandler);
 
 // Start server
-const server = app.listen(PORT, () => {
-  logger.info(`Server running on port ${PORT}`);
+const server = app.listen(PORT, HOST, () => {
+  logger.info(`API ready → http://${displayHost}:${PORT}`);
 });
 
 process.on('SIGTERM', async () => {
