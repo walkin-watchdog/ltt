@@ -31,7 +31,7 @@ import experienceCategoryRoutes from './routes/experienceCategories';
 import reviewsRoutes from './routes/reviews';
 import paypalPaymentRoutes from './routes/paypalPayments';
 import currencyRoutes from './routes/currency';
-import translateRoutes from './routes/currency';
+import translateRoutes from './routes/translate';
 
 dotenv.config();
 

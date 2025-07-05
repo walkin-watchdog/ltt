@@ -3,7 +3,7 @@ import translate from 'google-translate-api-x';
 
 const router = express.Router();
 
-router.post('/api/translate', async (req, res) => {
+router.post('/', async (req, res) => {
   const { text, to } = req.body;
   try {
     const result = await translate(text, { to });
