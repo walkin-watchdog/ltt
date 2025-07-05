@@ -730,7 +730,9 @@ export const ProductDetail = () => {
                     <a href={`tel:${currentProduct.phonenumber}`} className="text-blue-700 underline">
                       {currentProduct.phonenumber}
                     </a>
-                    {currentProduct.tourType && (
+                  </div>
+                )}
+                {currentProduct.tourType && (
                   <div className="flex items-center text-sm text-gray-600">
                     <span className="font-medium mr-2">Tour Type:</span>
                     <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded-full text-xs capitalize">
@@ -738,8 +740,24 @@ export const ProductDetail = () => {
                     </span>
                   </div>
                 )}
+                {currentProduct.difficulty && (
+                  <div className="flex items-center text-sm text-gray-600">
+                    <span className="font-medium mr-2">Difficulty:</span>
+                    <span className={`px-2 py-1 rounded-full text-xs ${
+                      currentProduct.difficulty === 'Easy' ? 'bg-green-100 text-green-800' :
+                      currentProduct.difficulty === 'Moderate' ? 'bg-yellow-100 text-yellow-800' :
+                      currentProduct.difficulty === 'Challenging' ? 'bg-red-100 text-red-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {currentProduct.difficulty}
+                    </span>
                   </div>
-                  
+                )}
+                {typeof currentProduct.minPeople === 'number' && currentProduct.minPeople > 1 && (
+                  <div className="flex items-center text-sm text-gray-600">
+                    <span className="font-medium mr-2">Minimum:</span>
+                    <span className="text-gray-700">{currentProduct.minPeople} people</span>
+                  </div>
                 )}
               </div>
 
@@ -749,7 +767,7 @@ export const ProductDetail = () => {
 
               {/* highlights */}
               {currentProduct.highlights?.length ? (
-                <div>
+                <div className="mb-6">
                   <h3 className="text-lg font-semibold mb-3">Highlights</h3>
                   <ul className="space-y-2">
                     {currentProduct.highlights.map((hl: string, i: number) => (
@@ -761,6 +779,20 @@ export const ProductDetail = () => {
                   </ul>
                 </div>
               ) : null}
+
+              {/* Health Restrictions */}
+              {currentProduct.healthRestrictions && Array.isArray(currentProduct.healthRestrictions) && currentProduct.healthRestrictions.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Health Restrictions</h3>
+                  <div className="bg-red-50 rounded-lg p-4">
+                    <ul className="list-disc list-inside text-gray-700 text-sm space-y-1">
+                      {currentProduct.healthRestrictions.map((restriction: string, idx: number) => (
+                        <li key={idx}>{restriction}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              )}
 
               {/* Accessibility badges */}
               {(currentProduct.wheelchairAccessible === 'yes' ||
@@ -799,16 +831,6 @@ export const ProductDetail = () => {
                   </span>
                 ))}
               </div>
-              {currentProduct.healthRestrictions && Array.isArray(currentProduct.healthRestrictions) && currentProduct.healthRestrictions.length > 0 && (
-                <div className="mb-6">
-                  <h3 className="text-md font-semibold text-gray-900 mb-2">Health Restrictions</h3>
-                  <ul className="list-disc list-inside text-gray-700 text-sm space-y-1">
-                    {currentProduct.healthRestrictions.map((restriction: string, idx: number) => (
-                      <li key={idx}>{restriction}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
             </div>
 
             {/* Guides & Languages */}
@@ -1298,7 +1320,7 @@ export const ProductDetail = () => {
           <div className="bg-white rounded-lg shadow-lg p-6">
             <div className="mb-6">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-gray-600">Price per person</span>
+                <span className="text-sm text-gray-600">Price per {cheapestPackage?.isPerGroup ? 'group' : 'person'}</span>
                 {cheapestPackage && cheapestPackage.discountType !== 'none' && cheapestPackage.discountValue > 0 && (
                   <span className="bg-[#ff914d] text-white px-2 py-1 rounded text-xs font-semibold">
                     {cheapestPackage.discountType === 'percentage' ?
@@ -1331,7 +1353,8 @@ export const ProductDetail = () => {
                   <span className="text-3xl font-bold text-[#ff914d]">Contact for pricing</span>
                 )}
                 <span className="text-sm text-gray-500 ml-2">
-                  per person
+                  per {cheapestPackage?.isPerGroup ? 'group' : 'person'}
+                  {cheapestPackage?.isPerGroup && cheapestPackage.maxPeople && ` (up to ${cheapestPackage.maxPeople})`}
                 </span>
               </div>
               {cheapestPackage && cheapestPackage.discountType === 'percentage' && cheapestPackage.discountValue > 0 && (
@@ -1389,6 +1412,7 @@ export const ProductDetail = () => {
                   }
                 })();
               }}
+              selectedPackage={selectedPackage} // Pass selected package
             />
 
             {/* Booking Button */}
@@ -1535,7 +1559,7 @@ export const ProductDetail = () => {
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm text-gray-700">Adults:</span>
                   <span className="text-sm font-medium">
-                    {adultsCount} × ₹
+                    {adultsCount} × {selectedPackage.currency === 'INR' ? '₹' : selectedPackage.currency === 'USD' ? '$' : selectedPackage.currency === 'EUR' ? '€' : '£'}
                     {selectedSlot.adultTiers && selectedSlot.adultTiers.length > 0
                       ? selectedSlot.adultTiers[0].price.toLocaleString()
                       : calculateEffectivePrice(
@@ -1551,7 +1575,7 @@ export const ProductDetail = () => {
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-700">Children:</span>
                     <span className="text-sm font-medium">
-                      {childrenCount} × ₹
+                      {childrenCount} × {selectedPackage.currency === 'INR' ? '₹' : selectedPackage.currency === 'USD' ? '$' : selectedPackage.currency === 'EUR' ? '€' : '£'}
                       {selectedSlot.childTiers && selectedSlot.childTiers.length > 0
                         ? selectedSlot.childTiers[0].price.toLocaleString()
                         : (calculateEffectivePrice(
@@ -1567,10 +1591,27 @@ export const ProductDetail = () => {
                 <div className="mt-3 pt-2 border-t border-gray-200 flex justify-between items-center">
                   <span className="font-medium">Total:</span>
                   <span className="font-bold text-[#ff914d]">
-                    ₹{(adultsCount * (selectedSlot.adultTiers?.[0]?.price || selectedPackage.basePrice) +
-                      childrenCount * (selectedSlot.childTiers?.[0]?.price || (selectedPackage.basePrice * 0.5))).toLocaleString()}
+                    {selectedPackage.currency === 'INR' ? '₹' : selectedPackage.currency === 'USD' ? '$' : selectedPackage.currency === 'EUR' ? '€' : '£'}
+                    {(adultsCount * (selectedSlot.adultTiers?.[0]?.price || 
+                      calculateEffectivePrice(
+                        selectedPackage.basePrice,
+                        selectedPackage.discountType,
+                        selectedPackage.discountValue
+                      )) +
+                      childrenCount * (selectedSlot.childTiers?.[0]?.price || 
+                        (calculateEffectivePrice(
+                          selectedPackage.basePrice,
+                          selectedPackage.discountType,
+                          selectedPackage.discountValue
+                        ) * 0.5))).toLocaleString()}
                   </span>
                 </div>
+                
+                {selectedPackage.isPerGroup && (
+                  <div className="mt-2 text-xs text-gray-500 text-center">
+                    This is a group package (up to {selectedPackage.maxPeople || currentProduct.capacity} people)
+                  </div>
+                )}
               </div>
             )}
 

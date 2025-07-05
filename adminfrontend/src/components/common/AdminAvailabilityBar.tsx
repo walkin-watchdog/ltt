@@ -13,6 +13,7 @@ interface Props {
   children: number;
   onChange: (v: { date: string; adults: number; children: number }) => void;
   onCheck: () => void;
+  selectedPackage?: any; // Add selectedPackage prop
 }
 
 export const AdminAvailabilityBar = ({
@@ -21,6 +22,7 @@ export const AdminAvailabilityBar = ({
   children,
   onChange,
   onCheck,
+  selectedPackage, // Add this prop
 }: Props) => {
   /* identical behaviour to the public-site bar */
   const [showDatepicker, setShowDatepicker]   = useState(false);
@@ -31,6 +33,10 @@ export const AdminAvailabilityBar = ({
   const travellersRef  = useRef<HTMLDivElement>(null);
   const isMobile       = useMediaQuery('(max-width:1023px)');
 
+  // Check if children are allowed based on selected package
+  console.log('selectedPackageeee:', selectedPackage);
+  const childrenAllowed = !selectedPackage || selectedPackage.ageGroups?.child?.enabled !== false;
+  console.log('childrenAllowed:', childrenAllowed);
   /* ——— close pop-overs on outside click (desktop only) ——— */
   useEffect(() => {
     if (isMobile) return;
@@ -138,7 +144,7 @@ export const AdminAvailabilityBar = ({
         >
           <Users className="h-5 w-5 text-gray-700 mr-4" />
           {adults} Adult{adults > 1 ? 's' : ''}
-          {children > 0 && `, ${children} Child${children > 1 ? 'ren' : ''}`}
+          {childrenAllowed && children > 0 && `, ${children} Child${children > 1 ? 'ren' : ''}`}
         </button>
 
         {showTravellers && (
@@ -150,7 +156,7 @@ export const AdminAvailabilityBar = ({
           >
             {[
               { label: 'Adults', key: 'adults', value: adults, min: 1 },
-              { label: 'Children', key: 'children', value: children, min: 0 },
+              ...(childrenAllowed ? [{ label: 'Children', key: 'children', value: children, min: 0 }] : []),
             ].map(({ label, key, value, min }) => (
               <div key={key} className="flex items-center justify-between mb-4 last:mb-0">
                 <p className="font-semibold">{label}</p>

@@ -52,6 +52,9 @@ export const BookingFlow = () => {
     notes: ''
   });
 
+  // Check if children are allowed based on selected package
+  const childrenAllowed = !formData.selectedPackage || formData.selectedPackage.ageGroups?.child?.enabled !== false;
+
   useEffect(() => {
     if (currentProduct?.packages && currentProduct.packages.length > 0) {
       const packageId = searchParams.get('package');
@@ -572,20 +575,22 @@ export const BookingFlow = () => {
                         </select>
                       </div>
 
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Children (0-12 years)
-                        </label>
-                        <select
-                          value={formData.children}
-                          onChange={(e) => setFormData(prev => ({ ...prev, children: parseInt(e.target.value) }))}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                        >
-                          {[...Array(6)].map((_, i) => (
-                            <option key={i} value={i}>{i} Child{i > 1 ? 'ren' : i === 1 ? '' : 'ren'}</option>
-                          ))}
-                        </select>
-                      </div>
+                      {childrenAllowed && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Children (0-12 years)
+                          </label>
+                          <select
+                            value={formData.children}
+                            onChange={(e) => setFormData(prev => ({ ...prev, children: parseInt(e.target.value) }))}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+                          >
+                            {[...Array(6)].map((_, i) => (
+                              <option key={i} value={i}>{i} Child{i > 1 ? 'ren' : i === 1 ? '' : 'ren'}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
                     </div>
 
                     {/* Package Selection */}

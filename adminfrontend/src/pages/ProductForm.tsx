@@ -419,24 +419,24 @@ export const ProductForm = () => {
   }
 
   return (
-    <div className={`space-y-6 ${isEdit && formData.isDraft ? 'bg-yellow-50 border border-yellow-300 p-4 rounded-lg' : ''}`}>
+    <div className={`space-y-4 md:space-y-6 ${isEdit && formData.isDraft ? 'bg-yellow-50 border border-yellow-300 p-3 md:p-4 rounded-lg' : ''}`}>
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
         <div className="flex items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
               {isEdit ? 'Edit Product' : 'Create New Product'}
             </h1>
-            <p className="text-gray-600 mt-2">
+            <p className="text-gray-600 mt-2 text-sm md:text-base">
               {isEdit
                 ? 'Update product details and settings'
                 : 'Add a new tour or experience to your platform'}
             </p>
           </div>
         </div>
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
           {/* Draft Toggle */}
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center justify-between sm:justify-start space-x-2 p-2 sm:p-0">
             <span
               className={`text-sm font-medium ${
                 formData.isDraft ? 'text-yellow-800' : 'text-gray-500'
@@ -465,24 +465,27 @@ export const ProductForm = () => {
               />
             </button>
           </div>
-          {/* Discard Draft Button */}
-          {formData.isDraft && !isEdit && (
-            <button
-              onClick={() => {
-                if (window.confirm('Discard draft and leave?')) {
-                  navigate('/products');
-                }
-              }}
-              className="flex items-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-              type="button"
-            >
-              Discard
-            </button>
-          )}
-          {/* Status Toggle */}
-          <div className="flex items-center space-x-2">
-            {formData.isDraft ? null : (
-              <>
+          
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+            {/* Discard Draft Button */}
+            {formData.isDraft && !isEdit && (
+              <button
+                onClick={() => {
+                  if (window.confirm('Discard draft and leave?')) {
+                    navigate('/products');
+                  }
+                }}
+                className="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors text-sm"
+                type="button"
+              >
+                Discard
+              </button>
+            )}
+            
+            {/* Status Toggle */}
+            {!formData.isDraft && (
+              <div className="flex items-center justify-between sm:justify-start space-x-2 p-2 sm:p-0">
                 <span
                   className={`text-sm font-medium ${
                     formData.isActive ? 'text-green-600' : 'text-gray-500'
@@ -502,76 +505,95 @@ export const ProductForm = () => {
                     }`}
                   />
                 </button>
-              </>
+              </div>
             )}
-          </div>
-          {/* Cancel */}
-          {!isEdit && !formData.isDraft && (
-            <button
-              onClick={() => {
-                if (
-                  window.confirm(
-                    'Are you sure you want to cancel? Unsaved changes will be lost.'
-                  )
-                ) {
-                  navigate('/products');
-                }
-              }}
-              className="flex items-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-              type="button"
-            >
-              Cancel
-            </button>
-          )}
+            
+            {/* Cancel */}
+            {!isEdit && !formData.isDraft && (
+              <button
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      'Are you sure you want to cancel? Unsaved changes will be lost.'
+                    )
+                  ) {
+                    navigate('/products');
+                  }
+                }}
+                className="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors text-sm"
+                type="button"
+              >
+                Cancel
+              </button>
+            )}
 
-          {/* Go Back */}
-          {isEdit && (
+            {/* Go Back */}
+            {isEdit && (
+              <button
+                onClick={() => navigate('/products')}
+                className="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors text-sm"
+                type="button"
+              >
+                Go Back
+              </button>
+            )}
+            
+            {/* Preview Button */}
+            {isEdit && (
+              <button
+                className="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors text-sm"
+                onClick={() => navigate(`/products/${id}/preview`)}
+                type="button"
+              >
+                <Eye className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">Preview</span>
+              </button>
+            )}
+            
+            {/* Save Button */}
             <button
-              onClick={() => navigate('/products')}
-              className="flex items-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-              type="button"
+              onClick={handleSubmit}
+              disabled={isSaving}
+              className="flex items-center justify-center px-4 md:px-6 py-2 bg-[#ff914d] text-white rounded-lg hover:bg-[#e8823d] transition-colors disabled:opacity-50 text-sm font-medium"
             >
-              Go Back
+              <Save className="h-4 w-4 mr-2" />
+              <span>
+                {isSaving
+                  ? 'Saving...'
+                  : isEdit && formData.isDraft
+                  ? 'Update Draft'
+                  : isEdit
+                  ? 'Update Product'
+                  : formData.isDraft
+                  ? 'Create Draft'
+                  : 'Create Product'}
+              </span>
             </button>
-          )}
-          {isEdit && (
-            <button
-              className="flex items-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-              onClick={() => navigate(`/products/${id}/preview`)}
-              type="button"
-            >
-              <Eye className="h-4 w-4 mr-2" />
-              Preview
-            </button>
-          )}
-          <button
-            onClick={handleSubmit}
-            disabled={isSaving}
-            className="flex items-center px-6 py-2 bg-[#ff914d] text-white rounded-lg hover:bg-[#e8823d] transition-colors disabled:opacity-50"
-          >
-            <Save className="h-4 w-4 mr-2" />
-            {isSaving
-              ? 'Saving...'
-              : isEdit && formData.isDraft
-              ? 'Update Draft'
-              : isEdit
-              ? 'Update Product'
-              : formData.isDraft
-              ? 'Create Draft'
-              : 'Create Product'}
-          </button>
+          </div>
         </div>
       </div>
 
       {/* Tab Navigation */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-8 px-6">
+        {/* Mobile Tab Navigation */}
+        <div className="md:hidden">
+          <div className="flex items-center justify-between p-4 border-b border-gray-200">
+            <div className="flex-1 text-center">
+              <span className="text-lg font-medium text-gray-900">
+                {tabs.find((tab) => tab.id === activeTab)?.name}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Desktop Tab Navigation */}
+        <div className="hidden md:block border-b border-gray-200">
+          <nav className="-mb-px flex space-x-2 lg:space-x-8 px-4 lg:px-6 overflow-x-auto scrollbar-hide">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => handleTabChange(tab.id)}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                className={`py-4 px-2 lg:px-1 border-b-2 font-medium text-xs lg:text-sm transition-colors whitespace-nowrap flex-shrink-0 ${
                   activeTab === tab.id
                     ? 'border-[#ff914d] text-[#ff914d]'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -584,7 +606,7 @@ export const ProductForm = () => {
         </div>
 
         {/* Tab Content */}
-        <div className="p-6">
+        <div className="p-3 sm:p-4 lg:p-6">
           {ActiveTabComponent && (
             <ActiveTabComponent
               formData={formData}
@@ -592,6 +614,49 @@ export const ProductForm = () => {
               isEdit={isEdit}
             />
           )}
+        </div>
+      </div>
+
+      {/* Mobile Tab Navigation at Bottom */}
+      <div className="md:hidden bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div className="flex justify-between items-center">
+          <button
+            onClick={() => {
+              const currentIndex = tabs.findIndex((tab) => tab.id === activeTab);
+              if (currentIndex > 0) {
+                handleTabChange(tabs[currentIndex - 1].id);
+              }
+            }}
+            disabled={tabs.findIndex((tab) => tab.id === activeTab) === 0}
+            className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Previous
+          </button>
+          
+          <div className="flex space-x-1">
+            {tabs.map((tab, index) => (
+              <button
+                key={tab.id}
+                onClick={() => handleTabChange(tab.id)}
+                className={`w-2 h-2 rounded-full transition-colors ${
+                  activeTab === tab.id ? 'bg-[#ff914d]' : 'bg-gray-300'
+                }`}
+              />
+            ))}
+          </div>
+          
+          <button
+            onClick={() => {
+              const currentIndex = tabs.findIndex((tab) => tab.id === activeTab);
+              if (currentIndex < tabs.length - 1) {
+                handleTabChange(tabs[currentIndex + 1].id);
+              }
+            }}
+            disabled={tabs.findIndex((tab) => tab.id === activeTab) === tabs.length - 1}
+            className="flex items-center px-4 py-2 text-sm font-medium text-white bg-[#ff914d] border border-transparent rounded-lg hover:bg-[#e8823d] disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Next
+          </button>
         </div>
       </div>
     </div>

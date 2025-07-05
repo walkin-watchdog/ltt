@@ -23,6 +23,11 @@ interface Props {
     id: string;
     inclusions?: string[];
     timeSlots?: string[];
+    ageGroups?: {
+      child?: {
+        enabled?: boolean;
+      };
+    };
   };
 }
 
@@ -54,6 +59,18 @@ export const AdminAvailabilityModal = ({
   const isMobile = useMediaQuery('(max-width:1023px)');
   const datestr = date ? formatDate(date, 'yyyy-MM-dd') : '';
 
+  const getSelectedPackageData = () => {
+    if (selectedPackageFromProp) return selectedPackageFromProp;
+    if (selectedPackageId) {
+      return packages.find(p => p.id === selectedPackageId);
+    }
+    return null;
+  };
+
+  const selectedPkg = getSelectedPackageData();
+  console.log('selectedPkg:', selectedPkg);
+  const childrenAllowed = !selectedPkg || selectedPkg.ageGroups?.child?.enabled !== false;
+  console.log('childrenAllowedddd:', childrenAllowed);
   useEffect(() => {
     setDate(initialDate ? new Date(initialDate) : null);
   }, [initialDate]);
@@ -117,7 +134,8 @@ export const AdminAvailabilityModal = ({
                     name: a.package.name,
                     maxPeople: a.package.maxPeople,
                     basePrice: a.package.basePrice,
-                    currency: a.package.currency
+                    currency: a.package.currency,
+                    ageGroups: a.package.ageGroups
                   }])
                 ).values()
               );
@@ -298,7 +316,7 @@ export const AdminAvailabilityModal = ({
             <div className="absolute top-full right-0 mt-3 bg-white border border-gray-200 rounded-xl p-5 shadow-lg z-20 w-60">
               {[
                 { label:'Adults',    key:'adults',    value: adults,   min:1 },
-                { label:'Children',  key:'children',  value: children, min:0 },
+                ...(childrenAllowed ? [{ label:'Children',  key:'children',  value: children, min:0 }] : []),
               ].map(({ label,key,value,min }) => (
                 <div key={key} className="flex items-center justify-between mb-4 last:mb-0">
                   <p className="font-semibold">{label}</p>
@@ -347,7 +365,7 @@ export const AdminAvailabilityModal = ({
                   <div className="p-5">
                     {[
                       { label: 'Adults', key: 'adults', value: adults, min: 1 },
-                      { label: 'Children', key: 'children', value: children, min: 0 },
+                      ...(childrenAllowed ? [{ label: 'Children', key: 'children', value: children, min: 0 }] : []),
                     ].map(({ label, key, value, min }) => (
                       <div key={key} className="flex items-center justify-between mb-4 last:mb-0">
                         <p className="font-semibold">{label}</p>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { X, Calendar as CalendarIcon, Users, Plus, Minus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import 'react-calendar/dist/Calendar.css';
@@ -23,6 +23,11 @@ interface Props {
     id: string;
     inclusions?: string[];
     timeSlots?: string[];
+    ageGroups?: {
+      child?: {
+        enabled?: boolean;
+      };
+    };
   };
 }
 
@@ -53,6 +58,32 @@ export const AvailabilityModal = ({
   const [slotsLoading, setSlotsLoading] = useState(false);
   const isMobile = useMediaQuery('(max-width:1023px)');
   const datestr = date ? formatDate(date, 'MM/dd/yyyy') : '';
+
+  const getSelectedPackageData = () => {
+    if (selectedPackageFromProp) return selectedPackageFromProp;
+    if (selectedPackageId) {
+      return packages.find(p => p.id === selectedPackageId);
+    }
+    return null;
+  };
+
+  const selectedPkg = getSelectedPackageData();
+  
+  // Fix the children allowed logic with proper null checks
+  const childrenAllowed = useMemo(() => {
+    if (!selectedPkg) return true; // Allow children if no package selected
+    
+    // Check if ageGroups exists and has child configuration
+    if (!selectedPkg.ageGroups) return true; // Default to allowing children
+    
+    // Check if child is explicitly configured
+    if (selectedPkg.ageGroups.child && typeof selectedPkg.ageGroups.child.enabled === 'boolean') {
+      return selectedPkg.ageGroups.child.enabled;
+    }
+    
+    // Default to allowing children if not explicitly disabled
+    return true;
+  }, [selectedPkg]);
 
   useEffect(() => {
     setDate(initialDate ? new Date(initialDate) : null);
@@ -120,7 +151,8 @@ export const AvailabilityModal = ({
                     name: a.package.name,
                     maxPeople: a.package.maxPeople,
                     basePrice: a.package.basePrice, 
-                    currency: a.package.currency
+                    currency: a.package.currency,
+                    ageGroups: a.package.ageGroups
                   }])
                 ).values()
               );
@@ -311,7 +343,7 @@ export const AvailabilityModal = ({
             <div className="absolute top-full right-0 mt-3 bg-white border border-gray-200 rounded-xl p-5 shadow-lg z-20 w-60">
               {[
                 { label:'Adults',    key:'adults',    value: adults,   min:1 },
-                { label:'Children',  key:'children',  value: children, min:0 },
+                ...(childrenAllowed ? [{ label:'Children',  key:'children',  value: children, min:0 }] : []),
               ].map(({ label,key,value,min }) => (
                 <div key={key} className="flex items-center justify-between mb-4 last:mb-0">
                   <p className="font-semibold">{label}</p>
@@ -360,7 +392,7 @@ export const AvailabilityModal = ({
                   <div className="p-5">
                     {[
                       { label: 'Adults', key: 'adults', value: adults, min: 1 },
-                      { label: 'Children', key: 'children', value: children, min: 0 },
+                      ...(childrenAllowed ? [{ label: 'Children', key: 'children', value: children, min: 0 }] : []),
                     ].map(({ label, key, value, min }) => (
                       <div key={key} className="flex items-center justify-between mb-4 last:mb-0">
                         <p className="font-semibold">{label}</p>

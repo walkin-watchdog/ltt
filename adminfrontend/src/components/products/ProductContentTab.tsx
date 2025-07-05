@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Info, Image, Route, MapPin, Star, Settings, Users, CheckCircle, AlertCircle } from 'lucide-react';
+import { Info, Image, Route, MapPin, Star, Settings, Users, CheckCircle, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { DestinationModal } from './DestinationModal';
 import { ExperienceCategoryModal } from './ExperienceCategoryModal';
@@ -17,17 +17,18 @@ import { validateTab, validateTabWithToast } from './Validation';
 import { EditItineraryModel } from '../productcontenttabs/edititinerarymodel';
 
 const contentTabs = [
-  { id: 'basic', name: 'Basic Info', icon: Info },
-  { id: 'images', name: 'Images', icon: Image },
-  { id: 'itinerary', name: 'Itinerary', icon: Route },
-  { id: 'pickup', name: 'Pickup Options', icon: MapPin },
-  { id: 'content', name: 'Content Elements', icon: Star },
-  { id: 'details', name: 'Additional Details', icon: Settings },
-  { id: 'guides', name: 'Guides & Languages', icon: Users },
+  { id: 'basic', name: 'Basic Info', shortName: 'Basic', icon: Info },
+  { id: 'images', name: 'Images', shortName: 'Images', icon: Image },
+  { id: 'itinerary', name: 'Itinerary', shortName: 'Routes', icon: Route },
+  { id: 'pickup', name: 'Pickup Options', shortName: 'Pickup', icon: MapPin },
+  { id: 'content', name: 'Content Elements', shortName: 'Content', icon: Star },
+  { id: 'details', name: 'Additional Details', shortName: 'Details', icon: Settings },
+  { id: 'guides', name: 'Guides & Languages', shortName: 'Guides', icon: Users },
 ];
 
 export const ProductContentTab = ({ formData, updateFormData }: ProductContentTabProps) => {
   const [activeContentTab, setActiveContentTab] = useState('basic');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [newItem, setNewItem] = useState<newItem>({
     highlight: '',
     inclusion: '',
@@ -102,6 +103,33 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
       }
     }
     setActiveContentTab(newTabId);
+    setIsMobileMenuOpen(false); // Close mobile menu after selection
+  };
+
+  const getCurrentTabIndex = () => {
+    return contentTabs.findIndex(tab => tab.id === activeContentTab);
+  };
+
+  const canGoNext = () => {
+    return getCurrentTabIndex() < contentTabs.length - 1;
+  };
+
+  const canGoPrevious = () => {
+    return getCurrentTabIndex() > 0;
+  };
+
+  const handleNext = () => {
+    const currentIndex = getCurrentTabIndex();
+    if (canGoNext()) {
+      handleTabChange(contentTabs[currentIndex + 1].id);
+    }
+  };
+
+  const handlePrevious = () => {
+    const currentIndex = getCurrentTabIndex();
+    if (canGoPrevious()) {
+      handleTabChange(contentTabs[currentIndex - 1].id);
+    }
   };
 
   const addActivity = () => {
@@ -410,10 +438,72 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-1 overflow-x-auto px-4">
+        {/* Mobile Tab Navigation */}
+        <div className="md:hidden">
+          <div className="flex items-center justify-between p-4 border-b border-gray-200">
+            <button
+              onClick={handlePrevious}
+              disabled={!canGoPrevious()}
+              className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            
+            <div className="flex-1 text-center">
+              <button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="text-sm font-medium text-gray-900"
+              >
+                {contentTabs.find(tab => tab.id === activeContentTab)?.name}
+              </button>
+            </div>
+            
+            <button
+              onClick={handleNext}
+              disabled={!canGoNext()}
+              className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+          </div>
+          
+          {/* Mobile Menu Dropdown */}
+          {isMobileMenuOpen && (
+            <div className="absolute z-20 left-0 right-0 bg-white border-b border-gray-200 shadow-lg">
+              <div className="py-2">
+                {contentTabs.map((tab) => {
+                  const Icon = tab.icon;
+                  const isValid = validateTab(tab.id, formData);
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => handleTabChange(tab.id)}
+                      className={`w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 ${
+                        activeContentTab === tab.id ? 'bg-orange-50 text-[#ff914d]' : 'text-gray-700'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <Icon className="h-5 w-5" />
+                        <span className="font-medium">{tab.name}</span>
+                      </div>
+                      {isValid ? (
+                        <CheckCircle className="h-5 w-5 text-green-500" />
+                      ) : (
+                        <AlertCircle className="h-5 w-5 text-gray-400" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Desktop Tab Navigation */}
+        <div className="hidden md:block border-b border-gray-200">
+          <nav className="-mb-px flex space-x-1 overflow-x-auto px-4 scrollbar-hide">
             {contentTabs.map((tab) => {
               const Icon = tab.icon;
               const isValid = validateTab(tab.id, formData);
@@ -421,13 +511,15 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
                 <button
                   key={tab.id}
                   onClick={() => handleTabChange(tab.id)}
-                  className={`py-4 px-3 border-b-2 font-medium text-sm transition-colors flex items-center space-x-2 whitespace-nowrap ${activeContentTab === tab.id
-                    ? 'border-[#ff914d] text-[#ff914d]'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                    }`}
+                  className={`py-4 px-3 border-b-2 font-medium text-sm transition-colors flex items-center space-x-2 whitespace-nowrap flex-shrink-0 min-w-max ${
+                    activeContentTab === tab.id
+                      ? 'border-[#ff914d] text-[#ff914d]'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
                 >
                   <Icon className="h-4 w-4" />
-                  <span>{tab.name}</span>
+                  <span className="hidden lg:inline">{tab.name}</span>
+                  <span className="lg:hidden">{tab.shortName}</span>
                   {isValid ? (
                     <CheckCircle className="h-4 w-4 text-green-500" />
                   ) : (
@@ -439,9 +531,34 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
           </nav>
         </div>
 
-        <div className="p-6">
+        <div className="p-3 sm:p-4 md:p-6">
           {renderTabContent()}
         </div>
+      </div>
+
+      {/* Mobile Navigation Buttons */}
+      <div className="md:hidden flex justify-between items-center px-4 py-3 bg-white rounded-lg shadow-sm border border-gray-200">
+        <button
+          onClick={handlePrevious}
+          disabled={!canGoPrevious()}
+          className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <ChevronLeft className="h-4 w-4 mr-1" />
+          Previous
+        </button>
+        
+        <div className="text-sm text-gray-500">
+          {getCurrentTabIndex() + 1} of {contentTabs.length}
+        </div>
+        
+        <button
+          onClick={handleNext}
+          disabled={!canGoNext()}
+          className="flex items-center px-4 py-2 text-sm font-medium text-white bg-[#ff914d] border border-transparent rounded-lg hover:bg-[#e8823d] disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Next
+          <ChevronRight className="h-4 w-4 ml-1" />
+        </button>
       </div>
 
       <EditItineraryModel

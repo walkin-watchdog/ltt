@@ -118,3 +118,35 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  .scrollbar-hide {
+    /* Firefox */
+    scrollbar-width: none;
+    /* Safari and Chrome */
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+}
+
+/* Mobile responsive utilities */
+@media (max-width: 768px) {
+  .mobile-responsive {
+    padding: 1rem;
+  }
+  
+  .mobile-form-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .mobile-button-stack {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .mobile-button-stack > * {
+    width: 100%;
+  }
+}

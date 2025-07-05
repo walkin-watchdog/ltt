@@ -28,8 +28,8 @@ setIsDestinationModalOpen
 }: BasicInfoProps) => {
 
 return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="space-y-4 md:space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Product Type *
@@ -103,7 +103,7 @@ return (
             <button
               type="button"
               onClick={() => setIsDestinationModalOpen(true)}
-              className="px-3 py-2 bg-[#ff914d] text-white rounded-r-md hover:bg-[#e8823d] transition-colors"
+              className="px-3 py-2 bg-[#ff914d] text-white rounded-r-md hover:bg-[#e8823d] transition-colors flex-shrink-0"
             >
               <PlusCircle className="h-5 w-5" />
             </button>
@@ -117,12 +117,12 @@ return (
             </p>
           )}
         </div>
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Duration *
           </label>
-          <div className="flex space-x-2 items-center">
-            {/* Only show input if "Days" is selected */}
+          <div className="flex flex-col sm:flex-row sm:space-x-2 sm:items-center space-y-2 sm:space-y-0">
             <input
               type="number"
               min={1}
@@ -136,13 +136,12 @@ return (
               onChange={e => {
                 const value = Number(e.target.value);
                 if (value === 1) {
-                  // Default to Full Day if not already set to Half Day
                   updateFormData({ duration: 'Full Day' });
                 } else if (value > 1) {
                   updateFormData({ duration: `${value} Days` });
                 }
               }}
-              className="w-32 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+              className="w-full sm:w-32 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
               placeholder="e.g., 7"
               required
               disabled={formData.duration === 'Full Day' || formData.duration === 'Half Day'}
@@ -169,7 +168,7 @@ return (
                   updateFormData({ duration: `${currentValue > 1 ? currentValue : 2} Days` });
                 }
               }}
-              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+              className="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
               required
             >
               <option value="full">Full Day</option>
@@ -179,20 +178,19 @@ return (
               }>Half Day</option>
               <option value="days">Days</option>
             </select>
-            {/* Show a label when Full Day or Half Day is selected */}
             {(formData.duration === 'Full Day' || formData.duration === 'Half Day') && (
-              <span className="ml-2 text-gray-500 text-sm">
+              <span className="text-gray-500 text-sm">
                 {formData.duration}
               </span>
             )}
           </div>
-          {/* Helper text for clarity */}
           <div className="text-xs text-gray-500 mt-1">
             {formData.duration === 'Full Day' && 'A single full day experience.'}
             {formData.duration === 'Half Day' && 'A single half day experience.'}
             {formData.duration && formData.duration.includes('Days') && 'Enter the number of days for this tour.'}
           </div>
         </div>
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Tour Type *
@@ -253,7 +251,7 @@ return (
             <button
               type="button"
               onClick={() => setIsCategoryModalOpen(true)}
-              className="px-3 py-2 bg-[#ff914d] text-white rounded-r-md hover:bg-[#e8823d] transition-colors"
+              className="px-3 py-2 bg-[#ff914d] text-white rounded-r-md hover:bg-[#e8823d] transition-colors flex-shrink-0"
             >
               <PlusCircle className="h-5 w-5" />
             </button>
@@ -277,11 +275,12 @@ return (
           required
         />
       </div>
-      <div className="flex justify-end mt-8">
+      
+      <div className="flex justify-end mt-6 md:mt-8">
         <button
           type="button"
           onClick={handleSaveAndContinue}
-          className="px-6 py-2 bg-[#ff914d] text-white rounded-md hover:bg-[#e8823d] font-semibold transition-colors"
+          className="w-full sm:w-auto px-6 py-2 bg-[#ff914d] text-white rounded-md hover:bg-[#e8823d] font-semibold transition-colors"
         >
           Save &amp; Continue
         </button>

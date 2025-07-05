@@ -1,5 +1,5 @@
-
 export interface PackageOption {
+  isPerGroup: any;
   id: string;
   name: string;
   description: string;
@@ -45,6 +45,8 @@ export interface EndPoint {
 }
 
 export interface Product {
+  passportDetailsOption: any;
+  minPeople: boolean;
   phonenumber: number;
   tourType: string;
   cancellationPolicyType: boolean;
@@ -220,6 +222,7 @@ export interface ItineraryActivity {
   placeId?: string;
   isStop?: boolean;
   stopDuration?: number;
+  duration?: number; // Added missing duration field
   durationUnit?: string; // New duration unit field
   isAdmissionIncluded?: boolean; // New admission field
   inclusions?: string[];
@@ -418,3 +421,55 @@ export interface EditProps {
     setIsModalOpen: (value: boolean) => void;
     fetchData: () => void;
   }
+
+export interface Package {
+  pricingType: string;
+  ageGroups: any;
+  id?: string;
+  name: string;
+  description: string;
+  basePrice: number;
+  discountType: 'none' | 'percentage' | 'fixed';
+  discountValue: number;
+  currency: string;
+  inclusions: string[];
+  maxPeople: number;
+  isActive: boolean;
+  startDate: string;
+  endDate?: string;
+  slotConfigs?: SlotConfig[]; // Updated to use SlotConfig type
+}
+
+export interface SlotConfig {
+  times: string[];
+  days: string[];
+  adultTiers: PricingTier[];
+  childTiers: PricingTier[];
+}
+
+export interface PricingTier {
+  min: number;
+  max: number;
+  price: number;
+}
+
+export interface SlotPickerState {
+  start: string;
+  end: string;
+  duration: number;
+  durationUnit: string;
+  availableTimes: string[];
+  selectedTime: string;
+}
+
+export interface SlotFormData {
+  times: string[];
+  days: string[];
+  adultTiers: PricingTier[];
+  childTiers: PricingTier[];
+}
+
+export interface SchedulePriceTabProps {
+  formData: any;
+  updateFormData: (updates: any) => void;
+}

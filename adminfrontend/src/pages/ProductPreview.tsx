@@ -48,7 +48,7 @@ export const ProductPreview = () => {
   const [cheapestPackage, setCheapestPackage] = useState<PackageOption | null>(null);
   const [showAvail, setShowAvail] = useState(false);
   const isMobile = useMediaQuery('(max-width:1023px)');
-
+// console.log('product', product);
   // Refs for scroll navigation
   const overviewRef = useRef<HTMLDivElement>(null);
   const itineraryRef = useRef<HTMLDivElement>(null);
@@ -188,6 +188,8 @@ export const ProductPreview = () => {
   };
 
   const handlePackageSelect = (pkgId: string | PackageOption) => {
+    console.log('product.packages:', product?.packages);
+    console.log('pkgId:', pkgId);
     const pkg =
       typeof pkgId === 'string'
         ? product?.packages?.find(p => p.id === pkgId)
@@ -201,7 +203,7 @@ export const ProductPreview = () => {
       setShowAvail(false);
     }
   };
-
+  console.log('selectedPackagepreview', selectedPackage);
   const checkAvailabilityDesktop = () => {
     if (isMobile || !product) return;
 
@@ -919,6 +921,11 @@ export const ProductPreview = () => {
                         <div className="flex items-center text-sm text-gray-600">
                           <span className="w-2 h-2 bg-[#ff914d] rounded-full mr-2"></span>
                           Passport details for international travelers
+                          {product.passportDetailsOption && (
+                            <span className="ml-1 text-xs text-blue-600">
+                              ({product.passportDetailsOption === 'advance' ? 'Required in advance' : 'Required on arrival'})
+                            </span>
+                          )}
                         </div>
                       )}
 
@@ -973,7 +980,10 @@ export const ProductPreview = () => {
                   <span className="text-3xl font-bold text-[#ff914d]">Price unavailable</span>
                 )}
               </div>
-              <p className="text-sm text-gray-500">per person</p>
+              <p className="text-sm text-gray-500">
+                {cheapestPackage?.isPerGroup ? 'per group' : 'per person'}
+                {cheapestPackage?.maxPeople && ` (up to ${cheapestPackage.maxPeople} people)`}
+              </p>
             </div>
 
             {/* Availability bar */}
@@ -989,6 +999,7 @@ export const ProductPreview = () => {
                 }
                 checkAvailabilityDesktop();
               }}
+              selectedPackage={selectedPackage}
             />
 
             {/* dynamic feedback */}
@@ -999,8 +1010,8 @@ export const ProductPreview = () => {
                 )}
                 {isDateOk === false && !checkingAvail && (
                   <p className="text-center text-red-600">
-                    Not enough spots for {adultsCount + childrenCount}{' '}
-                    participant{adultsCount + childrenCount > 1 && 's'}.
+                    Not enough spots for {adultsCount + (childrenCount > 0 ? childrenCount : 0)}{' '}
+                    participant{(adultsCount + childrenCount) > 1 ? 's' : ''}.
                   </p>
                 )}
                 {isDateOk && availablePkgs.length > 0 && (
@@ -1021,6 +1032,10 @@ export const ProductPreview = () => {
                               {pkg.description}
                             </p>
                           )}
+                          <p className="text-sm text-gray-500">
+                            {pkg.isPerGroup ? 'Per group' : 'Per person'}
+                            {pkg.maxPeople && ` (up to ${pkg.maxPeople})`}
+                          </p>
                         </span>
                       </button>
                     ))}
@@ -1062,13 +1077,23 @@ export const ProductPreview = () => {
               {product.difficulty && (
                 <div className="flex items-center text-sm text-gray-600">
                   <span className="font-medium mr-2">Difficulty:</span>
-                  <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">
+                  <span className={`px-2 py-1 rounded-full text-xs ${
+                    product.difficulty === 'Easy' ? 'bg-green-100 text-green-800' :
+                    product.difficulty === 'Moderate' ? 'bg-yellow-100 text-yellow-800' :
+                    product.difficulty === 'Challenging' ? 'bg-red-100 text-red-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}>
                     {product.difficulty}
                   </span>
                 </div>
               )}
+              {product.minPeople && Number(product.minPeople) > 1 && (
+                <div className="flex items-center text-sm text-gray-600">
+                  <span className="font-medium mr-2">Minimum:</span>
+                  <span className="text-gray-700">{product.minPeople} people</span>
+                </div>
+              )}
             </div>
-
 
             {/* Languages */}
             {product.languages?.length ? (
@@ -1121,11 +1146,10 @@ export const ProductPreview = () => {
                         </div>
                       </div>
                       <p className="text-sm text-gray-600">{pkg.description}</p>
-                      {pkg.maxPeople && (
-                        <p className="text-xs text-gray-500 mt-1">
-                          Max {pkg.maxPeople} people
-                        </p>
-                      )}
+                      <p className="text-xs text-gray-500 mt-1">
+                        {pkg.isPerGroup ? 'Per group' : 'Per person'}
+                        {pkg.maxPeople && ` (max ${pkg.maxPeople} people)`}
+                      </p>
                     </div>
                   ))}
                 </div>

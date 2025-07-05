@@ -1,7 +1,7 @@
 import { Calendar as CalendarIcon, Users, Plus, Minus } from 'lucide-react';
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { Sheet } from 'react-modal-sheet';
 import clsx from 'clsx';
@@ -12,6 +12,7 @@ interface Props {
   children: number;
   onChange: (d: { date: string; adults: number; children: number }) => void;
   onCheck: () => void;
+  selectedPackage?: any; // Add selectedPackage prop
 }
 
 export const AvailabilityBar = ({
@@ -20,6 +21,7 @@ export const AvailabilityBar = ({
   children,
   onChange,
   onCheck,
+  selectedPackage, // Add this prop
 }: Props) => (
   <BarUI
     selectedDate={selectedDate}
@@ -27,6 +29,7 @@ export const AvailabilityBar = ({
     children={children}
     onChange={onChange}
     onCheck={onCheck}
+    selectedPackage={selectedPackage} // Pass it down
   />
 );
 
@@ -36,6 +39,7 @@ const BarUI = ({
   children,
   onChange,
   onCheck,
+  selectedPackage, // Add this prop
 }: Props) => {
   const [showDatepicker, setShowDatepicker] = useState(false);
   const [month, setMonth] = useState<Date>(new Date());
@@ -43,6 +47,22 @@ const BarUI = ({
   const datepickerRef = useRef<HTMLDivElement>(null);
   const travellersRef = useRef<HTMLDivElement>(null);
   const isMobile = useMediaQuery('(max-width:1023px)');
+
+  // Fix the children allowed logic with proper null checks
+  const childrenAllowed = useMemo(() => {
+    if (!selectedPackage) return true; // Allow children if no package selected
+    
+    // Check if ageGroups exists and has child configuration
+    if (!selectedPackage.ageGroups) return true; // Default to allowing children
+    
+    // Check if child is explicitly configured
+    if (selectedPackage.ageGroups.child && typeof selectedPackage.ageGroups.child.enabled === 'boolean') {
+      return selectedPackage.ageGroups.child.enabled;
+    }
+    
+    // Default to allowing children if not explicitly disabled
+    return true;
+  }, [selectedPackage]);
 
   useEffect(() => {
     if (!isMobile && showDatepicker) {
@@ -194,7 +214,7 @@ const BarUI = ({
         >
           <Users className="h-5 w-5 text-gray-700 mr-4" />
           {adults} Adult{adults > 1 ? 's' : ''}{' '}
-          {children > 0 && `, ${children} Child${children > 1 ? 'ren' : ''}`}
+          {childrenAllowed && children > 0 && `, ${children} Child${children > 1 ? 'ren' : ''}`}
         </button>
 
         {/* dropdown */}
@@ -205,13 +225,13 @@ const BarUI = ({
           >
             {[
               { label: 'Adults', key: 'adults', price: 0, value: adults, min: 1 },
-              {
+              ...(childrenAllowed ? [{
                 label: 'Children',
                 key: 'children',
                 price: 0,
                 value: children,
                 min: 0,
-              },
+              }] : []),
             ].map(({ label, key, price, value, min }) => (
               <div
                 key={key}

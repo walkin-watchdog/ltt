@@ -32,6 +32,7 @@ export interface MeetingPoint {
 
 // Update Product interface types
 interface Product {
+  minPeople: boolean;
   cutoffTime: number;
   requirePhone: boolean;
   requireId: boolean;

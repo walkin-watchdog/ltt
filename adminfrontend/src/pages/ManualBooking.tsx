@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { 
-  Calendar, 
   Users, 
   Package, 
   MapPin, 
@@ -10,8 +9,7 @@ import {
   CreditCard, 
   Send, 
   ArrowLeft, 
-  Check,
-  AlertCircle 
+  Check
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -22,6 +20,12 @@ interface Product {
   location: string;
   duration: string;
   packages: any[];
+}
+
+interface PricingTier {
+  min: number;
+  max: number;
+  price: number;
 }
 
 export const ManualBooking = () => {
@@ -159,7 +163,7 @@ export const ManualBooking = () => {
       if (selectedSlot) {
         // Use adult tier pricing if available
         if (selectedSlot.adultTiers && selectedSlot.adultTiers.length > 0) {
-          const adultTier = selectedSlot.adultTiers.find(tier => 
+          const adultTier = selectedSlot.adultTiers.find((tier: PricingTier) => 
             formValues.adults >= tier.min && formValues.adults <= tier.max
           );
           if (adultTier) {
@@ -169,7 +173,7 @@ export const ManualBooking = () => {
 
         // Use child tier pricing if available and there are children
         if (formValues.children > 0 && selectedSlot.childTiers && selectedSlot.childTiers.length > 0) {
-          const childTier = selectedSlot.childTiers.find(tier => 
+          const childTier = selectedSlot.childTiers.find((tier: PricingTier) => 
             formValues.children >= tier.min && formValues.children <= tier.max
           );
           if (childTier) {
@@ -253,7 +257,7 @@ export const ManualBooking = () => {
         });
         
         if (!voucherResponse.ok) {
-          toast.warning('Booking created but failed to send voucher email');
+          toast.error('Booking created but failed to send voucher email');
         } else {
           setSuccess('Booking created successfully and voucher email sent!');
         }
