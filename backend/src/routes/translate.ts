@@ -8,7 +8,7 @@ router.post('/', async (req, res) => {
   try {
     const result = await translate(text, { to });
     if (Array.isArray(result)) {
-      res.json({ text: result.map(r => r.text).join(' ') });
+      res.json({ text: result.map(r => r.text)});
     } else if ('text' in result) {
       res.json({ text: result.text });
     } else {

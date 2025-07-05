@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
 import { Facebook, Instagram, Twitter, Youtube, Mail, Phone, MapPin } from 'lucide-react';
-import { TranslatedText } from '../common/TranslatedText';
 
 export const Footer = () => {
   return (
@@ -14,50 +13,52 @@ export const Footer = () => {
               <span className="text-white ml-1" style={{ fontSize: '20px' }}>TimeTravel</span>
             </div>
             <p className="text-gray-300 mb-4">
-              <TranslatedText text="Discover the Extraordinary with our curated luxury travel experiences." />
+              Discover the Extraordinary with our curated luxury travel experiences.
             </p>
             <div className="flex space-x-4">
-              <a href="#" className="text-gray-300 hover:text-[#ff914d] transition-colors"><Facebook className="h-5 w-5" /></a>
-              <a href="#" className="text-gray-300 hover:text-[#ff914d] transition-colors"><Instagram className="h-5 w-5" /></a>
-              <a href="#" className="text-gray-300 hover:text-[#ff914d] transition-colors"><Twitter className="h-5 w-5" /></a>
-              <a href="#" className="text-gray-300 hover:text-[#ff914d] transition-colors"><Youtube className="h-5 w-5" /></a>
+              <a href="#" className="text-gray-300 hover:text-[#ff914d] transition-colors">
+                <Facebook className="h-5 w-5" />
+              </a>
+              <a href="#" className="text-gray-300 hover:text-[#ff914d] transition-colors">
+                <Instagram className="h-5 w-5" />
+              </a>
+              <a href="#" className="text-gray-300 hover:text-[#ff914d] transition-colors">
+                <Twitter className="h-5 w-5" />
+              </a>
+              <a href="#" className="text-gray-300 hover:text-[#ff914d] transition-colors">
+                <Youtube className="h-5 w-5" />
+              </a>
             </div>
           </div>
 
           {/* Quick Links */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">
-              <TranslatedText text="Quick Links" />
-            </h3>
+            <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
             <ul className="space-y-2">
-              <li><Link to="/" className="text-gray-300 hover:text-[#ff914d] transition-colors"><TranslatedText text="Home" /></Link></li>
-              <li><Link to="/destinations" className="text-gray-300 hover:text-[#ff914d] transition-colors"><TranslatedText text="Destinations" /></Link></li>
-              <li><Link to="/experiences" className="text-gray-300 hover:text-[#ff914d] transition-colors"><TranslatedText text="Luxé Experiences" /></Link></li>
-              <li><Link to="/offers" className="text-gray-300 hover:text-[#ff914d] transition-colors"><TranslatedText text="Special Offers" /></Link></li>
-              <li><Link to="/about" className="text-gray-300 hover:text-[#ff914d] transition-colors"><TranslatedText text="About Us" /></Link></li>
+              <li><Link to="/" className="text-gray-300 hover:text-[#ff914d] transition-colors">Home</Link></li>
+              <li><Link to="/destinations" className="text-gray-300 hover:text-[#ff914d] transition-colors">Destinations</Link></li>
+              <li><Link to="/experiences" className="text-gray-300 hover:text-[#ff914d] transition-colors">Luxé Experiences</Link></li>
+              <li><Link to="/offers" className="text-gray-300 hover:text-[#ff914d] transition-colors">Special Offers</Link></li>
+              <li><Link to="/about" className="text-gray-300 hover:text-[#ff914d] transition-colors">About Us</Link></li>
             </ul>
           </div>
 
           {/* Support */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">
-              <TranslatedText text="Support" />
-            </h3>
+            <h3 className="text-lg font-semibold mb-4">Support</h3>
             <ul className="space-y-2">
-              <li><Link to="/contact" className="text-gray-300 hover:text-[#ff914d] transition-colors"><TranslatedText text="Contact Us" /></Link></li>
-              <li><Link to="/faq" className="text-gray-300 hover:text-[#ff914d] transition-colors"><TranslatedText text="FAQ" /></Link></li>
-              <li><Link to="/policies" className="text-gray-300 hover:text-[#ff914d] transition-colors"><TranslatedText text="Privacy & Terms" /></Link></li>
-              <li><Link to="/sustainable-travel" className="text-gray-300 hover:text-[#ff914d] transition-colors"><TranslatedText text="Sustainable Travel" /></Link></li>
-              <li><Link to="/partnership" className="text-gray-300 hover:text-[#ff914d] transition-colors"><TranslatedText text="Partnership" /></Link></li>
-              <li><Link to="/careers" className="text-gray-300 hover:text-[#ff914d] transition-colors"><TranslatedText text="Careers" /></Link></li>
+              <li><Link to="/contact" className="text-gray-300 hover:text-[#ff914d] transition-colors">Contact Us</Link></li>
+              <li><Link to="/faq" className="text-gray-300 hover:text-[#ff914d] transition-colors">FAQ</Link></li>
+              <li><Link to="/policies" className="text-gray-300 hover:text-[#ff914d] transition-colors">Privacy & Terms</Link></li>
+              <li><Link to="/sustainable-travel" className="text-gray-300 hover:text-[#ff914d] transition-colors">Sustainable Travel</Link></li>
+              <li><Link to="/partnership" className="text-gray-300 hover:text-[#ff914d] transition-colors">Partnership</Link></li>
+              <li><Link to="/careers" className="text-gray-300 hover:text-[#ff914d] transition-colors">Careers</Link></li>
             </ul>
           </div>
 
           {/* Contact Info */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">
-              <TranslatedText text="Contact Info" />
-            </h3>
+            <h3 className="text-lg font-semibold mb-4">Contact Info</h3>
             <ul className="space-y-3">
               <li className="flex items-center">
                 <Mail className="h-4 w-4 mr-3 text-[#ff914d]" />
