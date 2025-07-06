@@ -6,15 +6,9 @@ import { useState, useEffect, useRef } from 'react';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { Sheet } from 'react-modal-sheet';
 import clsx from 'clsx';
+import type { AdminAvailabilityBarProps } from '@/types.ts';
 
-interface Props {
-  selectedDate: string;
-  adults: number;
-  children: number;
-  onChange: (v: { date: string; adults: number; children: number }) => void;
-  onCheck: () => void;
-  selectedPackage?: any; // Add selectedPackage prop
-}
+
 
 export const AdminAvailabilityBar = ({
   selectedDate,
@@ -23,7 +17,7 @@ export const AdminAvailabilityBar = ({
   onChange,
   onCheck,
   selectedPackage, // Add this prop
-}: Props) => {
+}: AdminAvailabilityBarProps) => {
   /* identical behaviour to the public-site bar */
   const [showDatepicker, setShowDatepicker]   = useState(false);
   const [showTravellers, setShowTravellers]   = useState(false);

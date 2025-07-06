@@ -9,27 +9,8 @@ import clsx from 'clsx';
 import { CheckCircle } from 'lucide-react';
 import { formatDate } from 'date-fns';
 import { isSlotBookable } from '../../lib/utils';
+import type { AdminAvailabilityModalProps } from '@/types.ts';
 
-interface Props {
-  productId: string;
-  packages: any[]; // Consider using a more specific type if possible
-  open: boolean;
-  onClose: () => void;
-  onPackageSelect: (pkgOrSlotId: string) => void; 
-  initialDate?: string;
-  initialAdults?: number;
-  initialChildren?: number;
-  selectedPackageFromProp?: { 
-    id: string;
-    inclusions?: string[];
-    timeSlots?: string[];
-    ageGroups?: {
-      child?: {
-        enabled?: boolean;
-      };
-    };
-  };
-}
 
 export const AdminAvailabilityModal = ({
   open,
@@ -40,7 +21,7 @@ export const AdminAvailabilityModal = ({
   initialAdults,
   initialChildren,
   selectedPackageFromProp
-}: Props) => {
+}: AdminAvailabilityModalProps) => {
   const [date, setDate] = useState<Date | null>(initialDate ? new Date(initialDate) : null);
   const [adults, setAdults] = useState(initialAdults ?? 2);
   const [children, setChildren] = useState(initialChildren ?? 0);

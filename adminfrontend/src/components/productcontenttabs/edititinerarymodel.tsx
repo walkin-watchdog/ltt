@@ -3,40 +3,8 @@ import { useState } from "react";
 import { LocationAutocomplete } from "../ui/LocationAutocomplete";
 import { getDescription, predefinedCategories } from "./predefinedcategories";
 import { ImageUploader } from "../gallery/ImageUploader";
+import type { EditItineraryModelProps } from "@/types.ts";
 
-interface EditItineraryModelProps {
-    showItineraryBuilder: boolean;
-    editingDay: any; // Replace 'any' with the appropriate type for your day object
-    setShowItineraryBuilder: (show: boolean) => void;
-    setEditingDay: (day: any) => void; // Replace 'any' with the appropriate type for your day object
-    newActivity: any; // Replace 'any' with the appropriate type for your activity object
-    setNewActivity: (activity: any) => void
-    activityInclusionCategory: string;
-    setActivityInclusionCategory: (category: string) => void;
-    activityInclusionSubcategory: string;
-    setActivityInclusionSubcategory: (subcategory: string) => void;
-    activityInclusionCustomTitle: string;
-    setActivityInclusionCustomTitle: (title: string) => void;
-    activityInclusionCustomDescription: string;
-    setActivityInclusionCustomDescription: (description: string) => void;
-    showActivityInclusionCustomForm: boolean;
-    setShowActivityInclusionCustomForm: (show: boolean) => void;
-    activityExclusionCategory: string;
-    setActivityExclusionCategory: (category: string) => void;
-    activityExclusionSubcategory: string;
-    setActivityExclusionSubcategory: (subcategory: string) => void;
-    activityExclusionCustomTitle: string;
-    setActivityExclusionCustomTitle: (title: string) => void;
-    activityExclusionCustomDescription: string;
-    setActivityExclusionCustomDescription: (description: string) => void;
-    showActivityExclusionCustomForm: boolean;
-    setShowActivityExclusionCustomForm: (show: boolean) => void;
-    addActivityInclusion: (activity: any) => void;
-    addActivityExclusion: (activity: any) => void;
-    addActivity: (activity: any) => void;
-    removeActivity: (index: number) => void;
-    saveItineraryDay: () => void;
-}
 
 export const EditItineraryModel = ({
     showItineraryBuilder,

@@ -1,11 +1,9 @@
 import { AlertCircle, Calendar, CheckCircle } from 'lucide-react';
 import type { Product } from '../../types.ts';
 
-interface AvailabilityStatusBannerProps {
-  product: Product;
-}
 
-export const AvailabilityStatusBanner: React.FC<AvailabilityStatusBannerProps> = ({ product }) => {
+
+export const AvailabilityStatusBanner = ({ product } : {product: Product;}) => {
   const getAvailabilityStatus = () => {
     if (!product) {
       return {

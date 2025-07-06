@@ -1,21 +1,9 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { isTokenExpired, isTokenNearExpiry } from '../utils/auth';
 import { useCallback, type ReactNode, } from 'react';
+import type { AuthContextType, User } from '@/types.ts';
 
-interface User {
-  id: string;
-  email: string;
-  name: string;
-  role: 'ADMIN' | 'EDITOR' | 'VIEWER';
-}
 
-interface AuthContextType {
-  user: User | null;
-  token: string | null;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
-  isLoading: boolean;
-}
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const TOKEN_KEY = 'admin_token';

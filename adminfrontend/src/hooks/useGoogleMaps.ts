@@ -1,9 +1,6 @@
+import type { UseGoogleMapsReturn } from '@/types.ts';
 import { useState, useEffect } from 'react';
 
-interface UseGoogleMapsReturn {
-  isLoaded: boolean;
-  loadError: string | null;
-}
 
 export const useGoogleMaps = (): UseGoogleMapsReturn => {
   const [isLoaded, setIsLoaded] = useState(false);

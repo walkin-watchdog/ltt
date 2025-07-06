@@ -1,14 +1,8 @@
+import type { PickupOptionsTabProps } from "@/types.ts";
 import { EndPointMap } from "../ui/EndPointMap";
 import { MeetingPointMap } from "../ui/MeetingPointMap";
 import { PickupLocationMap } from "../ui/PickupLocationMap";
 
-interface PickupOptionsTabProps {
-    formData: any;
-    updateFormData: (updates: any) => void;
-    handleSaveAndContinue: () => void;
-    pickupOption: string;
-    setPickupOption: (option: string) => void;
-}
 
 export const PickupOptionsTab = ({ 
     formData, 

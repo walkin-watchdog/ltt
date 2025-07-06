@@ -3,12 +3,8 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { isTokenExpired } from '../../utils/auth';
 
-interface ProtectedRouteProps {
-  children: ReactNode;
-  requiredRoles?: string[];
-}
 
-export const ProtectedRoute = ({ children, requiredRoles }: ProtectedRouteProps) => {
+export const ProtectedRoute = ({ children, requiredRoles }: {children: ReactNode, requiredRoles?: string[]}) => {
   const { user, token, isLoading } = useAuth();
 
   if (isLoading) {

@@ -1,34 +1,7 @@
 import { Plus, Save, X } from "lucide-react";
 import { getDescription, predefinedCategories } from "../productcontenttabs/predefinedcategories";
 import { calculateEffectivePrice } from "./schedulepricefunc";
-
-
-interface EditPackageProps {
-    isAddingPackage: boolean;
-    isEditingPackage: boolean;
-    setIsAddingPackage: (value: boolean) => void;
-    setIsEditingPackage: (value: boolean) => void;
-    packageFormData: any;
-    setPackageFormData: (data: any) => void;
-    handlePackageChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void;
-    handleSavePackage: () => void;
-    handlePackageToggle: (e: React.ChangeEvent<HTMLInputElement>) => void
-    selectedInclusionCategory: string;
-    setSelectedInclusionCategory: (category: string) => void;
-    selectedInclusionSubcategory: string;
-    setSelectedInclusionSubcategory: (subcategory: string) => void;
-    setShowCustomInclusionForm: (show: boolean) => void;
-    showCustomInclusionForm: boolean;
-    customInclusionTitle: string;
-    setCustomInclusionTitle: (title: string) => void;
-    customInclusionDescription: string;
-    setCustomInclusionDescription: (description: string) => void;
-    handleAddInclusionFromCategory: () => void;
-    handleAddInclusion: () => void;
-    handleRemoveInclusion: (index: number) => void;
-    newInclusion: string;
-    setNewInclusion: (inclusion: string) => void;
-}
+import type { EditPackageProps } from "@/types.ts";
 
 export const EditPackage = ({
 isAddingPackage,

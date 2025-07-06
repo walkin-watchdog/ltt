@@ -1,19 +1,10 @@
 import { PlusCircle } from "lucide-react";
 import { LocationAutocomplete } from "../ui/LocationAutocomplete";
 import type { Key} from "react";
+import type { BasicInfoProps } from "@/types.ts";
 
 
-interface BasicInfoProps {
-    formData: any;
-    updateFormData: (updates: any) => void;
-    destinations: any
-    experienceCategories: any;
-    setIsCategoryModalOpen: (open: boolean) => void;
-    setIsDestinationModalOpen: (open: boolean) => void;
-    isLoadingDestinations: boolean;
-    isLoadingCategories: boolean;
-    handleSaveAndContinue: () => void;
-  }
+
 
 export const BasicInfo =({
 formData,

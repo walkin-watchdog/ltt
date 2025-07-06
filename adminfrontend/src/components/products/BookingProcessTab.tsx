@@ -1,11 +1,7 @@
-
-interface BookingProcessTabProps {
-  formData: any;
-  updateFormData: (updates: any) => void;
-  isEdit: boolean;
-}
-
-export const BookingProcessTab = ({ formData, updateFormData }: BookingProcessTabProps) => {
+export const BookingProcessTab = ({ formData, updateFormData }: 
+  {formData: any;
+  updateFormData: (updates: any) => void;}
+) => {
   return (
     <div className="space-y-8">
       {/* Booking Process */}

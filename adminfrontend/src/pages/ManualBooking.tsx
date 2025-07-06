@@ -12,21 +12,9 @@ import {
   Check
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import type { PricingTier, Product } from '@/types.ts';
 
-interface Product {
-  id: string;
-  title: string;
-  productCode: string;
-  location: string;
-  duration: string;
-  packages: any[];
-}
 
-interface PricingTier {
-  min: number;
-  max: number;
-  price: number;
-}
 
 export const ManualBooking = () => {
   const navigate = useNavigate();

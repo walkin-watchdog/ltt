@@ -1,16 +1,15 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Product } from '../../types.ts';
 
-interface ProductImageGalleryProps {
-  product: Product;
-  currentImageIndex: number;
-  setCurrentImageIndex: (index: number) => void;
-}
-
-export const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({ 
+export const ProductImageGallery = ({ 
   product, 
   currentImageIndex, 
   setCurrentImageIndex 
+}:
+{
+    product: Product;
+  currentImageIndex: number;
+  setCurrentImageIndex: (index: number) => void;
 }) => {
   const nextImage = () => {
     setCurrentImageIndex(

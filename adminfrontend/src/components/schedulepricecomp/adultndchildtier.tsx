@@ -1,19 +1,7 @@
 import { Plus, Trash2 } from "lucide-react";
 import React from "react";
-import type { Package, SlotFormData } from "../../types.ts";
+import type { AdultAndChildTiersProps } from "../../types.ts";
 
-interface AdultAndChildTiersProps {
-  slotFormData: SlotFormData;
-  packageFormData: Package;
-  handleTierChange: (
-    e: React.ChangeEvent<HTMLInputElement>,
-    tierType: "adultTiers" | "childTiers",
-    index: number,
-    field: "min" | "max" | "price"
-  ) => void;
-  handleRemoveTier: (tierType: "adultTiers" | "childTiers", index: number) => void;
-  handleAddTier: (tierType: "adultTiers" | "childTiers") => void;
-}
 
 export const AdultAndChildTiers: React.FC<AdultAndChildTiersProps> = ({
   slotFormData,

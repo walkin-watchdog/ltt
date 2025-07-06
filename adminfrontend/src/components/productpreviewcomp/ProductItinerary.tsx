@@ -1,11 +1,7 @@
 import { CheckCircle } from 'lucide-react';
 import type { Product } from '../../types.ts';
 
-interface ProductItineraryProps {
-  product: Product;
-}
-
-export const ProductItinerary: React.FC<ProductItineraryProps> = ({ product }) => {
+export const ProductItinerary = ({ product }: {product: Product;}) => {
   return (
     <div className="bg-white rounded-lg shadow-sm p-6 scroll-mt-20">
       <h3 className="text-lg font-semibold mb-4">Itinerary</h3>

@@ -1,12 +1,8 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { AlertCircle } from 'lucide-react';
-import type { LocationDetail } from '../../types.ts';
+import type { GoogleMapProps } from '../../types.ts';
 
-interface GoogleMapProps {
-  locations: LocationDetail[];
-  className?: string;
-  height?: string;
-}
+
 
 export const GoogleMap: React.FC<GoogleMapProps> = ({
   locations,

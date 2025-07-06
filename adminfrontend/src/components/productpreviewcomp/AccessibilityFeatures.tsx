@@ -1,10 +1,6 @@
 import type { Product } from '../../types.ts';
 
-interface AccessibilityFeaturesProps {
-  product: Product;
-}
-
-export const AccessibilityFeatures: React.FC<AccessibilityFeaturesProps> = ({ product }) => {
+export const AccessibilityFeatures = ({ product }: {product:Product}) => {
   return (
     <div className="bg-white rounded-lg shadow-sm p-6">
       <h3 className="text-lg font-semibold text-gray-900 mb-3">Accessibility Information</h3>

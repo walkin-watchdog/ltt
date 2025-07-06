@@ -1,10 +1,6 @@
 import type { Product } from '../../types.ts';
 
-interface PickupMeetingInfoProps {
-  product: Product;
-}
-
-export const PickupMeetingInfo: React.FC<PickupMeetingInfoProps> = ({ product }) => {
+export const PickupMeetingInfo = ({ product }: { product: Product;}) => {
   const hasPickupMeetingInfo = (
     (Array.isArray(product.pickupLocationDetails) && product.pickupLocationDetails.length > 0) ||
     (Array.isArray(product.pickupLocations) && product.pickupLocations.length > 0) ||

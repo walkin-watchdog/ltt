@@ -13,20 +13,9 @@ import {
 import { useToast } from '../components/ui/toaster';
 import { ImageUploader } from '../components/gallery/ImageUploader';
 import { LocationAutocomplete } from '../components/ui/LocationAutocomplete';
+import type { Destination } from '@/types.ts';
 
-interface Destination {
-  id: string;
-  name: string;
-  slug: string;
-  tagline: string;
-  description: string;
-  image: string;
-  bannerImage: string;
-  highlights: string[];
-  _count?: {
-    products: number;
-  };
-}
+
 
 export const DestinationsAdmin = () => {
   const { token, user } = useAuth();

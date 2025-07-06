@@ -2,11 +2,8 @@ import { type ReactNode } from 'react';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 
-interface LayoutProps {
-  children: ReactNode;
-}
 
-export const Layout = ({ children }: LayoutProps) => {
+export const Layout = ({ children }: {children: ReactNode;}) => {
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />

@@ -1,20 +1,8 @@
+import type { CustomRequirementField, TravelerRequirementsTabProps } from '@/types.ts';
 import { Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
-interface TravelerRequirementsTabProps {
-  formData: any;
-  updateFormData: (updates: any) => void;
-  isEdit: boolean;
-}
 
-interface CustomRequirementField {
-  id: string;
-  label: string;
-  type: 'text' | 'textarea' | 'select' | 'checkbox' | 'date' | 'file';
-  required: boolean;
-  options?: string[];
-  placeholder?: string;
-}
 
 export const TravelerRequirementsTab = ({ formData, updateFormData }: TravelerRequirementsTabProps) => {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);

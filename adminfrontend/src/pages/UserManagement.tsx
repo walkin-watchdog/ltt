@@ -16,14 +16,8 @@ import {
   Eye
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import type { User } from '@/types.ts';
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: 'ADMIN' | 'EDITOR' | 'VIEWER';
-  createdAt: string;
-}
 
 export const UserManagement = () => {
   const { token, user: currentUser } = useAuth();

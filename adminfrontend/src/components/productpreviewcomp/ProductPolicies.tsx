@@ -1,10 +1,6 @@
 import type { Product } from '../../types.ts';
 
-interface ProductPoliciesProps {
-  product: Product;
-}
-
-export const ProductPolicies: React.FC<ProductPoliciesProps> = ({ product }) => {
+export const ProductPolicies = ({ product }:{product: Product;}) => {
   return (
     <div className="bg-white rounded-lg shadow-sm p-6 scroll-mt-20">
       <h3 className="text-lg font-semibold mb-4">

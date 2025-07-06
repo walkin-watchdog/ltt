@@ -1,14 +1,6 @@
-import type { ItineraryDay } from "../../types.ts";
+import type { ItineraryDay, ItineraryTabProps } from "../../types.ts";
 import { Calendar, Route } from "lucide-react";
 
-interface ItineraryTabProps {
-    formData: any;
-    handleSaveAndContinue: () => void;
-    createNewDay: () => void;
-    editDay: (day: ItineraryDay) => void;
-    removeDay: (dayNumber: number) => void;
-    getAllowedDays: () => number;
-}
 
 export const ItineraryTab = ({
     formData,

@@ -1,11 +1,11 @@
-interface ProductNavigationTabsProps {
-  activeTab: 'overview' | 'itinerary' | 'inclusions' | 'policies';
-  handleTabClick: (tab: 'overview' | 'itinerary' | 'inclusions' | 'policies') => void;
-}
 
-export const ProductNavigationTabs: React.FC<ProductNavigationTabsProps> = ({ 
+export const ProductNavigationTabs = ({ 
   activeTab, 
   handleTabClick 
+}:
+{
+activeTab: 'overview' | 'itinerary' | 'inclusions' | 'policies';
+  handleTabClick: (tab: 'overview' | 'itinerary' | 'inclusions' | 'policies') => void;
 }) => {
   const tabs = [
     { id: 'overview', label: 'Overview' },

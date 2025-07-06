@@ -4,16 +4,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../ui/toaster';
 import axios from 'axios';
 import { ImageBrowser } from './ImageBrowser';
+import type { ImageUploaderProps } from '@/types.ts';
 
-interface ImageUploaderProps {
-  images: string[];
-  onChange: (images: string[]) => void;
-  maxImages?: number;
-  folder?: string;
-  title?: string;
-  allowReordering?: boolean;
-  className?: string;
-}
 
 export const ImageUploader = ({
   images = [],

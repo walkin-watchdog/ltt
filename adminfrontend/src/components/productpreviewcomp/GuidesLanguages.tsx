@@ -1,11 +1,8 @@
 import { Users } from 'lucide-react';
 import type { Product } from '../../types.ts';
 
-interface GuidesLanguagesProps {
-  product: Product;
-}
 
-export const GuidesLanguages: React.FC<GuidesLanguagesProps> = ({ product }) => {
+export const GuidesLanguages = ({ product }: {product: Product}) => {
   if (!product.guides || !Array.isArray(product.guides) || product.guides.length === 0) {
     return null;
   }

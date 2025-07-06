@@ -3,11 +3,8 @@ import { Lock, Save } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'react-hot-toast';
 
-interface PasswordChangeFormProps {
-  onClose: () => void;
-}
 
-export const PasswordChangeForm = ({ onClose }: PasswordChangeFormProps) => {
+export const PasswordChangeForm = ({ onClose }:{onClose : () => void; }) => {
   const { token } = useAuth();
   const [formData, setFormData] = useState({
     currentPassword: '',

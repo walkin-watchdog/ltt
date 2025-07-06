@@ -7,7 +7,7 @@ import { MobileMenuContext } from '../../contexts/MobileMenuContext';
 
 export const Header = () => {
   const { user, logout } = useAuth();
-  const { mobileOpen, setMobileOpen } = useContext(MobileMenuContext);
+  const { setMobileOpen } = useContext(MobileMenuContext);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
 

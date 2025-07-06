@@ -1,20 +1,9 @@
 import { useState } from 'react';
 import { Plus, Trash2, GripVertical } from 'lucide-react';
-
-interface CancellationPolicyTabProps {
-  formData: any;
-  updateFormData: (updates: any) => void;
-  isEdit: boolean;
-}
-
-interface CancellationTerm {
-  timeframe: string;
-  refundPercent: number;
-  description: string;
-}
+import type { CancellationPolicyTabProps, CancellationTerm } from '@/types.ts';
 
 export const CancellationPolicyTab = ({ formData, updateFormData }: CancellationPolicyTabProps) => {
-  const [activePolicyTab, setActivePolicyTab] = useState<'standard' | 'custom'>('standard');
+  const [, setActivePolicyTab] = useState<'standard' | 'custom'>('standard');
 
   const predefinedPolicies = {
     standard: {

@@ -1,11 +1,8 @@
 import { Star } from 'lucide-react';
 import type { Product } from '../../types.ts';
 
-interface ProductOverviewProps {
-  product: Product;
-}
 
-export const ProductOverview: React.FC<ProductOverviewProps> = ({ product }) => {
+export const ProductOverview = ({ product }: {product:Product}) => {
   return (
     <div className="bg-white rounded-lg shadow-sm p-6 scroll-mt-20">
       <div className="space-y-6">

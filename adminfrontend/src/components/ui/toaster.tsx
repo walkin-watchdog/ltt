@@ -1,10 +1,6 @@
+import type { Toast } from '@/types.ts';
 import { createContext, useContext, useState, useRef, useEffect } from 'react';
 
-export interface Toast {
-  id: string;
-  message: string;
-  type: 'success' | 'error' | 'info' | 'warning';
-}
 
 const ToastCtx = createContext<(t: Omit<Toast, 'id'>) => void>(() => {});
 

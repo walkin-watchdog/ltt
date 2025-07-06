@@ -634,7 +634,7 @@ export const ProductForm = () => {
           </button>
           
           <div className="flex space-x-1">
-            {tabs.map((tab, index) => (
+            {tabs.map((tab, _index) => (
               <button
                 key={tab.id}
                 onClick={() => handleTabChange(tab.id)}

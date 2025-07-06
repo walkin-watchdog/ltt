@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Eye, EyeOff, Lock, Mail, User } from 'lucide-react';
 
 export const GetStarted = () => {
-  const navigate = useNavigate();
+ const navigate = useNavigate();
   const { login } = useAuth();
   
   const [formData, setFormData] = useState({
@@ -16,7 +16,8 @@ export const GetStarted = () => {
   
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errors, setErrors] = useState('');
+  // Change this line
+  const [errors, setErrors] = useState<{[key: string]: string}>({});
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -26,40 +27,42 @@ export const GetStarted = () => {
     }));
     
     // Clear error for this field if any
-    setErrors('');
+    setErrors(prev => ({
+      ...prev,
+      [name]: ''
+    }));
   };
   
   const validateForm = (): boolean => {
-    if (!formData.name.trim()) setErrors('Name is required');
+    const newErrors: {[key: string]: string} = {};
+    
+    if (!formData.name.trim()) {
+      newErrors.name = 'Name is required';
+    }
     
     if (!formData.email.trim()) {
-      setErrors('Email is required');
-      return false;
-
+      newErrors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      setErrors('Email is invalid');
-      return false;
+      newErrors.email = 'Email is invalid';
     }
     
     if (!formData.password) {
-      setErrors('Password is required');
-      return false;
-      
+      newErrors.password = 'Password is required';
     } else if (formData.password.length < 6) {
-      setErrors('Password must be at least 6 characters');
-      return false;
+      newErrors.password = 'Password must be at least 6 characters';
     }
     
     if (formData.password !== formData.confirmPassword) {
-      setErrors('Passwords do not match');
-      return false;
+      newErrors.confirmPassword = 'Passwords do not match';
     }
-    return true;
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
   
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setErrors('');
+    setErrors({});
     
     if (!validateForm()) return;
     
@@ -93,7 +96,7 @@ export const GetStarted = () => {
       
     } catch (error) {
       console.error('Error creating admin user:', error);
-      setErrors('Initial registration is closed');
+      setErrors({ general: 'Initial registration is closed' });
     } finally {
       setIsSubmitting(false);
     }
@@ -112,9 +115,13 @@ export const GetStarted = () => {
         </div>
         
         <form onSubmit={handleSubmit} className="space-y-6">
-          {errors && (
+          {Object.keys(errors).length > 0 && (
             <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg">
-              {errors}
+              {Object.entries(errors).map(([key, message]) =>
+                key !== 'general' ? null : (
+                  <div key={key}>{message}</div>
+                )
+              )}
             </div>
           )}
           {/* Name */}

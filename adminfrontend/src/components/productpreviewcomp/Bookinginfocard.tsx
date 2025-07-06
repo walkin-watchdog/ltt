@@ -1,25 +1,7 @@
-import type { PackageOption, Product } from "../../types.ts";
+import type { BookingInfoCardProps } from "../../types.ts";
 import { Clock, MapPin, Users } from "lucide-react";
 import { AdminAvailabilityBar } from "../common/AdminAvailabilityBar";
 
-interface BookingInfoCardProps {
-    product: Product;
-    cheapestPackage: PackageOption | null;
-    selectedDateStr: string;
-    adultsCount: number;
-    childrenCount: number;
-    isMobile: boolean;
-    checkingAvail: boolean;
-    isDateOk: boolean | null;
-    availablePkgs: PackageOption[];
-    selectedPackage: PackageOption | null;
-    handleBarChange: (args: { date: string; adults: number; children: number }) => void;
-    handlePackageSelect: (pkgId: string | PackageOption) => void;
-    checkAvailabilityDesktop: () => void;
-    setShowAvail: (show: boolean) => void;
-    calculateEffectivePrice: (basePrice: number, discountType?: string, discountValue?: number) => number;
-  }
-  
   export const BookingInfoCard: React.FC<BookingInfoCardProps> = ({
     product,
     cheapestPackage,

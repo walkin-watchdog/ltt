@@ -1,9 +1,5 @@
+import type { MobileMenuContextType } from '@/types.ts';
 import { createContext, useState } from 'react';
-
-interface MobileMenuContextType {
-  mobileOpen: boolean;
-  setMobileOpen: React.Dispatch<React.SetStateAction<boolean>>;
-}
 
 export const MobileMenuContext = createContext<MobileMenuContextType>({
   mobileOpen: false,

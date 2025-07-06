@@ -1,23 +1,5 @@
+import type { AvailabilityTabProps } from '@/types.ts';
 import React, { useState, useEffect } from 'react';
-
-interface BlockDate {
-  id?: string;
-  date: string;
-  reason?: string;
-}
-
-interface AvailabilityTabProps {
-  formData: {
-    availabilityStartDate: string;
-    availabilityEndDate?: string;
-    blockedDates?: BlockDate[];
-  };
-  updateFormData: (changes: Partial<{
-    availabilityStartDate: string;
-    availabilityEndDate?: string;
-    blockedDates?: BlockDate[];
-  }>) => void;
-}
 
 export const AvailabilityTab: React.FC<AvailabilityTabProps> = ({
   formData,

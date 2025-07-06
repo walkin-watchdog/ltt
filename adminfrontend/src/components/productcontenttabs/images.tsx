@@ -1,10 +1,7 @@
+import type { ProductImagesTabProps } from "@/types.ts";
 import { ImageUploader } from "../gallery/ImageUploader";
 
-interface ProductImagesTabProps {
-    formData: any;
-    updateFormData: (updates: any) => void;
-    handleSaveAndContinue: () => void;
-}
+
 
 export const ProductImagesTab = ({ formData, updateFormData, handleSaveAndContinue }: ProductImagesTabProps) => {
 return (

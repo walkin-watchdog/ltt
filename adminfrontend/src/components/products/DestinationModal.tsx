@@ -4,24 +4,9 @@ import { X, Save, Plus } from 'lucide-react';
 import { useToast } from '../ui/toaster';
 import { ImageUploader } from '../gallery/ImageUploader';
 import { LocationAutocomplete } from '../ui/LocationAutocomplete';
+import type { Destination, DestinationModalProps } from '@/types.ts';
 
-interface Destination {
-  id: string;
-  name: string;
-  slug: string;
-  tagline: string;
-  description: string;
-  image: string;
-  bannerImage: string;
-  highlights: string[];
-}
 
-interface DestinationModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSelect: (destination: Destination) => void;
-  onCreated?: () => void; 
-}
 
 export const DestinationModal = ({ isOpen, onClose, onSelect, onCreated }: DestinationModalProps) => {
   const { token } = useAuth();

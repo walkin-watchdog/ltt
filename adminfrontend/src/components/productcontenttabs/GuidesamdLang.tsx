@@ -1,10 +1,7 @@
+import type { GuidesAndLangProps } from "@/types.ts";
 import { Users, X } from "lucide-react";
 
-interface GuidesAndLangProps {
-  formData: any;
-  updateFormData: (updates: any) => void;
-  handleSaveAndContinue: () => void;
-}
+
 export const GuidesAndLang = ({
   formData,
   updateFormData,

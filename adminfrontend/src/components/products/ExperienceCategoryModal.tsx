@@ -3,24 +3,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { X, Save, Plus } from 'lucide-react';
 import { useToast } from '../ui/toaster';
 import { ImageUploader } from '../gallery/ImageUploader';
+import type { ExperienceCategory, ExperienceCategoryModalProps } from '@/types.ts';
 
-interface ExperienceCategory {
-  id: string;
-  name: string;
-  slug: string;
-  tagline: string;
-  description: string;
-  image: string;
-  bannerImage: string;
-  highlights: string[];
-}
-
-interface ExperienceCategoryModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSelect: (category: ExperienceCategory) => void;
-  onCreated?: () => void; // Add this
-}
 
 export const ExperienceCategoryModal = ({ isOpen, onClose, onSelect, onCreated}: ExperienceCategoryModalProps) => {
   const { token } = useAuth();

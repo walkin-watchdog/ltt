@@ -3,21 +3,8 @@ import { GoogleMap } from './GoogleMap';
 import { MapPin, X, Edit2, Map, AlertCircle, Plus } from 'lucide-react';
 import { useGoogleMaps } from '../../hooks/useGoogleMaps';
 import { useToast } from './toaster';
+import type { LocationDetail, PickupLocationMapProps } from '@/types.ts';
 
-interface LocationDetail {
-  address: string;
-  lat: number;
-  lng: number;
-  radius: number;
-  placeId?: string;
-}
-
-interface PickupLocationMapProps {
-  locations: LocationDetail[];
-  onLocationsChange: (locations: LocationDetail[]) => void;
-  className?: string;
-  maxLocations?: number;
-}
 
 export const PickupLocationMap: React.FC<PickupLocationMapProps> = ({
   locations,

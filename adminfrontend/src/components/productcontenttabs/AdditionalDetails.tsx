@@ -1,16 +1,8 @@
-import type { newItem } from "../../types.ts";
+import type { AdditionalDetailsTabProps } from "../../types.ts";
 import { Plus, X } from "lucide-react";
 import { useState } from "react";
 
-interface AdditionalDetailsTabProps {
-    formData: any;
-    updateFormData: (updates: any) => void; 
-    handleSaveAndContinue: () => void;
-    newItem: newItem,
-    setNewItem: (item: newItem) => void;
-    removeItem: (field: string, index: number) => void;
-    addItem: (field: string, value: string) => void;
-}
+
 
 export const AdditionalDetailsTab = ({
     formData,

@@ -1,17 +1,9 @@
 import { Plus, X } from "lucide-react";
 import { useState } from "react";
 import { predefinedCategories } from "./predefinedcategories";
-import type { newItem } from "../../types.ts";
+import type { ContentElementsProps } from "@/types.ts";
 
-interface ContentElementsProps {
-  formData: any
-  handleSaveAndContinue: () => void;
-  newItem: newItem,
-  setNewItem: (item: newItem) => void;
-  addItem: (type: string, item: string) => void;
-  removeItem: (type: string, index: number) => void;
-  getDescription: (category: string, item: string) => string;
-}
+
 export const ContentElements = ({
   formData,
   handleSaveAndContinue,

@@ -5,44 +5,17 @@ import {
   Search, 
   Trash2, 
   Edit, 
-  Clock, 
   Tag,
-  CheckCircle,
-  XCircle,
   Percent,
   DollarSign,
   Tag as TagIcon,
-  Package,
   Calendar,
   Users,
   BarChart,
   X
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-
-interface CouponData {
-  id?: string;
-  code: string;
-  description: string;
-  type: 'PERCENTAGE' | 'FIXED';
-  value: number;
-  minAmount?: number | null;
-  maxDiscount?: number | null;
-  usageLimit?: number | null;
-  usedCount: number;
-  isActive: boolean;
-  validFrom: string;
-  validUntil: string;
-  products?: string[];
-  createdAt?: string;
-}
-
-interface Product {
-  id: string;
-  title: string;
-  productCode: string;
-  type: string;
-}
+import type { CouponData, Product } from '@/types.ts';
 
 export const Coupons = () => {
   const { token, user } = useAuth();
@@ -73,7 +46,7 @@ export const Coupons = () => {
   const [typeFilter, setTypeFilter] = useState('');
   
   // States for coupon usage details
-  const [selectedCouponId, setSelectedCouponId] = useState<string | null>(null);
+  const [, setSelectedCouponId] = useState<string | null>(null);
   const [usageDetails, setUsageDetails] = useState<any[]>([]);
   const [isLoadingUsage, setIsLoadingUsage] = useState(false);
   const [showUsageModal, setShowUsageModal] = useState(false);
@@ -192,15 +165,15 @@ export const Coupons = () => {
       }
     }
     
-    if (formData.minAmount !== null && formData.minAmount < 0) {
+    if (formData.minAmount !== undefined && formData.minAmount !== null && formData.minAmount < 0) {
       errors.minAmount = 'Minimum amount cannot be negative';
     }
     
-    if (formData.maxDiscount !== null && formData.maxDiscount < 0) {
+    if (formData.maxDiscount !== undefined && formData.maxDiscount !== null && formData.maxDiscount < 0) {
       errors.maxDiscount = 'Maximum discount cannot be negative';
     }
     
-    if (formData.usageLimit !== null && formData.usageLimit < 1) {
+    if (formData.usageLimit !== undefined && formData.usageLimit !== null && formData.usageLimit < 1) {
       errors.usageLimit = 'Usage limit must be at least 1';
     }
     

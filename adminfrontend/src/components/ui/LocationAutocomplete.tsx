@@ -1,16 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MapPin, AlertCircle } from 'lucide-react';
 import { useGoogleMaps } from '../../hooks/useGoogleMaps';
+import type { LocationAutocompleteProps } from '@/types.ts';
 
-interface LocationAutocompleteProps {
-  value: string;
-  onChange: (location: string, lat?: number, lng?: number, placeId?: string) => void;
-  placeholder?: string;
-  className?: string;
-  countryRestriction?: string;
-  types?: string[];
-  disabled?: boolean;
-}
+
 
 export const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
   value,

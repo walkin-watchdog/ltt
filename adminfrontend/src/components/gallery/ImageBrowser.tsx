@@ -3,15 +3,9 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Search, X, FolderOpen, Loader, Check, Trash } from 'lucide-react';
 import { useToast } from '../ui/toaster';
 import { formatBytes } from '../../lib/utils';
+import type { ImageBrowserProps } from '@/types.ts';
 
-interface ImageBrowserProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSelect: (selectedImages: string[]) => void;
-  multiple?: boolean;
-  folder?: string;
-  preSelectedImages?: string[];
-}
+
 
 export const ImageBrowser = ({ 
   isOpen, 

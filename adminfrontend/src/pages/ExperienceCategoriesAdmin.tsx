@@ -12,20 +12,9 @@ import {
 } from 'lucide-react';
 import { useToast } from '../components/ui/toaster';
 import { ImageUploader } from '../components/gallery/ImageUploader';
+import type { ExperienceCategory } from '@/types.ts';
 
-interface ExperienceCategory {
-  id: string;
-  name: string;
-  slug: string;
-  tagline: string;
-  description: string;
-  image: string;
-  bannerImage: string;
-  highlights: string[];
-  _count?: {
-    products: number;
-  };
-}
+
 
 export const ExperienceCategoriesAdmin = () => {
   const { token, user } = useAuth();

@@ -1,11 +1,8 @@
 import { CheckCircle, XCircle } from 'lucide-react';
 import type { Product } from '../../types.ts';
 
-interface InclusionsExclusionsProps {
-  product: Product;
-}
 
-export const InclusionsExclusions: React.FC<InclusionsExclusionsProps> = ({ product }) => {
+export const InclusionsExclusions = ({ product }: {product: Product}) => {
   return (
     <div className="bg-white rounded-lg shadow-sm p-6 scroll-mt-20">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
