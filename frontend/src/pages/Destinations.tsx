@@ -247,7 +247,7 @@ export const Destinations = () => {
                     <div className="absolute inset-0 group-hover:bg-opacity-20 transition-opacity"></div>
                     <div className="absolute bottom-4 left-4 text-white">
                       <h3 className="text-2xl font-bold">{destination.name}</h3>
-                      <p className="text-sm opacity-90">{destination.tours} {products.filter(p => p.location.toLowerCase().includes(destination.name.toLowerCase())).length} Tours Available</p>
+                      <p className="text-sm text-gray-800 bg-gray-200 bg-opacity-30 px-2 py-1 rounded">{destination.tours} {products.filter(p => p.location.toLowerCase().includes(destination.name.toLowerCase())).length} Tours Available</p>
                     </div>
                   </div>
                   <div className="p-6">
