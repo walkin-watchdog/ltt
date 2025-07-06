@@ -133,6 +133,7 @@ model ItineraryActivity {
   locationLng Float?   
   locationPlaceId String? 
   isStop      Boolean  @default(false)
+  description String? @default("")
   stopDuration Int?    
   duration    Int?     // Duration figure (number only)
   durationUnit String? @default("minutes") // "minutes" or "hours"

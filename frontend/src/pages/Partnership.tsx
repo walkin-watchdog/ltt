@@ -1,7 +1,7 @@
 import { Handshake, Users, Globe, TrendingUp, Mail, Phone } from 'lucide-react';
 import { useState } from 'react';
 import { SEOHead } from '../components/seo/SEOHead';
-
+import axios from 'axios';
 export const Partnership = () => {
   const [formData, setFormData] = useState({
     companyName: '',
@@ -73,16 +73,29 @@ export const Partnership = () => {
     }
   ];
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    
-    // Simulate form submission
-    setTimeout(() => {
-      setIsSubmitting(false);
-      setSubmitted(true);
-    }, 1000);
-  };
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setIsSubmitting(true);
+
+  try {
+    await axios.post('http://localhost:3001/api/parternship', {
+      name: formData.companyName,
+      email: formData.email,
+      phone: formData.phone,
+      message: `
+        Contact Person: ${formData.contactPerson}
+        Partnership Type: ${formData.partnershipType}
+        Website: ${formData.website}
+        Description: ${formData.description}
+      `,
+    });
+    setSubmitted(true);
+  } catch (error) {
+    alert('Failed to submit partnership application. Please try again.');
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData(prev => ({
@@ -412,6 +425,7 @@ export const Partnership = () => {
                     type="submit"
                     disabled={isSubmitting}
                     className="bg-[#ff914d] text-white px-8 py-3 rounded-lg font-semibold hover:bg-[#e8823d] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={handleSubmit}
                   >
                     {isSubmitting ? 'Submitting...' : 'Submit Partnership Application'}
                   </button>

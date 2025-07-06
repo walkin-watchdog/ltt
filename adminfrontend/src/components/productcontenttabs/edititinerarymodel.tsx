@@ -7,40 +7,40 @@ import type { EditItineraryModelProps } from "@/types.ts";
 
 
 export const EditItineraryModel = ({
-    showItineraryBuilder,
-    setShowItineraryBuilder,
-    editingDay,
-    setEditingDay,
-    newActivity,
-    setNewActivity,
-    activityInclusionCategory,
-    setActivityInclusionCategory ,
-     activityInclusionSubcategory,
-      setActivityInclusionSubcategory, 
-     activityInclusionCustomTitle,
-      setActivityInclusionCustomTitle,
-     activityInclusionCustomDescription,
-      setActivityInclusionCustomDescription, 
-     showActivityInclusionCustomForm,
-      setShowActivityInclusionCustomForm,
-     activityExclusionCategory, 
-     setActivityExclusionCategory,
-     activityExclusionSubcategory, 
-     setActivityExclusionSubcategory,
-     activityExclusionCustomTitle, 
-     setActivityExclusionCustomTitle, 
-     activityExclusionCustomDescription, 
-     setActivityExclusionCustomDescription,
-     showActivityExclusionCustomForm,
-      setShowActivityExclusionCustomForm,
-      addActivityInclusion,
-      addActivityExclusion,
-      addActivity,
-      removeActivity,
-      saveItineraryDay
+  showItineraryBuilder,
+  setShowItineraryBuilder,
+  editingDay,
+  setEditingDay,
+  newActivity,
+  setNewActivity,
+  activityInclusionCategory,
+  setActivityInclusionCategory,
+  activityInclusionSubcategory,
+  setActivityInclusionSubcategory,
+  activityInclusionCustomTitle,
+  setActivityInclusionCustomTitle,
+  activityInclusionCustomDescription,
+  setActivityInclusionCustomDescription,
+  showActivityInclusionCustomForm,
+  setShowActivityInclusionCustomForm,
+  activityExclusionCategory,
+  setActivityExclusionCategory,
+  activityExclusionSubcategory,
+  setActivityExclusionSubcategory,
+  activityExclusionCustomTitle,
+  setActivityExclusionCustomTitle,
+  activityExclusionCustomDescription,
+  setActivityExclusionCustomDescription,
+  showActivityExclusionCustomForm,
+  setShowActivityExclusionCustomForm,
+  addActivityInclusion,
+  addActivityExclusion,
+  addActivity,
+  removeActivity,
+  saveItineraryDay
 }: EditItineraryModelProps) => {
   const [editingActivityIndex, setEditingActivityIndex] = useState<number | null>(null);
-  
+
   return (
     <>
       {showItineraryBuilder && editingDay && (
@@ -127,6 +127,18 @@ export const EditItineraryModel = ({
                           <span className="text-xs text-gray-700">Is Stop?</span>
                         </label>
                       </div>
+                    </div>
+                    <div className="mt-3">
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Activity Description <span className="text-gray-400">(Optional)</span>
+                      </label>
+                      <textarea
+                        value={newActivity.description || ""}
+                        onChange={(e) => setNewActivity({ ...newActivity, description: e.target.value })}
+                        className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-xs"
+                        placeholder="Describe this activity (optional)"
+                        rows={2}
+                      />
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
@@ -264,7 +276,7 @@ export const EditItineraryModel = ({
                               Add Inclusion
                             </button>
                           </div>
-                          
+
                           <div className="flex flex-wrap gap-1">
                             {(newActivity.inclusions || []).map((inclusion: string, idx: number) => (
                               <span key={idx} className="inline-flex items-center bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
@@ -366,7 +378,7 @@ export const EditItineraryModel = ({
                               Add Exclusion
                             </button>
                           </div>
-                          
+
                           <div className="flex flex-wrap gap-1">
                             {(newActivity.exclusions || []).map((exclusion: string, idx: number) => (
                               <span key={idx} className="inline-flex items-center bg-red-100 text-red-800 px-2 py-1 rounded text-xs">
@@ -455,6 +467,11 @@ export const EditItineraryModel = ({
                     {editingDay.activities.map((activity: any, index: number) => (
                       <div key={index} className="flex items-start justify-between bg-white border border-gray-200 px-4 py-3 rounded-md">
                         <div className="flex-1">
+                          {activity.description && (
+                            <div className="text-xs text-gray-600 mt-1">
+                              {activity.description}
+                            </div>
+                          )}
                           <div className="font-medium text-sm text-gray-900">{activity.location}</div>
                           {activity.stopDuration && (
                             <div className="text-xs text-purple-600 mt-1">

@@ -8,19 +8,11 @@ import {
   Calendar, 
   CheckCircle, 
   XCircle, 
-  AlertCircle,
   Filter,
-  Trash2
 } from 'lucide-react';
 import { useToast } from '../components/ui/toaster';
+import type { Subscriber } from '../types.ts/newsletter';
 
-interface Subscriber {
-  id: string;
-  email: string;
-  name: string | null;
-  isActive: boolean;
-  createdAt: string;
-}
 
 export const NewsletterAdmin = () => {
   const { token } = useAuth();

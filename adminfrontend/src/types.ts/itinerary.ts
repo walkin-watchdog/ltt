@@ -14,6 +14,7 @@ export interface ItineraryActivity {
   placeId?: string;
   isStop?: boolean;
   stopDuration?: number;
+  description?: string; // Optional description for the activity
   duration?: number;
   durationUnit?: string;
   isAdmissionIncluded?: boolean;

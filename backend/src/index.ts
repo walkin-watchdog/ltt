@@ -34,7 +34,7 @@ import reviewsRoutes from './routes/reviews';
 import paypalPaymentRoutes from './routes/paypalPayments';
 import currencyRoutes from './routes/currency';
 import translateRoutes from './routes/translate';
-
+import partnershipRoutes from './routes/parternship';
 dotenv.config();
 
 const app = express();
@@ -107,6 +107,7 @@ app.use('/api/reviews', reviewsRoutes);
 app.use('/api/payments/paypal', paypalPaymentRoutes);
 app.use('/api/currency', currencyRoutes);
 app.use('/api/translate', translateRoutes);
+app.use('/api/parternship', partnershipRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

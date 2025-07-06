@@ -31,8 +31,8 @@ export const ItineraryTab = ({
                             type="button"
                             onClick={createNewDay}
                             className={`flex items-center px-4 py-2 rounded-md transition-colors text-white ${(formData.itinerary?.length || 0) >= getAllowedDays()
-                                    ? 'bg-gray-300 cursor-not-allowed'
-                                    : 'bg-[#ff914d] hover:bg-[#e8823d]'
+                                ? 'bg-gray-300 cursor-not-allowed'
+                                : 'bg-[#ff914d] hover:bg-[#e8823d]'
                                 }`}
                             disabled={(formData.itinerary?.length || 0) >= getAllowedDays()}
                         >
@@ -72,6 +72,11 @@ export const ItineraryTab = ({
                                                 {day.activities.map((activity, idx) => (
                                                     <li key={idx} className="flex items-start space-x-2">
                                                         <div className="flex-1">
+                                                            {activity.description && (
+                                                                <div className="text-xs text-gray-600 mt-1">
+                                                                    {activity.description}
+                                                                </div>
+                                                            )}
                                                             <div className="font-medium text-sm text-gray-900">{activity.location}</div>
                                                             {activity.isStop && (
                                                                 <div className="text-xs text-blue-600 mt-1">
@@ -144,4 +149,4 @@ export const ItineraryTab = ({
             </div>
         </div>
     );
-    }
+}

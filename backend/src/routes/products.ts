@@ -29,6 +29,7 @@ const itineraryActivitySchema = z.object({
   lng: z.number().optional(),
   placeId: z.string().optional(),
   isStop: z.boolean().optional(),
+  description: z.string().optional().default(''),
   stopDuration: z.number().nullable().optional(),
   duration: z.number().nullable().optional(), // New duration figure
   durationUnit: z.enum(['minutes', 'hours']).optional().default('minutes'), // New duration unit
