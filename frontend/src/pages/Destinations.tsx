@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { MapPin, Clock, Star, Users } from 'lucide-react';
+import { MapPin, Clock, Star, Users, ChevronRight, ChevronLeft } from 'lucide-react';
 import { fetchProducts } from '../store/slices/productsSlice';
 import { PriceDisplay } from '../components/common/PriceDisplay';
 import type { AppDispatch, RootState } from '../store/store';
@@ -19,9 +19,23 @@ function NextArrow({ className, style, onClick }: ArrowProps) {
   return (
     <div
       className={className}
-      style={{ ...style, display: 'block', background: '#231f20', borderRadius: '50%' }}
+      style={{
+        ...style,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1,
+        width: '40px',
+        height: '40px',
+      }}
       onClick={onClick}
-    />
+    >
+      <ChevronRight
+        size={18}
+        strokeWidth={5}
+        color="#6e6e6e"
+      />
+    </div>
   );
 }
 
@@ -29,9 +43,23 @@ function PrevArrow({ className, style, onClick }: ArrowProps) {
   return (
     <div
       className={className}
-      style={{ ...style, display: 'block', background: '#231f20', borderRadius: '50%' }}
+      style={{
+        ...style,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1,
+        width: '40px',
+        height: '40px',
+      }}
       onClick={onClick}
-    />
+    >
+      <ChevronLeft
+        size={18}
+        strokeWidth={5}
+        color="#6e6e6e"
+      />
+    </div>
   );
 }
 
@@ -294,6 +322,7 @@ export const Destinations = () => {
             speed={400}
             slidesToShow={4}
             slidesToScroll={1}
+            centerMode={false}
             nextArrow={<NextArrow />}
             prevArrow={<PrevArrow />}
             responsive={[
@@ -304,10 +333,17 @@ export const Destinations = () => {
           >
             {slides.map((url) => (
               <div key={url} className="px-2">
-                <img
-                  src={url}
-                  alt="Slides"
-                />
+                <div className="w-full h-48 md:h-56 lg:h-64 overflow-hidden rounded-lg">
+                  <img
+                    src={url}
+                    alt="Slide"
+                    className="
+                      w-full h-full object-cover
+                      transform transition-transform duration-300
+                      hover:scale-105
+                    "
+                  />
+                </div>
               </div>
             ))}
           </Slider>

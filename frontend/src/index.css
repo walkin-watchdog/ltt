@@ -162,3 +162,11 @@
     @apply bg-background text-foreground;
   }
 }
+
+.slick-prev:before{
+  content: none !important
+}
+
+.slick-next:before{
+  content: none !important
+}

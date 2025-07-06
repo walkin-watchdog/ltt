@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { Star, Clock, Users, MapPin } from 'lucide-react';
+import { Star, Clock, Users, MapPin, ChevronRight, ChevronLeft } from 'lucide-react';
 import Slider from 'react-slick';
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
@@ -21,9 +21,23 @@ function NextArrow({ className, style, onClick }: ArrowProps) {
   return (
     <div
       className={className}
-      style={{ ...style, display: 'block', background: '#231f20', borderRadius: '50%' }}
+      style={{
+        ...style,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1,
+        width: '40px',
+        height: '40px',
+      }}
       onClick={onClick}
-    />
+    >
+      <ChevronRight
+        size={18}
+        strokeWidth={5}
+        color="#6e6e6e"
+      />
+    </div>
   );
 }
 
@@ -31,9 +45,23 @@ function PrevArrow({ className, style, onClick }: ArrowProps) {
   return (
     <div
       className={className}
-      style={{ ...style, display: 'block', background: '#231f20', borderRadius: '50%' }}
+      style={{
+        ...style,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1,
+        width: '40px',
+        height: '40px',
+      }}
       onClick={onClick}
-    />
+    >
+      <ChevronLeft
+        size={18}
+        strokeWidth={5}
+        color="#6e6e6e"
+      />
+    </div>
   );
 }
 
