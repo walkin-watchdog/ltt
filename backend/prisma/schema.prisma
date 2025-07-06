@@ -490,6 +490,12 @@ model partners {
   @@map("partners")
 }
 
+model slides {
+  id          String   @id @default(cuid())
+  imageUrl    String?
+  @@map("slides")
+}
+
 model FAQ {
   id       String   @id @default(cuid())
   category String

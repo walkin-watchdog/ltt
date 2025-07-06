@@ -7,6 +7,7 @@ import {
   uploadItineraryImages,
   uploadTeamImages,
   uploadPartnersImages,
+  uploadSlidesImages,
   UploadService 
 } from '../services/uploadService';
 import { authenticate, authorize } from '../middleware/auth';
@@ -205,6 +206,37 @@ router.post('/partners', authenticate, authorize(['ADMIN', 'EDITOR']), uploadPar
   }
 });
 
+router.post('/slides', authenticate, authorize(['ADMIN', 'EDITOR']), uploadSlidesImages.array('images', 10), async (req, res, next) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ error: 'No images provided' });
+    }
+
+    const files = req.files as Express.Multer.File[];
+    const uploadResults = [];
+
+      for (const file of files) {
+        const saved = await prisma.slides.create({
+          data: { imageUrl: (file as any).path },
+        });
+
+        uploadResults.push({
+          id: saved.id,
+          publicId: (file as any).filename,
+          url: saved.imageUrl,
+          originalName: file.originalname,
+        });
+      }
+
+    res.json({
+      success: true,
+      images: uploadResults,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // Delete image
 router.delete('/:publicId', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, next) => {
   try {
@@ -232,6 +264,27 @@ router.get(
         images: partners.map((p) => ({
           id: p.id,
           url: p.imageUrl,
+          bytes: 0,
+        })),
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.get(
+  '/slides',
+  authenticate,
+  authorize(['ADMIN', 'EDITOR', 'VIEWER']),
+  async (req, res, next) => {
+    try {
+      const slides = await prisma.slides.findMany();
+
+      res.json({
+        images: slides.map((s) => ({
+          id: s.id,
+          url: s.imageUrl,
           bytes: 0,
         })),
       });
