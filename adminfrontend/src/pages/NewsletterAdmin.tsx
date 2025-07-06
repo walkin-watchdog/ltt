@@ -8,12 +8,19 @@ import {
   Calendar, 
   CheckCircle, 
   XCircle, 
+  AlertCircle,
   Filter,
+  Trash2
 } from 'lucide-react';
 import { useToast } from '../components/ui/toaster';
-import type { Subscriber } from '@/types.ts/newsletter';
 
-
+interface Subscriber {
+  id: string;
+  email: string;
+  name: string | null;
+  isActive: boolean;
+  createdAt: string;
+}
 
 export const NewsletterAdmin = () => {
   const { token } = useAuth();
@@ -294,7 +301,8 @@ export const NewsletterAdmin = () => {
             ) : (
               <>
                 <Download className="h-4 w-4 mr-2" />
-                Export All
+                  <span className="hidden md:inline">Export All</span>
+                  <span className="inline md:hidden">Export</span>
               </>
             )}
           </button>
@@ -365,7 +373,7 @@ export const NewsletterAdmin = () => {
       )}
 
       {/* Subscribers Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <div className="hidden md:block bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         {isLoading ? (
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#ff914d]"></div>
@@ -476,6 +484,63 @@ export const NewsletterAdmin = () => {
             </table>
           </div>
         )}
+      </div>
+      <div className="block md:hidden space-y-4">
+        {filteredSubscribers.map(sub => (
+          <div key={sub.id} className="bg-white rounded-lg shadow-md p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={selectedSubscribers.includes(sub.id)}
+                  onChange={() => handleSelectSubscriber(sub.id)}
+                  className="h-4 w-4 text-[#ff914d] border-gray-300 rounded mr-2"
+                />
+                <div className="text-sm font-medium text-gray-900 truncate">{sub.email}</div>
+              </div>
+              <button
+                onClick={() => handleToggleStatus(sub.id, sub.isActive)}
+                className={`p-1 ${sub.isActive ? 'text-red-600 hover:text-red-800' : 'text-green-600 hover:text-green-800'}`}
+                title={sub.isActive ? 'Deactivate' : 'Activate'}
+              >
+                {sub.isActive ? <XCircle className="h-5 w-5" /> : <CheckCircle className="h-5 w-5" />}
+              </button>
+            </div>
+
+            {/* Name */}
+            <div className="mb-2 text-sm text-gray-700 flex items-center truncate">
+              <User className="h-4 w-4 mr-1 text-gray-400" />
+              {sub.name || '—'}
+            </div>
+
+            {/* Status & Date */}
+            <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
+              <span className="flex items-center">
+                {sub.isActive 
+                  ? <CheckCircle className="h-4 w-4 text-green-600 mr-1" />
+                  : <XCircle className="h-4 w-4 text-red-600 mr-1" />}
+                {sub.isActive ? 'Active' : 'Inactive'}
+              </span>
+              <span className="flex items-center">
+                <Calendar className="h-4 w-4 mr-1 text-gray-400" />
+                {new Date(sub.createdAt).toLocaleDateString()}
+              </span>
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end space-x-3 text-gray-400">
+              <button
+                onClick={() => handleToggleStatus(sub.id, sub.isActive)}
+                className="p-1 hover:text-gray-600"
+                title={sub.isActive ? 'Deactivate' : 'Activate'}
+              >
+                {sub.isActive 
+                  ? <XCircle className="h-5 w-5" /> 
+                  : <CheckCircle className="h-5 w-5" />}
+              </button>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

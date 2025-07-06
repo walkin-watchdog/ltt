@@ -11,18 +11,18 @@ import { ReviewsWidget } from '../components/reviews/ReviewsWidget';
 import { formatDate, parse } from 'date-fns';
 import { setStep } from '../store/slices/bookingSlice';
 import { isSlotBookable } from '../lib/utils';
-import { BookingSidebar } from '@/components/productdetailcomp/BookingSidebar';
-import { Itinerary } from '@/components/productdetailcomp/Itinerary';
-import { ProductPolicies } from '@/components/productdetailcomp/ProductPolicies';
-import { InclusionsExclusions } from '@/components/productdetailcomp/InclusionsExclusions';
-import { PickupMeetingInfo } from '@/components/productdetailcomp/PickupMeetingInfo';
-import { AccessibilityInfo } from '@/components/productdetailcomp/AccessibilityInfo';
-import { GuidesAndLanguages } from '@/components/productdetailcomp/GuidesAndLanguages';
-import { ProductOverview } from '@/components/productdetailcomp/ProductOverview';
-import { AbandonedCartPrompt } from '@/components/productdetailcomp/AbandonedCartPrompt';
-import { ProductImageGallery } from '@/components/productdetailcomp/ProductImageGallery';
-import { Navbar } from '@/components/productdetailcomp/Navbar';
-import { calculateEffectivePrice } from '@/components/productdetailcomp/globalfunc';
+import { BookingSidebar } from '../components/productdetailcomp/BookingSidebar';
+import { Itinerary } from '../components/productdetailcomp/Itinerary';
+import { ProductPolicies } from '../components/productdetailcomp/ProductPolicies';
+import { InclusionsExclusions } from '../components/productdetailcomp/InclusionsExclusions';
+import { PickupMeetingInfo } from '../components/productdetailcomp/PickupMeetingInfo';
+import { AccessibilityInfo } from '../components/productdetailcomp/AccessibilityInfo';
+import { GuidesAndLanguages } from '../components/productdetailcomp/GuidesAndLanguages';
+import { ProductOverview } from '../components/productdetailcomp/ProductOverview';
+import { AbandonedCartPrompt } from '../components/productdetailcomp/AbandonedCartPrompt';
+import { ProductImageGallery } from '../components/productdetailcomp/ProductImageGallery';
+import { Navbar } from '../components/productdetailcomp/Navbar';
+import { calculateEffectivePrice } from '../components/productdetailcomp/globalfunc';
 
 // Helper function to calculate the effective price after discount
 

@@ -1,4 +1,4 @@
-import type { RootState } from "@/store/store";
+import type { RootState } from "../../store/store";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { useSelector } from "react-redux";

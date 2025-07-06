@@ -1,4 +1,4 @@
-import type { RootState } from "@/store/store";
+import type { RootState } from "../../store/store";
 import { AlertCircle, Calendar, CheckCircle, Clock, MapPin, Share2, Star, Users } from "lucide-react";
 import toast from "react-hot-toast";
 import { useSelector } from "react-redux";

@@ -284,43 +284,33 @@ export const Bookings = () => {
           <h1 className="text-3xl font-bold text-gray-900">Bookings Management</h1>
           <p className="text-gray-600 mt-2">View and manage all bookings</p>
         </div>
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-row flex-nowrap items-center space-x-2">
           {(user?.role === 'ADMIN' || user?.role === 'EDITOR') && (
             <Link
               to="/bookings/new"
-              className="flex items-center px-4 py-2 bg-[#ff914d] text-white rounded-lg hover:bg-[#e8823d] transition-colors"
+              className="w-10 sm:w-auto flex justify-center items-center px-3 sm:px-4 py-2 bg-[#ff914d] text-white rounded-lg hover:bg-[#e8823d] transition-colors"
             >
-              <Plus className="h-4 w-4 mr-2" />
-              <span className="hidden md:inline">Create Manual Booking</span>
-              <span className="inline md:hidden">Manual</span>
+              <Plus className="h-5 w-5" />
+              <span className="ml-2 text-sm hidden sm:inline">Create</span>
             </Link>
           )}
           <div className="relative group">
-            <button className="flex items-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
-              <Download className="h-4 w-4 mr-2" />
-              {isExporting ? 'Exporting...' : 'Export'}
+            <button className="flex items-center px-3 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
+              <Download className="h-5 w-5" />
+              <span className="ml-2 text-sm hidden sm:inline">{isExporting ? 'Exporting...' : 'Export'}</span>
             </button>
-            <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg hidden group-hover:block z-10">
-              <button 
-                onClick={handleExportAll} 
-                className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
-                disabled={isExporting}
-              >
-                Export All Bookings
-              </button>
               <button 
                 onClick={handleExportSelected} 
-                className={`block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 ${
+                className={`hidden sm:block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 ${
                   selectedBookings.length === 0 ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
                 disabled={selectedBookings.length === 0 || isExporting}
               >
-                Export Selected ({selectedBookings.length})
+                {selectedBookings.length > 0 && `Export Selected (${selectedBookings.length})`}
               </button>
-            </div>
           </div>
-          <span className="text-sm text-gray-500">
-            {filteredBookings.length} bookings
+          <span className="w-full text-sm text-gray-500 text-center mt-2 sm:mt-0 sm:w-auto sm:text-left">
+            {filteredBookings.length} total
           </span>
         </div>
       </div>

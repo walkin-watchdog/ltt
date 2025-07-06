@@ -136,7 +136,8 @@ export const Requests = () => {
             className="flex items-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
           >
             <Download className="h-4 w-4 mr-2" />
-            Export to Excel
+              <span className="hidden md:inline">Export to Excel</span>
+              <span className="inline md:hidden">Export</span>
           </button>
           <span className="text-sm text-gray-500">
             {filteredRequests.length} requests

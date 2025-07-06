@@ -1,4 +1,4 @@
-import type { RootState } from "@/store/store";
+import type { RootState } from "../../store/store";
 import { useSelector } from "react-redux";
 
 export const calculateEffectivePrice = (basePrice: number, discountType?: string, discountValue?: number) => {

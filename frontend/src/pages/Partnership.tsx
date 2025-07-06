@@ -28,6 +28,17 @@ export const Partnership = () => {
       ]
     },
     {
+      title: 'Tour Guide',
+      description: 'Partner with us to design and promote immersive guided tours',
+      icon: '🧭',
+      benefits: [
+        'Access to luxury traveler network',
+        'Co-branded marketing campaigns',
+        'Operational support and best-practice training',
+        'Seamless booking integration'
+      ]
+    },
+    {
       title: 'Local Tour Operators',
       description: 'Collaborate to offer unique and authentic experiences',
       icon: '🚌',

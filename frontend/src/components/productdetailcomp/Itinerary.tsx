@@ -1,4 +1,4 @@
-import type { RootState } from "@/store/store";
+import type { RootState } from "../../store/store";
 import { useSelector } from "react-redux";
 
  export const Itinerary = ({ itineraryRef }: {itineraryRef: React.RefObject<HTMLDivElement | null> }) => {
