@@ -5,7 +5,6 @@ import { Users, X } from "lucide-react";
 export const GuidesAndLang = ({
   formData,
   updateFormData,
-  handleSaveAndContinue
 }: GuidesAndLangProps)=>{
 
 return (
@@ -187,16 +186,6 @@ return (
             <li>• <strong>Written:</strong> Written materials, brochures, or digital text guides</li>
           </ul>
         </div>
-      </div>
-
-      <div className="flex justify-end mt-8">
-        <button
-          type="button"
-          onClick={handleSaveAndContinue}
-          className="px-6 py-2 bg-[#ff914d] text-white rounded-md hover:bg-[#e8823d] font-semibold transition-colors"
-        >
-          Save & Continue
-        </button>
       </div>
     </div>
   );

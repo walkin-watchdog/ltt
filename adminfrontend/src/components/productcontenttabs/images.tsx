@@ -3,7 +3,7 @@ import { ImageUploader } from "../gallery/ImageUploader";
 
 
 
-export const ProductImagesTab = ({ formData, updateFormData, handleSaveAndContinue }: ProductImagesTabProps) => {
+export const ProductImagesTab = ({ formData, updateFormData }: ProductImagesTabProps) => {
 return (
           <div className="space-y-6">
             <div className="text-center">
@@ -17,15 +17,6 @@ return (
               folder="products"
               title="Product Images *"
             />
-            <div className="flex justify-end mt-8">
-              <button
-                type="button"
-                onClick={handleSaveAndContinue}
-                className="px-6 py-2 bg-[#ff914d] text-white rounded-md hover:bg-[#e8823d] font-semibold transition-colors"
-              >
-                Save &amp; Continue
-              </button>
-            </div>
           </div>
         );
     }

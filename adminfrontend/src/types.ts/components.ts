@@ -38,12 +38,10 @@ export interface BasicInfoProps {
   setIsDestinationModalOpen: (open: boolean) => void;
   isLoadingDestinations: boolean;
   isLoadingCategories: boolean;
-  handleSaveAndContinue: () => void;
 }
 
 export interface ContentElementsProps {
   formData: any;
-  handleSaveAndContinue: () => void;
   newItem: newItem;
   setNewItem: (item: newItem) => void;
   addItem: (type: string, item: string) => void;
@@ -54,7 +52,6 @@ export interface ContentElementsProps {
 export interface AdditionalDetailsTabProps {
   formData: any;
   updateFormData: (updates: any) => void;
-  handleSaveAndContinue: () => void;
   newItem: newItem;
   setNewItem: (item: newItem) => void;
   removeItem: (field: string, index: number) => void;
@@ -64,18 +61,15 @@ export interface AdditionalDetailsTabProps {
 export interface GuidesAndLangProps {
   formData: any;
   updateFormData: (updates: any) => void;
-  handleSaveAndContinue: () => void;
 }
 
 export interface ProductImagesTabProps {
   formData: any;
   updateFormData: (updates: any) => void;
-  handleSaveAndContinue: () => void;
 }
 
 export interface ItineraryTabProps {
   formData: any;
-  handleSaveAndContinue: () => void;
   createNewDay: () => void;
   editDay: (day: ItineraryDay) => void;
   removeDay: (dayNumber: number) => void;
@@ -85,7 +79,6 @@ export interface ItineraryTabProps {
 export interface PickupOptionsTabProps {
   formData: any;
   updateFormData: (updates: any) => void;
-  handleSaveAndContinue: () => void;
   pickupOption: string;
   setPickupOption: (option: string) => void;
 }

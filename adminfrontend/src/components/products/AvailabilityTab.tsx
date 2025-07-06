@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 
 export const AvailabilityTab: React.FC<AvailabilityTabProps> = ({
   formData,
-  updateFormData
+  updateFormData,
 }) => {
   const { availabilityStartDate, availabilityEndDate, blockedDates = [] } = formData;
 

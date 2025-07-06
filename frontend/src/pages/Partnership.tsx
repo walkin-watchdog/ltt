@@ -78,16 +78,14 @@ const handleSubmit = async (e: React.FormEvent) => {
   setIsSubmitting(true);
 
   try {
-    await axios.post('http://localhost:3001/api/parternship', {
+    await axios.post('http://localhost:3001/api/partnership', {
       name: formData.companyName,
       email: formData.email,
       phone: formData.phone,
-      message: `
-        Contact Person: ${formData.contactPerson}
-        Partnership Type: ${formData.partnershipType}
-        Website: ${formData.website}
-        Description: ${formData.description}
-      `,
+      contactPerson: formData.contactPerson,
+      partnershipType: formData.partnershipType,
+      website: formData.website,
+      message: formData.description
     });
     setSubmitted(true);
   } catch (error) {

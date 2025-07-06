@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Info, Image, Route, MapPin, Star, Settings, Users, CheckCircle, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
 import { DestinationModal } from './DestinationModal';
 import { ExperienceCategoryModal } from './ExperienceCategoryModal';
 import { useToast } from '../ui/toaster';
@@ -12,7 +11,7 @@ import { PickupOptionsTab } from '../productcontenttabs/PickupOptions';
 import { getDescription } from '../productcontenttabs/predefinedcategories';
 import { ContentElements } from '../productcontenttabs/ContentElements';
 import { AdditionalDetailsTab } from '../productcontenttabs/AdditionalDetails';
-import { GuidesAndLang } from '../productcontenttabs/GuidesamdLang';
+import { GuidesAndLang } from '../productcontenttabs/GuidesAndLang.tsx';
 import { validateTab, validateTabWithToast } from './Validation';
 import { EditItineraryModel } from '../productcontenttabs/edititinerarymodel';
 
@@ -26,8 +25,25 @@ const contentTabs = [
   { id: 'guides', name: 'Guides & Languages', shortName: 'Guides', icon: Users },
 ];
 
-export const ProductContentTab = ({ formData, updateFormData }: ProductContentTabProps) => {
-  const [activeContentTab, setActiveContentTab] = useState('basic');
+interface ProductContentTabPropsExt {
+  initialTab?: string;
+  hideSidebar?: boolean;
+  destinations: any[];
+  experienceCategories: any[];
+  isLoadingDestinations: boolean;
+  isLoadingCategories: boolean;
+  onDestinationsCreated: () => void;
+  onCategoriesCreated: () => void;
+}
+export const ProductContentTab = ({
+  formData, updateFormData,
+  initialTab, hideSidebar,
+  destinations, experienceCategories,
+  isLoadingDestinations, isLoadingCategories,
+  onDestinationsCreated,
+  onCategoriesCreated,
+}: ProductContentTabProps & ProductContentTabPropsExt) => {
+  const [activeContentTab, setActiveContentTab] = useState(initialTab ?? 'basic');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [newItem, setNewItem] = useState<newItem>({
     highlight: '',
@@ -42,7 +58,6 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
     accessibilityFeature: '',
   });
   const toast = useToast();
-  const { token } = useAuth();
   const [showItineraryBuilder, setShowItineraryBuilder] = useState(false);
   const [editingDay, setEditingDay] = useState<ItineraryDay | null>(null);
   const [newActivity, setNewActivity] = useState<ItineraryActivity>({
@@ -57,11 +72,11 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
   });
   const [isDestinationModalOpen, setIsDestinationModalOpen] = useState(false);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
-  const [destinations, setDestinations] = useState<any[]>([]);
-  const [experienceCategories, setExperienceCategories] = useState<any[]>([]);
-  const [isLoadingDestinations, setIsLoadingDestinations] = useState(false);
-  const [isLoadingCategories, setIsLoadingCategories] = useState(false);
   const [pickupOption, setPickupOption] = useState(formData.pickupOption || '');
+  useEffect(() => {
+    setPickupOption(formData.pickupOption || '');
+  }, [formData.pickupOption]);
+  
   const isDraft = formData.isDraft;
 
   const getAllowedDays = () => {
@@ -86,8 +101,6 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
     if (formData.itineraries && formData.itineraries.length > 0) {
       updateFormData({ itinerary: formData.itineraries });
     }
-    fetchDestinations();
-    fetchExperienceCategories();
   }, [formData.itineraries]);
 
   const handleTabChange = (newTabId: string) => {
@@ -224,49 +237,6 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
     updateFormData({ itinerary: renumbered });
   };
 
-  const fetchDestinations = async () => {
-    try {
-      setIsLoadingDestinations(true);
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/destinations`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setDestinations(data);
-      }
-    } catch (error) {
-      console.error('Error fetching destinations:', error);
-    } finally {
-      setIsLoadingDestinations(false);
-    }
-  };
-
-  const fetchExperienceCategories = async () => {
-    try {
-      setIsLoadingCategories(true);
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/experience-categories`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setExperienceCategories(data);
-      }
-    } catch (error) {
-      console.error('Error fetching experience categories:', error);
-    } finally {
-      setIsLoadingCategories(false);
-    }
-  };
-
-  const handleSaveAndContinue = () => {
-    const currentTabIndex = contentTabs.findIndex(tab => tab.id === activeContentTab);
-    if (currentTabIndex < contentTabs.length - 1) {
-      setActiveContentTab(contentTabs[currentTabIndex + 1].id);
-    }
-  };
-
   const addItem = (field: string, value: string) => {
     if (!value.trim()) return;
 
@@ -364,7 +334,6 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
             setIsDestinationModalOpen={setIsDestinationModalOpen}
             isLoadingCategories={isLoadingCategories}
             isLoadingDestinations={isLoadingDestinations}
-            handleSaveAndContinue={handleSaveAndContinue}
           />
         );
       case 'images':
@@ -372,7 +341,6 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
           <ProductImagesTab
             formData={formData}
             updateFormData={updateFormData}
-            handleSaveAndContinue={handleSaveAndContinue}
           />
         );
 
@@ -380,7 +348,6 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
         return (
           <ItineraryTab
             formData={formData}
-            handleSaveAndContinue={handleSaveAndContinue}
             createNewDay={createNewDay}
             editDay={editDay}
             removeDay={removeDay}
@@ -392,7 +359,6 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
           <PickupOptionsTab
             formData={formData}
             updateFormData={updateFormData}
-            handleSaveAndContinue={handleSaveAndContinue}
             setPickupOption={setPickupOption}
             pickupOption={pickupOption}
           />
@@ -407,7 +373,6 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
             addItem={addItem}
             removeItem={removeItem}
             getDescription={getDescription}
-            handleSaveAndContinue={handleSaveAndContinue}
           />
         );
 
@@ -416,7 +381,6 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
           <AdditionalDetailsTab
             formData={formData}
             updateFormData={updateFormData}
-            handleSaveAndContinue={handleSaveAndContinue}
             newItem={newItem}
             setNewItem={setNewItem}
             removeItem={removeItem}
@@ -429,7 +393,6 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
           <GuidesAndLang
             formData={formData}
             updateFormData={updateFormData}
-            handleSaveAndContinue={handleSaveAndContinue}
           />
         );
       default:
@@ -440,97 +403,101 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
   return (
     <div className="md:flex space-y-4 md:space-y-0">
       {/* Sidebar tabs */}
-      <aside className="hidden md:block w-64 bg-white rounded-lg shadow-sm border border-gray-200 mr-6 overflow-y-auto">
-        <nav className="p-4 space-y-1">
-          {contentTabs.map((tab) => {
-            const Icon = tab.icon;
-            const isValid = validateTab(tab.id, formData);
-            return (
-              <button
-                key={tab.id}
-                onClick={() => handleTabChange(tab.id)}
-                className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                  activeContentTab === tab.id
-                    ? 'bg-[#ff914d] text-white'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                <Icon className="h-5 w-5 mr-2" />
-                <span className="flex-1 text-left">{tab.name}</span>
-                {isValid ? (
-                  <CheckCircle className="h-5 w-5 text-green-500" />
-                ) : (
-                  <AlertCircle className="h-5 w-5 text-gray-400" />
-                )}
-              </button>
-            );
-          })}
-        </nav>
-      </aside>
+      {!hideSidebar && (
+        <aside className="hidden md:block w-64 bg-white rounded-lg shadow-sm border border-gray-200 mr-6 overflow-y-auto">
+          <nav className="p-4 space-y-1">
+            {contentTabs.map((tab) => {
+              const Icon = tab.icon;
+              const isValid = validateTab(tab.id, formData);
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => handleTabChange(tab.id)}
+                  className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                    activeContentTab === tab.id
+                      ? 'bg-[#ff914d] text-white'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  <Icon className="h-5 w-5 mr-2" />
+                  <span className="flex-1 text-left">{tab.name}</span>
+                  {isValid ? (
+                    <CheckCircle className="h-5 w-5 text-green-500" />
+                  ) : (
+                    <AlertCircle className="h-5 w-5 text-gray-400" />
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+        </aside>
+      )}
 
       {/* Main content */}
       <main className="flex-1 space-y-4 md:space-y-6">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
           {/* Mobile Tab Navigation */}
-          <div className="md:hidden">
-            <div className="flex items-center justify-between p-4 border-b border-gray-200">
-              <button
-                onClick={handlePrevious}
-                disabled={!canGoPrevious()}
-                className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </button>
-              
-              <div className="flex-1 text-center">
+          {!hideSidebar && (
+            <div className="md:hidden">
+              <div className="flex items-center justify-between p-4 border-b border-gray-200">
                 <button
-                  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                  className="text-sm font-medium text-gray-900"
+                  onClick={handlePrevious}
+                  disabled={!canGoPrevious()}
+                  className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {contentTabs.find(tab => tab.id === activeContentTab)?.name}
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                
+                <div className="flex-1 text-center">
+                  <button
+                    onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                    className="text-sm font-medium text-gray-900"
+                  >
+                    {contentTabs.find(tab => tab.id === activeContentTab)?.name}
+                  </button>
+                </div>
+                
+                <button
+                  onClick={handleNext}
+                  disabled={!canGoNext()}
+                  className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronRight className="h-5 w-5" />
                 </button>
               </div>
               
-              <button
-                onClick={handleNext}
-                disabled={!canGoNext()}
-                className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <ChevronRight className="h-5 w-5" />
-              </button>
-            </div>
-            
-            {/* Mobile Menu Dropdown */}
-            {isMobileMenuOpen && (
-              <div className="absolute z-20 left-0 right-0 bg-white border-b border-gray-200 shadow-lg">
-                <div className="py-2">
-                  {contentTabs.map((tab) => {
-                    const Icon = tab.icon;
-                    const isValid = validateTab(tab.id, formData);
-                    return (
-                      <button
-                        key={tab.id}
-                        onClick={() => handleTabChange(tab.id)}
-                        className={`w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 ${
-                          activeContentTab === tab.id ? 'bg-orange-50 text-[#ff914d]' : 'text-gray-700'
-                        }`}
-                      >
-                        <div className="flex items-center space-x-3">
-                          <Icon className="h-5 w-5" />
-                          <span className="font-medium">{tab.name}</span>
-                        </div>
-                        {isValid ? (
-                          <CheckCircle className="h-5 w-5 text-green-500" />
-                        ) : (
-                          <AlertCircle className="h-5 w-5 text-gray-400" />
-                        )}
-                      </button>
-                    );
-                  })}
+              {/* Mobile Menu Dropdown */}
+              {isMobileMenuOpen && (
+                <div className="absolute z-20 left-0 right-0 bg-white border-b border-gray-200 shadow-lg">
+                  <div className="py-2">
+                    {contentTabs.map((tab) => {
+                      const Icon = tab.icon;
+                      const isValid = validateTab(tab.id, formData);
+                      return (
+                        <button
+                          key={tab.id}
+                          onClick={() => handleTabChange(tab.id)}
+                          className={`w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 ${
+                            activeContentTab === tab.id ? 'bg-orange-50 text-[#ff914d]' : 'text-gray-700'
+                          }`}
+                        >
+                          <div className="flex items-center space-x-3">
+                            <Icon className="h-5 w-5" />
+                            <span className="font-medium">{tab.name}</span>
+                          </div>
+                          {isValid ? (
+                            <CheckCircle className="h-5 w-5 text-green-500" />
+                          ) : (
+                            <AlertCircle className="h-5 w-5 text-gray-400" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
 
           {/* Desktop Tab Navigation */}
           <div className="hidden">
@@ -567,31 +534,6 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
           </div>
         </div>
       </main>
-
-      {/* Mobile Navigation Buttons */}
-      <div className="md:hidden flex justify-between items-center px-4 py-3 bg-white rounded-lg shadow-sm border border-gray-200">
-        <button
-          onClick={handlePrevious}
-          disabled={!canGoPrevious()}
-          className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <ChevronLeft className="h-4 w-4 mr-1" />
-          Previous
-        </button>
-        
-        <div className="text-sm text-gray-500">
-          {getCurrentTabIndex() + 1} of {contentTabs.length}
-        </div>
-        
-        <button
-          onClick={handleNext}
-          disabled={!canGoNext()}
-          className="flex items-center px-4 py-2 text-sm font-medium text-white bg-[#ff914d] border border-transparent rounded-lg hover:bg-[#e8823d] disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Next
-          <ChevronRight className="h-4 w-4 ml-1" />
-        </button>
-      </div>
 
       <EditItineraryModel
         showItineraryBuilder={showItineraryBuilder}
@@ -632,7 +574,7 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
           isOpen={isDestinationModalOpen}
           onClose={() => setIsDestinationModalOpen(false)}
           onSelect={handleDestinationSelect}
-          onCreated={fetchDestinations}
+          onCreated={onDestinationsCreated}
         />
       )}
 
@@ -641,7 +583,7 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
           isOpen={isCategoryModalOpen}
           onClose={() => setIsCategoryModalOpen(false)}
           onSelect={handleCategorySelect}
-          onCreated={fetchExperienceCategories}
+          onCreated={onCategoriesCreated}
         />
       )}
     </div>

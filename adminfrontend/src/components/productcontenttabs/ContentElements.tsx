@@ -6,7 +6,6 @@ import type { ContentElementsProps } from "@/types.ts";
 
 export const ContentElements = ({
   formData,
-  handleSaveAndContinue,
   newItem,
   setNewItem,
   addItem,
@@ -287,16 +286,6 @@ return (
             </div>
           </div>
         </div>
-      </div>
-
-      <div className="flex justify-end mt-6 md:mt-8">
-        <button
-          type="button"
-          onClick={handleSaveAndContinue}
-          className="w-full sm:w-auto px-6 py-2 bg-[#ff914d] text-white rounded-md hover:bg-[#e8823d] font-semibold transition-colors"
-        >
-          Save &amp; Continue
-        </button>
       </div>
     </div>
   );

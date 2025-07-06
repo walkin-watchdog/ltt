@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useToast } from '../components/ui/toaster';
 import { useAuth } from '../contexts/AuthContext';
@@ -8,17 +8,12 @@ import { BookingProcessTab } from '../components/products/BookingProcessTab';
 import { CancellationPolicyTab } from '../components/products/CancellationPolicyTab';
 import { TravelerRequirementsTab } from '../components/products/TravelerRequirementsTab';
 import { AvailabilityTab } from '../components/products/AvailabilityTab';
-import { Save, Eye } from 'lucide-react';
 import type { ProductFormData } from '../types.ts';
-
-const tabs = [
-  { id: 'content', name: 'Product Content', component: ProductContentTab },
-  { id: 'schedule', name: 'Schedule & Price', component: SchedulePriceTab },
-  { id: 'booking-process', name: 'Booking Process & Pricing', component: BookingProcessTab },
-  { id: 'cancellation', name: 'Cancellation Policy', component: CancellationPolicyTab },
-  { id: 'traveler-requirements', name: 'Traveler Requirements', component: TravelerRequirementsTab },
-  { id: 'availability', name: 'Availability', component: AvailabilityTab },
-];
+import {
+  Info, Image, Route, MapPin, Star, Settings, Users,
+  CalendarClock, ClipboardCheck, Ban, UserCheck, CalendarRange,
+  CheckCircle, AlertCircle, Save, Eye
+} from 'lucide-react';
 
 export const ProductForm = () => {
   const { id } = useParams<{ id?: string }>();
@@ -27,10 +22,76 @@ export const ProductForm = () => {
   const toast = useToast();
   const isEdit = Boolean(id);
   const today = new Date().toISOString().split('T')[0];
+  const [destinations, setDestinations] = useState<any[]>([]);
+  const [experienceCategories, setExperienceCategories] = useState<any[]>([]);
+  const [isLoadingDestinations, setIsLoadingDestinations] = useState(false);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(false);
 
-  const [activeTab, setActiveTab] = useState('content');
+  const fetchDestinations = useCallback(async () => {
+    setIsLoadingDestinations(true);
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/destinations`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) setDestinations(await res.json());
+    } finally {
+      setIsLoadingDestinations(false);
+    }
+  }, [token]);
+
+  const fetchExperienceCategories = useCallback(async () => {
+    setIsLoadingCategories(true);
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/experience-categories`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) setExperienceCategories(await res.json());
+    } finally {
+      setIsLoadingCategories(false);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    if (isEdit && id) fetchProduct();
+    fetchDestinations();
+    fetchExperienceCategories();
+  }, [id, isEdit, token]);
+
+  const makeContent = useCallback((inner: string) =>
+  (props: any) => (
+    <ProductContentTab
+      {...props}
+      initialTab={inner}
+      hideSidebar
+      destinations={destinations}
+      experienceCategories={experienceCategories}
+      isLoadingDestinations={isLoadingDestinations}
+      isLoadingCategories={isLoadingCategories}
+      onDestinationsCreated={fetchDestinations}
+      onCategoriesCreated={fetchExperienceCategories}
+    />
+  ), [destinations, experienceCategories, isLoadingDestinations, isLoadingCategories, fetchDestinations, fetchExperienceCategories]);
+
+  const tabs = useMemo(() => [
+    { id: 'basic',      name: 'Basic Info',            icon: Info,         component: makeContent('basic') },
+    { id: 'images',     name: 'Images',                icon: Image,        component: makeContent('images') },
+    { id: 'itinerary',  name: 'Itinerary',             icon: Route,        component: makeContent('itinerary') },
+    { id: 'pickup',     name: 'Pickup Options',        icon: MapPin,       component: makeContent('pickup') },
+    { id: 'content',    name: 'Content Elements',      icon: Star,         component: makeContent('content') },
+    { id: 'details',    name: 'Additional Details',    icon: Settings,     component: makeContent('details') },
+    { id: 'guides',     name: 'Guides & Languages',    icon: Users,        component: makeContent('guides') },
+
+    { id: 'schedule',             name: 'Schedule & Price',          icon: CalendarClock, component: SchedulePriceTab },
+    { id: 'payment-options',      name: 'Payment Options',         icon: ClipboardCheck, component: BookingProcessTab },
+    { id: 'cancellation',         name: 'Cancellation Policy',       icon: Ban,            component: CancellationPolicyTab },
+    { id: 'traveler-requirements',name: 'Traveler Requirements',     icon: UserCheck,      component: TravelerRequirementsTab },
+    { id: 'availability',         name: 'Availability',              icon: CalendarRange,  component: AvailabilityTab },
+  ], [makeContent]);
+
+  const [activeTab, setActiveTab] = useState('basic');
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  
   const [formData, setFormData] = useState<ProductFormData>({
     title: '',
     productCode: '',
@@ -92,14 +153,8 @@ export const ProductForm = () => {
     
   });
 
-  useEffect(() => {
-    if (isEdit && id) {
-      fetchProduct();
-    }
-  }, [id, isEdit]);
-
   const tabValidations: Record<string, (formData: any) => string[]> = {
-    content: (formData) => {
+    basic: (formData) => {
       const missing: string[] = [];
       if (!formData.title) missing.push('Title');
       if (!formData.productCode) missing.push('Product Code');
@@ -109,94 +164,82 @@ export const ProductForm = () => {
       if (formData.type == 'EXPERIENCE' && !formData.category) missing.push('Category');
       if (!formData.duration) missing.push('Duration');
       if (!formData.capacity || formData.capacity < 1) missing.push('Max Capacity');
-      // Optionally require at least one image
-      if (!formData.images || formData.images.length === 0) missing.push('At least one Image');
-      // Check for accessibility features if any accessibility options are selected
       if (
         formData.wheelchairAccessible === 'yes' ||
         formData.strollerAccessible === 'yes' ||
         formData.serviceAnimalsAllowed === 'yes' ||
         formData.publicTransportAccess === 'yes'
       ) {
-        // Optional: could require at least one accessibility feature to be described
       }
       return missing;
     },
-    schedule: (formData) => {
-      const missing: string[] = [];
-      if (!formData.packages || formData.packages.length === 0) missing.push('At least one Package');
-      // Add more checks as needed
-      return missing;
+    images: f => !f.images?.length ? ['At least one image'] : [],
+    itinerary: f => (f.duration !== 'Full Day' && f.duration !== 'Half Day' && (f.itinerary?.length || 0) < (parseInt(f.duration)||1))
+      ? [`At least ${(parseInt(f.duration)||1)} itinerary day(s)`] : [],
+    pickup: f => {
+      const m: string[] = [];
+      if (!f.pickupOption) m.push('Pickup Option');
+      if (
+        f.pickupOption.includes('meeting point') &&
+        !(f.meetingPoints || []).length
+      ) m.push('At least one Meeting Point');
+      if (
+        f.pickupOption.includes('meeting point') &&
+        f.doesTourEndAtMeetingPoint === false &&
+        !(f.endPoints || []).length
+      ) {
+        m.push('At least one End Location');
+      }
+      return m;
     },
-    booking: (formData) => {
-      const missing: string[] = [];
-      if (!formData.cancellationPolicy) missing.push('Cancellation Policy');
-      
-      // Validate custom cancellation terms if custom policy is selected
-      if (formData.cancellationPolicyType === 'custom') {
-        if (!formData.cancellationTerms || formData.cancellationTerms.length === 0) {
-          missing.push('At least one Cancellation Term (for custom policy)');
-        } else {
-          const invalidTerms = formData.cancellationTerms.some((term: any) => 
-            !term.timeframe || !term.description || term.refundPercent < 0 || term.refundPercent > 100
-          );
-          if (invalidTerms) {
-            missing.push('Complete all Cancellation Term details');
+    content: f => {
+      const m = [];
+      if (!f.highlights?.length) m.push('At least one Highlight');
+      if (!f.inclusions?.length) m.push('At least one Inclusion');
+      if (!f.exclusions?.length) m.push('At least one Exclusion');
+      return m;
+    },
+    details: _ => [],
+    guides: _ => [],
+    schedule: f => !f.packages?.length ? ['At least one Package'] : [],
+    'payment-options': _ => [],
+    cancellation: f => {
+      const m: string[] = [];
+        if (!f.cancellationPolicy) m.push('Cancellation Policy');
+        if (f.cancellationPolicyType === 'custom') {
+          if (!f.cancellationTerms.length) m.push('At least one Cancellation Term');
+          else {
+            const invalid = f.cancellationTerms.some((t: any) =>
+              !t.timeframe || !t.description || t.refundPercent < 0 || t.refundPercent > 100
+            );
+            if (invalid) m.push('Complete all Cancellation Term details');
           }
         }
-      }
-
-      // Validate custom requirement fields
-      if (formData.customRequirementFields && formData.customRequirementFields.length > 0) {
-        const invalidFields = formData.customRequirementFields.some((field: any) => 
-          !field.label || (field.type === 'select' && (!field.options || field.options.length === 0))
-        );
-        if (invalidFields) {
-          missing.push('Complete all Custom Requirement Field details');
-        }
-      }
-
-      // Validate pickup configuration
-      if (!formData.pickupOption) missing.push('Pickup Option');
-
-      // If meeting points are required, check for them
-      if (
-        (formData.pickupOption === 'We can pick up travelers or meet them at a meeting point' ||
-          formData.pickupOption === 'No, we meet all travelers at a meeting point') &&
-        !formData.meetingPoint &&
-        (!formData.meetingPoints || formData.meetingPoints.length === 0)
-      ) {
-        missing.push('At least one Meeting Point');
-      }
-
-      // If tour doesn't end at meeting point, require end points
-      if (
-        formData.doesTourEndAtMeetingPoint === false &&
-        (!formData.endPoints || formData.endPoints.length === 0)
-      ) {
-        missing.push('At least one End Location (since tour doesn\'t end at meeting point)');
-      }
-
-      return missing;
+      return m;
     },
-    availability: () => [],
+    'traveler-requirements': f => {
+    const m: string[] = [];
+      if (f.customRequirementFields.length) {
+        const invalidField = f.customRequirementFields.some((fld: any) =>
+          !fld.label || (fld.type === 'select' && !fld.options.length)
+        );
+        if (invalidField) m.push('Complete all Custom Requirement Fields');
+      }
+      return m;
+    },
+    availability: _ => [],
   };
 
   const handleTabChange = (nextTab: string) => {
     // Only validate when moving forward
-    const currentIndex = tabs.findIndex((tab) => tab.id === activeTab);
-    const nextIndex = tabs.findIndex((tab) => tab.id === nextTab);
+    const currentIndex = tabs.findIndex(t => t.id === activeTab);
+    const nextIndex = tabs.findIndex(t => t.id === nextTab);
     if (nextIndex > currentIndex && !formData.isDraft) {
       const validate = tabValidations[activeTab];
-      if (validate) {
-        const missingFields = validate(formData);
-        if (missingFields.length > 0) {
-          toast({
-            message: `Please fill out: ${missingFields.join(', ')}`,
-            type: 'error',
-          });
-          return; // Block tab change
-        }
+      const missing = validate?.(formData) || [];
+      if (missing.length) {
+        toast({ message: `Please fill out: ${missing.join(', ')}`, type: 'error' });
+        return;
       }
     }
     setActiveTab(nextTab);
@@ -300,10 +343,10 @@ export const ProductForm = () => {
         !formData.duration
       ) {
         toast({
-          message: 'Please fill out all required fields in the Product Content tab',
+          message: 'Please fill out all required fields in the Basic Info tab',
           type: 'error',
         });
-        setActiveTab('content');
+        setActiveTab('basic');
         setIsSaving(false);
         return;
       }
@@ -317,10 +360,10 @@ export const ProductForm = () => {
 
       if (!formData.cancellationPolicy) {
         toast({
-          message: 'Cancellation policy is required in the Booking Details tab',
+          message: 'Cancellation policy is required',
           type: 'error',
         });
-        setActiveTab('booking');
+        setActiveTab('cancellation');
         setIsSaving(false);
         return;
       }
@@ -573,56 +616,58 @@ export const ProductForm = () => {
         </div>
       </div>
 
-      {/* Tab Navigation */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        {/* Mobile Tab Navigation */}
-        <div className="md:hidden">
-          <div className="flex items-center justify-between p-4 border-b border-gray-200">
-            <div className="flex-1 text-center">
-              <span className="text-lg font-medium text-gray-900">
-                {tabs.find((tab) => tab.id === activeTab)?.name}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Desktop Tab Navigation */}
-        <div className="hidden md:block border-b border-gray-200">
-          <nav className="-mb-px flex space-x-2 lg:space-x-8 px-4 lg:px-6 overflow-x-auto scrollbar-hide">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => handleTabChange(tab.id)}
-                className={`py-4 px-2 lg:px-1 border-b-2 font-medium text-xs lg:text-sm transition-colors whitespace-nowrap flex-shrink-0 ${
-                  activeTab === tab.id
-                    ? 'border-[#ff914d] text-[#ff914d]'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                {tab.name}
-              </button>
-            ))}
+      {/* Sidebar Navigation */}
+      <div className="md:flex space-y-4 md:space-y-0">
+        <aside className="hidden md:block w-64 bg-white rounded-lg shadow-sm border border-gray-200 mr-6 overflow-y-auto">
+          <nav className="p-4 space-y-1">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              const isValid = !tabValidations[tab.id] || tabValidations[tab.id](formData).length === 0;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => handleTabChange(tab.id)}
+                  className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                    activeTab === tab.id
+                      ? 'bg-[#ff914d] text-white'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  {Icon && <Icon className="h-5 w-5 mr-2" />}
+                  <span className="flex-1 text-left">{tab.name}</span>
+                  {isValid
+                    ? <CheckCircle className="h-5 w-5 text-green-500" />
+                    : <AlertCircle className="h-5 w-5 text-gray-400" />}
+                </button>
+              );
+            })}
           </nav>
-        </div>
+        </aside>
 
-        {/* Tab Content */}
-        <div className="p-3 sm:p-4 lg:p-6">
-          {ActiveTabComponent && (
-            <ActiveTabComponent
-              formData={formData}
-              updateFormData={updateFormData}
-              isEdit={isEdit}
-            />
-          )}
-        </div>
+        {/* main content */}
+        <main className="flex-1 space-y-4 md:space-y-6">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4 md:p-6">
+            {ActiveTabComponent && (
+              <ActiveTabComponent
+                formData={formData}
+                updateFormData={updateFormData}
+                isEdit={isEdit}
+              />
+            )}
+          </div>
+        </main>
       </div>
 
       {/* Mobile Tab Navigation at Bottom */}
       <div className="md:hidden bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div className="text-center mb-2 text-sm font-medium text-gray-900">
+          {tabs.find(t => t.id === activeTab)?.name}
+        </div>
         <div className="flex justify-between items-center">
           <button
             onClick={() => {
-              const currentIndex = tabs.findIndex((tab) => tab.id === activeTab);
+              const raw = tabs.findIndex((t) => t.id === activeTab);
+              const currentIndex = raw===-1 ? 0 : raw;
               if (currentIndex > 0) {
                 handleTabChange(tabs[currentIndex - 1].id);
               }

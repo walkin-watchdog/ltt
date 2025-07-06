@@ -4,7 +4,6 @@ import { Calendar, Route } from "lucide-react";
 
 export const ItineraryTab = ({
     formData,
-    handleSaveAndContinue,
     createNewDay,
     editDay,
     removeDay,
@@ -134,19 +133,6 @@ export const ItineraryTab = ({
                     <p className="text-sm text-gray-500">Switch to Tour type to add itinerary</p>
                 </div>
             )}
-            <div className="flex justify-end mt-8">
-                <button
-                    type="button"
-                    onClick={handleSaveAndContinue}
-                    className="px-6 py-2 bg-[#ff914d] text-white rounded-md hover:bg-[#e8823d] font-semibold transition-colors"
-                    disabled={
-                        formData.type === 'TOUR' &&
-                        (formData.itinerary?.length || 0) !== getAllowedDays()
-                    }
-                >
-                    Save &amp; Continue
-                </button>
-            </div>
         </div>
     );
 }

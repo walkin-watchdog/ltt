@@ -160,4 +160,22 @@ export class EmailService {
 
     return this.sendEmail(emailData);
   }
+
+  static async sendPartnershipRequest(request: any) {
+    const emailData: EmailData = {
+      to: process.env.COMPANY_EMAIL!,
+      subject: `New Partnership Request`,
+      template: 'partnership-request',
+      context: {
+        companyName: request.companyName,
+        contactPerson: request.contactPerson,
+        email: request.email,
+        phone: request.phone,
+        message: request.message,
+        partnershipType: request.partnershipType,
+        website: request.website,
+      },
+    };
+    return this.sendEmail(emailData);
+  }
 }

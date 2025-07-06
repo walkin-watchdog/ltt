@@ -7,7 +7,6 @@ import { useState } from "react";
 export const AdditionalDetailsTab = ({
     formData,
     updateFormData,
-    handleSaveAndContinue,
     newItem,
     setNewItem,
     removeItem,
@@ -394,15 +393,6 @@ export const AdditionalDetailsTab = ({
                         <Plus className="h-4 w-4" />
                     </button>
                 </div>
-            </div>
-            <div className="flex justify-end mt-8">
-                <button
-                    type="button"
-                    onClick={handleSaveAndContinue}
-                    className="px-6 py-2 bg-[#ff914d] text-white rounded-md hover:bg-[#e8823d] font-semibold transition-colors"
-                >
-                    Save &amp; Continue
-                </button>
             </div>
         </div>
     );
