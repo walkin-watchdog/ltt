@@ -438,103 +438,135 @@ export const ProductContentTab = ({ formData, updateFormData }: ProductContentTa
   };
 
   return (
-    <div className="space-y-4 md:space-y-6">
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        {/* Mobile Tab Navigation */}
-        <div className="md:hidden">
-          <div className="flex items-center justify-between p-4 border-b border-gray-200">
-            <button
-              onClick={handlePrevious}
-              disabled={!canGoPrevious()}
-              className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </button>
-            
-            <div className="flex-1 text-center">
+    <div className="md:flex space-y-4 md:space-y-0">
+      {/* Sidebar tabs */}
+      <aside className="hidden md:block w-64 bg-white rounded-lg shadow-sm border border-gray-200 mr-6 overflow-y-auto">
+        <nav className="p-4 space-y-1">
+          {contentTabs.map((tab) => {
+            const Icon = tab.icon;
+            const isValid = validateTab(tab.id, formData);
+            return (
               <button
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="text-sm font-medium text-gray-900"
+                key={tab.id}
+                onClick={() => handleTabChange(tab.id)}
+                className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                  activeContentTab === tab.id
+                    ? 'bg-[#ff914d] text-white'
+                    : 'text-gray-700 hover:bg-gray-100'
+                }`}
               >
-                {contentTabs.find(tab => tab.id === activeContentTab)?.name}
+                <Icon className="h-5 w-5 mr-2" />
+                <span className="flex-1 text-left">{tab.name}</span>
+                {isValid ? (
+                  <CheckCircle className="h-5 w-5 text-green-500" />
+                ) : (
+                  <AlertCircle className="h-5 w-5 text-gray-400" />
+                )}
+              </button>
+            );
+          })}
+        </nav>
+      </aside>
+
+      {/* Main content */}
+      <main className="flex-1 space-y-4 md:space-y-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+          {/* Mobile Tab Navigation */}
+          <div className="md:hidden">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <button
+                onClick={handlePrevious}
+                disabled={!canGoPrevious()}
+                className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+              
+              <div className="flex-1 text-center">
+                <button
+                  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                  className="text-sm font-medium text-gray-900"
+                >
+                  {contentTabs.find(tab => tab.id === activeContentTab)?.name}
+                </button>
+              </div>
+              
+              <button
+                onClick={handleNext}
+                disabled={!canGoNext()}
+                className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronRight className="h-5 w-5" />
               </button>
             </div>
             
-            <button
-              onClick={handleNext}
-              disabled={!canGoNext()}
-              className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <ChevronRight className="h-5 w-5" />
-            </button>
-          </div>
-          
-          {/* Mobile Menu Dropdown */}
-          {isMobileMenuOpen && (
-            <div className="absolute z-20 left-0 right-0 bg-white border-b border-gray-200 shadow-lg">
-              <div className="py-2">
-                {contentTabs.map((tab) => {
-                  const Icon = tab.icon;
-                  const isValid = validateTab(tab.id, formData);
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => handleTabChange(tab.id)}
-                      className={`w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 ${
-                        activeContentTab === tab.id ? 'bg-orange-50 text-[#ff914d]' : 'text-gray-700'
-                      }`}
-                    >
-                      <div className="flex items-center space-x-3">
-                        <Icon className="h-5 w-5" />
-                        <span className="font-medium">{tab.name}</span>
-                      </div>
-                      {isValid ? (
-                        <CheckCircle className="h-5 w-5 text-green-500" />
-                      ) : (
-                        <AlertCircle className="h-5 w-5 text-gray-400" />
-                      )}
-                    </button>
-                  );
-                })}
+            {/* Mobile Menu Dropdown */}
+            {isMobileMenuOpen && (
+              <div className="absolute z-20 left-0 right-0 bg-white border-b border-gray-200 shadow-lg">
+                <div className="py-2">
+                  {contentTabs.map((tab) => {
+                    const Icon = tab.icon;
+                    const isValid = validateTab(tab.id, formData);
+                    return (
+                      <button
+                        key={tab.id}
+                        onClick={() => handleTabChange(tab.id)}
+                        className={`w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 ${
+                          activeContentTab === tab.id ? 'bg-orange-50 text-[#ff914d]' : 'text-gray-700'
+                        }`}
+                      >
+                        <div className="flex items-center space-x-3">
+                          <Icon className="h-5 w-5" />
+                          <span className="font-medium">{tab.name}</span>
+                        </div>
+                        {isValid ? (
+                          <CheckCircle className="h-5 w-5 text-green-500" />
+                        ) : (
+                          <AlertCircle className="h-5 w-5 text-gray-400" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
 
-        {/* Desktop Tab Navigation */}
-        <div className="hidden md:block border-b border-gray-200">
-          <nav className="-mb-px flex space-x-1 overflow-x-auto px-4 scrollbar-hide">
-            {contentTabs.map((tab) => {
-              const Icon = tab.icon;
-              const isValid = validateTab(tab.id, formData);
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => handleTabChange(tab.id)}
-                  className={`py-4 px-3 border-b-2 font-medium text-sm transition-colors flex items-center space-x-2 whitespace-nowrap flex-shrink-0 min-w-max ${
-                    activeContentTab === tab.id
-                      ? 'border-[#ff914d] text-[#ff914d]'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  <Icon className="h-4 w-4" />
-                  <span className="hidden lg:inline">{tab.name}</span>
-                  <span className="lg:hidden">{tab.shortName}</span>
-                  {isValid ? (
-                    <CheckCircle className="h-4 w-4 text-green-500" />
-                  ) : (
-                    <AlertCircle className="h-4 w-4 text-gray-400" />
-                  )}
-                </button>
-              );
-            })}
-          </nav>
-        </div>
+          {/* Desktop Tab Navigation */}
+          <div className="hidden">
+            <nav className="-mb-px flex space-x-1 overflow-x-auto px-4 scrollbar-hide">
+              {contentTabs.map((tab) => {
+                const Icon = tab.icon;
+                const isValid = validateTab(tab.id, formData);
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => handleTabChange(tab.id)}
+                    className={`py-4 px-3 border-b-2 font-medium text-sm transition-colors flex items-center space-x-2 whitespace-nowrap flex-shrink-0 min-w-max ${
+                      activeContentTab === tab.id
+                        ? 'border-[#ff914d] text-[#ff914d]'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span className="hidden lg:inline">{tab.name}</span>
+                    <span className="lg:hidden">{tab.shortName}</span>
+                    {isValid ? (
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <AlertCircle className="h-4 w-4 text-gray-400" />
+                    )}
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
 
-        <div className="p-3 sm:p-4 md:p-6">
-          {renderTabContent()}
+          <div className="p-3 sm:p-4 md:p-6">
+            {renderTabContent()}
+          </div>
         </div>
-      </div>
+      </main>
 
       {/* Mobile Navigation Buttons */}
       <div className="md:hidden flex justify-between items-center px-4 py-3 bg-white rounded-lg shadow-sm border border-gray-200">

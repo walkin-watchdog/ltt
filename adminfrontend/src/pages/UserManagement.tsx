@@ -329,7 +329,7 @@ export const UserManagement = () => {
       </div>
 
       {/* Users Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <div className="hidden md:block bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -423,6 +423,60 @@ export const UserManagement = () => {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* User Cards — mobile only */}
+      <div className="block md:hidden space-y-4">
+        {filteredUsers.map(user => (
+          <div key={user.id} className="bg-white rounded-lg shadow-md p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center">
+                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#ff914d] to-[#e8823d] flex items-center justify-center text-white font-semibold mr-3">
+                  {user.name.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-gray-900">{user.name}</div>
+                  <div className="text-xs text-gray-500">{user.email}</div>
+                </div>
+                {user.id === currentUser?.id && (
+                  <span className="ml-2 px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">You</span>
+                )}
+              </div>
+              <div>
+                {getRoleBadge(user.role)}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
+              <span>Created {new Date(user.createdAt).toLocaleDateString('en-IN')}</span>
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => handleEditUser(user)}
+                  disabled={user.id === currentUser?.id}
+                  className="p-1 text-blue-600 hover:text-blue-800"
+                >
+                  <Edit className="h-5 w-5" />
+                </button>
+                {user.id !== currentUser?.id && (
+                  deleteConfirmId === user.id ? (
+                    <div className="flex items-center space-x-1">
+                      <button onClick={() => handleDeleteUser(user.id)} className="p-1 text-red-600 hover:text-red-800">
+                        <Check className="h-5 w-5" />
+                      </button>
+                      <button onClick={() => setDeleteConfirmId(null)} className="p-1 text-gray-600 hover:text-gray-800">
+                        <X className="h-5 w-5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setDeleteConfirmId(user.id)} className="p-1 text-red-600 hover:text-red-800">
+                      <Trash2 className="h-5 w-5" />
+                    </button>
+                  )
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* User Form Modal */}

@@ -32,7 +32,7 @@ export const AdditionalDetailsTab = ({
 
     return (
         <div className="space-y-8">
-            <div className="bg-white rounded-lg p-6 border border-gray-200">
+            <div className="bg-white rounded-lg p-4 md:p-6 border border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Physical Difficulty Level</h3>
                 <p className="text-sm text-gray-600 mb-4">Select the physical difficulty level for this tour/experience</p>
 
@@ -99,7 +99,7 @@ export const AdditionalDetailsTab = ({
                 </div>
             </div>
 
-            <div className="bg-white rounded-lg p-6 border border-gray-200">
+            <div className="bg-white rounded-lg p-4 md:p-6 border border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">General Accessibility</h3>
                 <p className="text-sm text-gray-600 mb-6">Check all accessibility features that apply to your tour/experience</p>
 
@@ -272,22 +272,22 @@ export const AdditionalDetailsTab = ({
                         </div>
                     </div>
                 </div>
-                <div className="bg-white rounded-lg p-6 border border-gray-200 p-4 mt-6">
+                <div className="bg-white rounded-lg p-4 md:p-6 border border-gray-200 p-4 mt-6">
                     <p className="text-sm text-gray-600 mb-6">Add specific accessibility features available for this tour/experience</p>
 
                     <div className="space-y-4">
-                        <div className="flex">
+                        <div className="flex flex-col md:flex-row">
                             <input
                                 type="text"
                                 value={newItem.accessibilityFeature || ''}
                                 onChange={(e) => setNewItem({ ...newItem, accessibilityFeature: e.target.value })}
-                                className="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+                                className="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent w-full"
                                 placeholder="e.g., Wheelchair accessible entrance, Audio descriptions available"
                             />
                             <button
                                 type="button"
                                 onClick={() => addItem('accessibilityFeatures', newItem.accessibilityFeature || '')}
-                                className="px-3 py-2 bg-[#ff914d] text-white rounded-r-md hover:bg-[#e8823d] transition-colors"
+                                className="px-3 py-2 bg-[#ff914d] text-white rounded-md md:rounded-r-md hover:bg-[#e8823d] transition-colors mt-2 md:mt-0"
                             >
                                 <Plus className="h-5 w-5" />
                             </button>
@@ -315,7 +315,7 @@ export const AdditionalDetailsTab = ({
                 </div>
             </div>
 
-            <div className="bg-white rounded-lg p-6 border border-gray-200">
+            <div className="bg-white rounded-lg p-4 md:p-6 border border-gray-200">
                 <label className="block text-sm font-medium text-gray-700 mb-3">
                     Health Restrictions
                 </label>
@@ -380,7 +380,7 @@ export const AdditionalDetailsTab = ({
                         value={newCustomHealthRestriction}
                         onChange={e => setNewCustomHealthRestriction(e.target.value)}
                         placeholder="Custom restriction"
-                        className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2563eb] focus:border-transparent text-sm w-96"
+                        className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2563eb] focus:border-transparent text-sm w-full md:w-96"
                         onKeyDown={e => {
                             if (e.key === 'Enter' && newCustomHealthRestriction.trim()) {
                                 setCustomHealthRestrictions([...customHealthRestrictions, newCustomHealthRestriction.trim()]);

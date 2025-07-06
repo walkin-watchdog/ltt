@@ -213,6 +213,7 @@ export const ImageBrowser = ({
             {multiple ? 'Select Images' : 'Select an Image'}
           </h2>
           <button
+            type="button"
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600"
           >
@@ -227,6 +228,7 @@ export const ImageBrowser = ({
             <ul className="space-y-1">
               <li>
                 <button
+                  type="button"
                   onClick={() => handleFolderChange('')}
                   className={`w-full text-left px-3 py-2 rounded ${
                     activeFolder === '' 
@@ -240,6 +242,7 @@ export const ImageBrowser = ({
               {folders.map((f) => (
                 <li key={f}>
                   <button
+                    type="button"
                     onClick={() => handleFolderChange(f)}
                     className={`w-full text-left px-3 py-2 rounded flex items-center ${
                       activeFolder === f 
@@ -276,6 +279,7 @@ export const ImageBrowser = ({
                 {selectedImages.length} image{selectedImages.length !== 1 ? 's' : ''} selected
                 </span>
                 <button 
+                  type="button"
                   onClick={() => setSelectedImages([])} 
                   className="text-blue-600 hover:text-blue-800 text-sm underline"
                 >
@@ -329,6 +333,7 @@ export const ImageBrowser = ({
                         )}
                         
                         <button
+                          type="button"
                           onClick={(e) => handleDeleteImage(image.id, e)}
                           className="absolute top-2 right-2 bg-red-600 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                         >
@@ -347,6 +352,7 @@ export const ImageBrowser = ({
                 {hasMore && (
                   <div className="mt-6 text-center">
                     <button
+                      type="button"
                       onClick={handleLoadMore}
                       disabled={loadingMore}
                       className="px-4 py-2 bg-gray-100 rounded-md text-gray-700 hover:bg-gray-200 transition-colors"
@@ -370,12 +376,14 @@ export const ImageBrowser = ({
         {/* Footer with Actions */}
         <div className="border-t border-gray-200 px-6 py-4 flex justify-end items-center space-x-3">
           <button
+            type="button"
             onClick={onClose}
             className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
           >
             Cancel
           </button>
           <button
+            type="button"
             onClick={handleConfirm}
             disabled={selectedImages.length === 0}
             className="px-4 py-2 bg-[#ff914d] text-white rounded-md hover:bg-[#e8823d] transition-colors disabled:opacity-50"

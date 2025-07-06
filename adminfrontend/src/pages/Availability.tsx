@@ -325,7 +325,7 @@ const fetchData = async () => {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <div className="hidden md:block bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -410,6 +410,62 @@ const fetchData = async () => {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Cards for mobile */}
+      <div className="block md:hidden space-y-4">
+        {filteredAvailabilities.map((availability) => (
+          <div key={availability.id} className="bg-white rounded-lg shadow-md p-4">
+            {/* Header */}
+            <div className="flex justify-between items-start mb-2">
+              <div>
+                <div className="text-sm font-medium text-gray-900 flex items-center">
+                  {availability.product?.title || 'Unknown Product'}
+                  {getBlockedDatesCount(availability.productId) > 0 && (
+                    <span className="ml-2 inline-flex items-center px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full">
+                      <Ban className="h-3 w-3 mr-1" />
+                      {getBlockedDatesCount(availability.productId)} blocked
+                    </span>
+                  )}
+                </div>
+                <div className="text-xs text-gray-500">
+                  {availability.product?.productCode || 'N/A'}
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                {(user?.role === 'ADMIN' || user?.role === 'EDITOR') && (
+                  <>
+                    <button onClick={() => handleEdit(availability)} className="p-1 hover:text-blue-800">
+                      <Edit className="h-4 w-4 text-blue-600" />
+                    </button>
+                    <button onClick={() => handleDelete(availability.id)} className="p-1 hover:text-red-800">
+                      <Trash2 className="h-4 w-4 text-red-600" />
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Date Range */}
+            <div className="mb-2 flex items-center text-sm text-gray-600">
+              <Calendar className="h-4 w-4 mr-2" />
+              <span>{formatDateRange(availability.startDate, availability.endDate)}</span>
+            </div>
+
+            {/* Status */}
+            <div className="mb-2 flex items-center">
+              {getStatusIcon(availability.status)}
+              <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(availability.status)}`}>
+                {availability.status.replace('_', ' ')}
+              </span>
+            </div>
+
+            {/* Bookings */}
+            <div className="text-sm text-gray-600">
+              Booked: {availability.booked || 0}
+            </div>
+          </div>
+        ))}
       </div>
 
       {filteredAvailabilities.length === 0 && (

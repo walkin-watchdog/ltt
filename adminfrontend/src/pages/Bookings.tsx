@@ -291,7 +291,8 @@ export const Bookings = () => {
               className="flex items-center px-4 py-2 bg-[#ff914d] text-white rounded-lg hover:bg-[#e8823d] transition-colors"
             >
               <Plus className="h-4 w-4 mr-2" />
-              Create Manual Booking
+              <span className="hidden md:inline">Create Manual Booking</span>
+              <span className="inline md:hidden">Manual</span>
             </Link>
           )}
           <div className="relative group">
@@ -399,7 +400,7 @@ export const Bookings = () => {
       )}
       
       {/* Bookings Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <div className="hidden md:block bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -555,6 +556,108 @@ export const Bookings = () => {
             </tbody>
           </table>
         </div>
+      </div>
+
+      <div className="block md:hidden space-y-4">
+        {filteredBookings.map(booking => (
+          <div key={booking.id} className="bg-white rounded-lg shadow-md p-4">
+            {/* Top bar */}
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={selectedBookings.includes(booking.id)}
+                  onChange={() => handleSelectBooking(booking.id)}
+                  className="h-4 w-4 text-[#ff914d] border-gray-300 rounded mr-2"
+                />
+                <div>
+                  <div className="text-sm font-medium text-gray-900">{booking.bookingCode}</div>
+                  <div className="text-xs text-gray-500 flex items-center">
+                    <Calendar className="h-3 w-3 mr-1" />
+                    {new Date(booking.bookingDate).toLocaleDateString('en-IN')}
+                  </div>
+                </div>
+              </div>
+              <div className="text-xs text-gray-400">
+                Created {new Date(booking.createdAt).toLocaleDateString('en-IN')}
+              </div>
+            </div>
+
+            {/* Customer */}
+            <div className="mb-2 text-sm text-gray-700">
+              <div className="flex items-center">
+                <User className="h-4 w-4 mr-1" /> {booking.customerName}
+              </div>
+              <div className="flex items-center">
+                <Mail className="h-4 w-4 mr-1" /> {booking.customerEmail}
+              </div>
+              <div className="flex items-center">
+                <Phone className="h-4 w-4 mr-1" /> {booking.customerPhone}
+              </div>
+            </div>
+
+            {/* Product & Package */}
+            <div className="mb-2 text-sm text-gray-700">
+              <div>{booking.product.title} ({booking.product.productCode})</div>
+              {booking.package && <div className="text-xs text-blue-600">Pkg: {booking.package.name}</div>}
+            </div>
+
+            {/* People, Amount, Status */}
+            <div className="flex flex-wrap justify-between items-center text-sm">
+              <div>
+                {booking.adults} Adults{booking.children > 0 && `, ${booking.children} Children`}
+              </div>
+              <div>
+                ₹{booking.totalAmount.toLocaleString()}
+                <span className={`ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPaymentStatusColor(booking.paymentStatus)}`}>
+                  {booking.paymentStatus}
+                </span>
+              </div>
+              <div>
+                {(user?.role === 'ADMIN' || user?.role === 'EDITOR')
+                  ? <select
+                      value={booking.status}
+                      onChange={e => updateBookingStatus(booking.id, e.target.value)}
+                      className={`text-xs px-2 py-1 border rounded focus:ring-1 focus:ring-[#ff914d] ${getStatusColor(booking.status)}`}
+                    >
+                      <option value="PENDING">Pending</option>
+                      <option value="CONFIRMED">Confirmed</option>
+                      <option value="CANCELLED">Cancelled</option>
+                      <option value="COMPLETED">Completed</option>
+                    </select>
+                  : <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(booking.status)}`}>
+                      {booking.status}
+                    </span>
+                }
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="mt-3 flex space-x-4">
+              <button
+                onClick={() => navigate(`/bookings/${booking.id}/details`)}
+                className="p-1 text-gray-400 hover:text-[#ff914d]"
+                title="View Details"
+              >
+                <Eye className="h-5 w-5" />
+              </button>
+              <button
+                onClick={() => handleExportSingle(booking.id)}
+                className="p-1 text-gray-400 hover:text-blue-600"
+                title="Export"
+              >
+                <Download className="h-5 w-5" />
+              </button>
+              <Link
+                to={`/bookings/${booking.id}/send-voucher`}
+                className="p-1 text-gray-400 hover:text-green-600"
+                title="Send Voucher"
+              >
+                <Send className="h-5 w-5" />
+              </Link>
+            </div>
+          </div>
+        ))}
       </div>
 
       {filteredBookings.length === 0 && (

@@ -104,6 +104,7 @@ export const Sidebar = () => {
             return (
               <li key={item.name}>
                 <Link
+                  onClick={() => mobileOpen && setMobileOpen(false)}
                   to={item.href}
                   className={`flex items-center ${isCollapsed ? 'justify-center' : ''} px-4 py-3 text-sm font-medium rounded-lg transition-colors group ${
                     isActive

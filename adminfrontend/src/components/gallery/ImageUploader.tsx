@@ -177,7 +177,8 @@ export const ImageUploader = ({
         
         {/* Upload Button (shown if below max limit) */}
         {images.length < maxImages && (
-          <div 
+          <button
+            type="button"
             onClick={handleUploadClick}
             className="h-32 border-2 border-dashed border-gray-300 rounded-md flex flex-col items-center justify-center cursor-pointer hover:border-gray-400 transition-colors"
           >
@@ -192,7 +193,7 @@ export const ImageUploader = ({
                 <p className="text-xs text-gray-500">Add Image</p>
               </>
             )}
-          </div>
+          </button>
         )}
       </div>
 
