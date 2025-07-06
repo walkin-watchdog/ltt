@@ -484,6 +484,12 @@ model TeamMember {
   updatedAt   DateTime @default(now())
 }
 
+model partners {
+  id          String   @id @default(cuid())
+  imageUrl    String?
+  @@map("partners")
+}
+
 model FAQ {
   id       String   @id @default(cuid())
   category String

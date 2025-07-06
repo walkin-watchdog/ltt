@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { TeamManagement } from './TeamManagement';
 import { FAQManagement } from './FAQManagement';
 import { JobManagement } from './JobManagement';
-import { Users, HelpCircle, Briefcase } from 'lucide-react';
+import { PartnersManagement } from './PartnersManagement';
+import { Users, HelpCircle, Briefcase, Globe } from 'lucide-react';
 
 export const ContentIndex = () => {
   const [activeTab, setActiveTab] = useState('team');
@@ -10,7 +11,8 @@ export const ContentIndex = () => {
   const tabs = [
     { id: 'team', label: 'Team Members', icon: Users },
     { id: 'faqs', label: 'FAQs', icon: HelpCircle },
-    { id: 'jobs', label: 'Job Postings', icon: Briefcase }
+    { id: 'jobs', label: 'Job Postings', icon: Briefcase },
+    { id: 'partners', label: 'Partners', icon: Globe }
   ];
 
   return (
@@ -49,6 +51,7 @@ export const ContentIndex = () => {
           {activeTab === 'team' && <TeamManagement />}
           {activeTab === 'faqs' && <FAQManagement />}
           {activeTab === 'jobs' && <JobManagement />}
+          {activeTab === 'partners' && <PartnersManagement />}
         </div>
       </div>
     </div>

@@ -27,7 +27,7 @@ export const Gallery = () => {
   const fetchFolders = async () => {
     try {
       // Predefined folders that we already use in the system
-      const defaultFolders = ['gallery', 'products', 'destinations', 'itineraries', 'experiences', 'team'];
+      const defaultFolders = ['gallery', 'products', 'destinations', 'itineraries', 'experiences', 'team', 'partners'];
       setFolders(defaultFolders);
     } catch (error) {
       console.error('Error fetching folders:', error);

@@ -1,22 +1,67 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { Star, Clock, Users, MapPin } from 'lucide-react';
+import Slider from 'react-slick';
+import 'slick-carousel/slick/slick.css';
+import 'slick-carousel/slick/slick-theme.css';
 import { fetchProducts } from '../store/slices/productsSlice';
 import { PriceDisplay } from '../components/common/PriceDisplay';
 import { NewsletterSubscription } from '../components/common/NewsletterSubscription';
 import type { AppDispatch, RootState } from '../store/store';
 import { Helmet } from 'react-helmet-async';
 
+type ArrowProps = {
+  className?: string;
+  style?: React.CSSProperties;
+  onClick?: React.MouseEventHandler<HTMLDivElement>;
+};
+
+function NextArrow({ className, style, onClick }: ArrowProps) {
+  return (
+    <div
+      className={className}
+      style={{ ...style, display: 'block', background: '#231f20', borderRadius: '50%' }}
+      onClick={onClick}
+    />
+  );
+}
+
+function PrevArrow({ className, style, onClick }: ArrowProps) {
+  return (
+    <div
+      className={className}
+      style={{ ...style, display: 'block', background: '#231f20', borderRadius: '50%' }}
+      onClick={onClick}
+    />
+  );
+}
+
 export const Home = () => {
   const dispatch = useDispatch<AppDispatch>();
+  const [partners, setPartners] = useState<string[]>([]);
   const { products, isLoading } = useSelector((state: RootState) => state.products);
+  useEffect(() => {
+    fetch(`${import.meta.env.VITE_API_URL}/partners`)
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to fetch partners');
+        return res.json();
+      })
+      .then(data => setPartners(data.images.map((img: any) => img.url)))
+      .catch(err => console.error(err));
+  }, []);
 
   useEffect(() => {
     dispatch(fetchProducts({ limit: '6' }));
   }, [dispatch]);
 
   const featuredProducts = products.slice(0, 6);
+  const featuredTours = products
+    .filter(product => product.type === 'TOUR')
+    .slice(0, 6);
+  const featuredExperiences = products
+    .filter(product => product.type === 'EXPERIENCE')
+    .slice(0, 6);
 
   return (
     <div className="min-h-screen">
@@ -67,7 +112,7 @@ export const Home = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-[#104c57] mb-4">
-              Featured Experiences
+              Featured Packages
             </h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
               Embark on curated luxury journeys that transcend ordinary travel.
@@ -81,7 +126,7 @@ export const Home = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {featuredProducts.map((product) => (
+              {featuredTours.map((product) => (
                 <div key={product.id} className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
                   <div className="relative h-48">
                     <img
@@ -150,6 +195,96 @@ export const Home = () => {
               to="/destinations"
               className="bg-[#ff914d] text-white px-8 py-3 rounded-full text-lg font-semibold hover:bg-[#e8823d] transition-colors"
             >
+              View All Packages
+            </Link>
+          </div>
+        </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-10">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#104c57] mb-4">
+              Featured Experiences
+            </h2>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              Embark on curated luxury journeys that transcend ordinary travel.
+              Discover our bespoke selection of tours and experiences
+            </p>
+          </div>
+
+          {isLoading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#ff914d] mx-auto"></div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {featuredExperiences.map((product) => (
+                <div key={product.id} className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+                  <div className="relative h-48">
+                    <img
+                      src={product.images[0] || 'https://images.pexels.com/photos/2132227/pexels-photo-2132227.jpeg'}
+                      alt={product.title}
+                      className="w-full h-full object-cover"
+                    />
+                    {product.lowestDiscountedPackagePrice && (
+                      <div className="absolute top-4 left-4 bg-[#ff914d] text-white px-3 py-1 rounded-full text-sm font-semibold">
+                        Special Offer
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-6">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[#104c57] text-sm font-medium uppercase">
+                        {product.type}
+                      </span>
+                      <div className="flex items-center">
+                        <Star className="h-4 w-4 text-yellow-400 fill-current" />
+                        <span className="text-sm text-gray-600 ml-1">4.8</span>
+                      </div>
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">{product.title}</h3>
+                    <div className="flex items-center text-gray-600 mb-3">
+                      <MapPin className="h-4 w-4 mr-1" />
+                      <span className="text-sm">{product.location}</span>
+                      <Clock className="h-4 w-4 mr-1 ml-4" />
+                      <span className="text-sm">{product.duration}</span>
+                    </div>
+                    <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                      {product.description}
+                    </p>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        {product.lowestDiscountedPackagePrice ? ( 
+                          <>
+                           <PriceDisplay 
+                             amount={product.lowestDiscountedPackagePrice}
+                             originalAmount={product.lowestPackagePrice}
+                             currency="INR"
+                           />
+                          </>
+                        ) : (
+                         <PriceDisplay 
+                           amount={product.lowestPackagePrice || 0}
+                           currency="INR"
+                         />
+                        )}
+                      </div>
+                      <Link
+                       to={product.slug ? `/p/${product.slug}` : `/product/${product.id}`}
+                        className="bg-[#104c57] text-white px-4 py-2 rounded-lg hover:bg-[#0d3d47] transition-colors"
+                      >
+                        View Details
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="text-center mt-12">
+            <Link
+              to="/experiences"
+              className="bg-[#ff914d] text-white px-8 py-3 rounded-full text-lg font-semibold hover:bg-[#e8823d] transition-colors"
+            >
               View All Experiences
             </Link>
           </div>
@@ -193,6 +328,40 @@ export const Home = () => {
               </p>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Partners Slider */}
+      <section className="py-16 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-3xl md:text-4xl font-bold text-[#104c57] mb-8 text-center">
+            Our Partners
+          </h2>
+          <Slider
+            infinite
+            speed={400}
+            slidesToShow={4}
+            slidesToScroll={1}
+            nextArrow={<NextArrow />}
+            prevArrow={<PrevArrow />}
+            responsive={[
+              { breakpoint: 1024, settings: { slidesToShow: 4 } },
+              { breakpoint: 768, settings: { slidesToShow: 2 } },
+              { breakpoint: 480, settings: { slidesToShow: 1 } },
+            ]}
+          >
+            {partners.map((url) => (
+              <div key={url} className="px-2">
+                <div className="h-24 flex items-center justify-center bg-white rounded-lg shadow">
+                  <img
+                    src={url}
+                    alt="Partner logo"
+                    className="h-full object-contain p-2"
+                  />
+                </div>
+              </div>
+            ))}
+          </Slider>
         </div>
       </section>
 

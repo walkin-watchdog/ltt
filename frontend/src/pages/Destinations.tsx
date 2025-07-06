@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { MapPin, Clock, Star } from 'lucide-react';
+import { MapPin, Clock, Star, Users } from 'lucide-react';
 import { fetchProducts } from '../store/slices/productsSlice';
 import { PriceDisplay } from '../components/common/PriceDisplay';
 import type { AppDispatch, RootState } from '../store/store';
@@ -61,68 +61,14 @@ export const Destinations = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-[#104c57] mb-4">
-              Top Destinations
+              All Packgaes
             </h2>
             <p className="text-lg text-gray-600">
               Immerse in the heritage and vast culture of India
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
-            {destinationsLoading ? (
-              // Skeleton loading for destinations
-              Array(3).fill(0).map((_, index) => (
-                <div key={index} className="bg-white rounded-lg shadow-lg overflow-hidden animate-pulse">
-                  <div className="h-64 bg-gray-300"></div>
-                  <div className="p-6">
-                    <div className="h-6 bg-gray-300 rounded w-3/4 mb-3"></div>
-                    <div className="h-4 bg-gray-300 rounded w-1/2"></div>
-                  </div>
-                </div>
-              ))
-            ) : destinations.length === 0 ? (
-              <div className="col-span-3 text-center">
-                <p className="text-gray-600">No destinations available at the moment.</p>
-              </div>
-            ) : (
-              destinations.map((destination) => (
-              <Link
-                key={destination.slug}
-                to={`/destinations/${destination.slug}`}
-                className="group"
-              >
-                <div className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
-                  <div className="relative h-64">
-                    <img
-                      src={destination.image}
-                      alt={destination.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                    <div className="absolute inset-0 group-hover:bg-opacity-20 transition-opacity"></div>
-                    <div className="absolute bottom-4 left-4 text-white">
-                      <h3 className="text-2xl font-bold">{destination.name}</h3>
-                      <p className="text-sm opacity-90">{destination.tours} {products.filter(p => p.location.toLowerCase().includes(destination.name.toLowerCase())).length} Tours Available</p>
-                    </div>
-                  </div>
-                  <div className="p-6">
-                    <p className="text-gray-600">{destination.description}</p>
-                    <div className="mt-4 flex items-center text-[#ff914d]">
-                      <span className="font-medium">Explore Tours</span>
-                      <svg className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            )))}
-          </div>
-
           {/* All Tours */}
-          <div>
-            <h2 className="text-3xl font-bold text-[#104c57] mb-8 text-center">
-              All Tour Destinations
-            </h2>
-            
+          <div className="mb-15">
             {isLoading ? (
               <div className="text-center py-12">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#ff914d] mx-auto"></div>
@@ -192,6 +138,111 @@ export const Destinations = () => {
                 ))}
               </div>
             )}
+          </div>
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#104c57] mb-4">
+              Top Destinations
+            </h2>
+            <p className="text-lg text-gray-600">
+              Immerse in the heritage and vast culture of India
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+            {destinationsLoading ? (
+              // Skeleton loading for destinations
+              Array(3).fill(0).map((_, index) => (
+                <div key={index} className="bg-white rounded-lg shadow-lg overflow-hidden animate-pulse">
+                  <div className="h-64 bg-gray-300"></div>
+                  <div className="p-6">
+                    <div className="h-6 bg-gray-300 rounded w-3/4 mb-3"></div>
+                    <div className="h-4 bg-gray-300 rounded w-1/2"></div>
+                  </div>
+                </div>
+              ))
+            ) : destinations.length === 0 ? (
+              <div className="col-span-3 text-center">
+                <p className="text-gray-600">No destinations available at the moment.</p>
+              </div>
+            ) : (
+              destinations.map((destination) => (
+              <Link
+                key={destination.slug}
+                to={`/destinations/${destination.slug}`}
+                className="group"
+              >
+                <div className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+                  <div className="relative h-64">
+                    <img
+                      src={destination.image}
+                      alt={destination.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 group-hover:bg-opacity-20 transition-opacity"></div>
+                    <div className="absolute bottom-4 left-4 text-white">
+                      <h3 className="text-2xl font-bold">{destination.name}</h3>
+                      <p className="text-sm opacity-90">{destination.tours} {products.filter(p => p.location.toLowerCase().includes(destination.name.toLowerCase())).length} Tours Available</p>
+                    </div>
+                  </div>
+                  <div className="p-6">
+                    <p className="text-gray-600">{destination.description}</p>
+                    <div className="mt-4 flex items-center text-[#ff914d]">
+                      <span className="font-medium">Explore Tours</span>
+                      <svg className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            )))}
+          </div>
+        </div>
+      </section>
+      {/* Why Choose Our Packages */}
+      <section className="py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#104c57] mb-4">
+              Why Choose Our Packages
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="text-center">
+              <div className="bg-[#ff914d] w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Users className="h-8 w-8 text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-[#104c57] mb-2">Local Experts</h3>
+              <p className="text-gray-600">
+                Learn from master craftsmen and local experts who share their passion and knowledge
+              </p>
+            </div>
+            <div className="text-center">
+              <div className="bg-[#ff914d] w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Star className="h-8 w-8 text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-[#104c57] mb-2">Authentic Experiences</h3>
+              <p className="text-gray-600">
+                Genuine cultural immersion that goes beyond typical tourist activities
+              </p>
+            </div>
+            <div className="text-center">
+              <div className="bg-[#ff914d] w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <MapPin className="h-8 w-8 text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-[#104c57] mb-2">Unique Locations</h3>
+              <p className="text-gray-600">
+                Access to exclusive venues and hidden gems not found in guidebooks
+              </p>
+            </div>
+            <div className="text-center">
+              <div className="bg-[#ff914d] w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Clock className="h-8 w-8 text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-[#104c57] mb-2">Small Groups</h3>
+              <p className="text-gray-600">
+                Intimate group sizes ensure personalized attention and meaningful interactions
+              </p>
+            </div>
           </div>
         </div>
       </section>

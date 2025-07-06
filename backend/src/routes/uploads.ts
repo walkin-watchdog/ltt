@@ -6,9 +6,11 @@ import {
   uploadExperienceImages,
   uploadItineraryImages,
   uploadTeamImages,
+  uploadPartnersImages,
   UploadService 
 } from '../services/uploadService';
 import { authenticate, authorize } from '../middleware/auth';
+import { prisma } from '../utils/prisma';
 
 const router = express.Router();
 
@@ -172,6 +174,37 @@ router.post('/team', authenticate, authorize(['ADMIN', 'EDITOR']), uploadTeamIma
   }
 });
 
+router.post('/partners', authenticate, authorize(['ADMIN', 'EDITOR']), uploadPartnersImages.array('images', 10), async (req, res, next) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ error: 'No images provided' });
+    }
+
+    const files = req.files as Express.Multer.File[];
+    const uploadResults = [];
+
+      for (const file of files) {
+        const saved = await prisma.partners.create({
+          data: { imageUrl: (file as any).path },
+        });
+
+        uploadResults.push({
+          id: saved.id,
+          publicId: (file as any).filename,
+          url: saved.imageUrl,
+          originalName: file.originalname,
+        });
+      }
+
+    res.json({
+      success: true,
+      images: uploadResults,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // Delete image
 router.delete('/:publicId', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, next) => {
   try {
@@ -186,6 +219,27 @@ router.delete('/:publicId', authenticate, authorize(['ADMIN', 'EDITOR']), async 
     next(error);
   }
 });
+
+router.get(
+  '/partners',
+  authenticate,
+  authorize(['ADMIN', 'EDITOR', 'VIEWER']),
+  async (req, res, next) => {
+    try {
+      const partners = await prisma.partners.findMany();
+
+      res.json({
+        images: partners.map((p) => ({
+          id: p.id,
+          url: p.imageUrl,
+          bytes: 0,
+        })),
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
 
 // Get all images
 router.get('/:folder?', authenticate, authorize(['ADMIN', 'EDITOR', 'VIEWER']), async (req, res, next) => {

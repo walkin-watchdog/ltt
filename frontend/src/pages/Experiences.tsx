@@ -67,71 +67,14 @@ export const Experiences = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-[#104c57] mb-4">
-              Experience Categories
+              All Luxé Experiences
             </h2>
             <p className="text-lg text-gray-600">
               Choose from our curated collection of unique experiences
             </p>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
-            {categoriesLoading ? (
-              // Skeleton loading
-              [...Array(3)].map((_, index) => (
-                <div key={index} className="bg-white rounded-lg shadow-lg overflow-hidden animate-pulse">
-                  <div className="h-64 bg-gray-300"></div>
-                  <div className="p-6">
-                    <div className="h-6 bg-gray-300 rounded w-3/4 mb-3"></div>
-                    <div className="h-4 bg-gray-300 rounded w-1/2"></div>
-                  </div>
-                </div>
-              ))
-            ) : experienceCategories.length === 0 ? (
-              <div className="col-span-3 text-center py-12">
-                <p className="text-lg text-gray-600">No experience categories available at the moment.</p>
-              </div>
-            ) : (
-              experienceCategories.map((category) => (
-              <Link
-                key={category.slug}
-                to={`/experiences/${category.slug}`}
-                className="group"
-              >
-                <div className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
-                  <div className="relative h-64">
-                    <img
-                      src={category.image}
-                      alt={category.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                    <div className="absolute inset-0 group-hover:bg-opacity-20 transition-opacity"></div>
-                    <div className="absolute bottom-4 left-4 text-white">
-                      <h3 className="text-2xl font-bold">{category.name}</h3>
-                      <p className="text-sm opacity-90">
-                        {products.filter(p => p.category.toLowerCase().includes(category.name.toLowerCase())).length} Experiences Available
-                      </p>
-                    </div>
-                  </div>
-                  <div className="p-6">
-                    <p className="text-gray-600">{category.tagline}</p>
-                    <div className="mt-4 flex items-center text-[#ff914d]">
-                      <span className="font-medium">Explore Experiences</span>
-                      <svg className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            )))}
-          </div>
-
           {/* All Experiences */}
-          <div>
-            <h2 className="text-3xl font-bold text-[#104c57] mb-8 text-center">
-              All Luxé Experiences
-            </h2>
-            
+          <div className="mb-15">
             {isLoading ? (
               <div className="text-center py-12">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#ff914d] mx-auto"></div>
@@ -216,6 +159,65 @@ export const Experiences = () => {
                 ))}
               </div>
             )}
+          </div>
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#104c57] mb-4">
+              Luxé Experiences
+            </h2>
+            <p className="text-lg text-gray-600">
+              Choose from our curated collection of unique experiences
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+            {categoriesLoading ? (
+              // Skeleton loading
+              [...Array(3)].map((_, index) => (
+                <div key={index} className="bg-white rounded-lg shadow-lg overflow-hidden animate-pulse">
+                  <div className="h-64 bg-gray-300"></div>
+                  <div className="p-6">
+                    <div className="h-6 bg-gray-300 rounded w-3/4 mb-3"></div>
+                    <div className="h-4 bg-gray-300 rounded w-1/2"></div>
+                  </div>
+                </div>
+              ))
+            ) : experienceCategories.length === 0 ? (
+              <div className="col-span-3 text-center py-12">
+                <p className="text-lg text-gray-600">No experience categories available at the moment.</p>
+              </div>
+            ) : (
+              experienceCategories.map((category) => (
+              <Link
+                key={category.slug}
+                to={`/experiences/${category.slug}`}
+                className="group"
+              >
+                <div className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+                  <div className="relative h-64">
+                    <img
+                      src={category.image}
+                      alt={category.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 group-hover:bg-opacity-20 transition-opacity"></div>
+                    <div className="absolute bottom-4 left-4 text-white">
+                      <h3 className="text-2xl font-bold">{category.name}</h3>
+                      <p className="text-sm opacity-90">
+                        {products.filter(p => p.category.toLowerCase().includes(category.name.toLowerCase())).length} Experiences Available
+                      </p>
+                    </div>
+                  </div>
+                  <div className="p-6">
+                    <p className="text-gray-600">{category.tagline}</p>
+                    <div className="mt-4 flex items-center text-[#ff914d]">
+                      <span className="font-medium">Explore Experiences</span>
+                      <svg className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            )))}
           </div>
         </div>
       </section>

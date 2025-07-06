@@ -97,6 +97,19 @@ const teamStorage = new CloudinaryStorage({
   } as any,
 });
 
+// Cloudinary storage for Partners images
+const partnersStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'luxe-travel/partners',
+    allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+    eager: [
+      { width: 1200, height: 800, crop: 'fill', quality: 'auto' },
+    ],
+    eager_async: true,
+  } as any,
+});
+
 export const uploadProductImages = multer({
   storage: productStorage,
   limits: {
@@ -191,6 +204,24 @@ export const uploadTeamImages = multer({
   storage: teamStorage,
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB limit
+  },
+  fileFilter: async (_req, file, cb) => {
+    try {
+      const ok = await validateMagicBytes(file);
+      if (!ok) {
+        return cb(new Error('Unsupported image type'));
+      }
+      cb(null, true);
+    } catch (err) {
+      cb(err as Error);
+    }
+  },
+});
+
+export const uploadPartnersImages = multer({
+  storage: partnersStorage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
   },
   fileFilter: async (_req, file, cb) => {
     try {

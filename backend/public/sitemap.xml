@@ -2,85 +2,85 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>http://localhost:5174/</loc>
-    <lastmod>2025-07-05</lastmod>
+    <lastmod>2025-07-04</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1</priority>
   </url>
   <url>
     <loc>http://localhost:5174/destinations</loc>
-    <lastmod>2025-07-05</lastmod>
+    <lastmod>2025-07-04</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>http://localhost:5174/experiences</loc>
-    <lastmod>2025-07-05</lastmod>
+    <lastmod>2025-07-04</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>http://localhost:5174/blog</loc>
-    <lastmod>2025-07-05</lastmod>
+    <lastmod>2025-07-04</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>http://localhost:5174/offers</loc>
-    <lastmod>2025-07-05</lastmod>
+    <lastmod>2025-07-04</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>http://localhost:5174/about</loc>
-    <lastmod>2025-07-05</lastmod>
+    <lastmod>2025-07-04</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>http://localhost:5174/contact</loc>
-    <lastmod>2025-07-05</lastmod>
+    <lastmod>2025-07-04</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>http://localhost:5174/faq</loc>
-    <lastmod>2025-07-05</lastmod>
+    <lastmod>2025-07-04</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>http://localhost:5174/sustainable-travel</loc>
-    <lastmod>2025-07-05</lastmod>
+    <lastmod>2025-07-04</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>http://localhost:5174/policies</loc>
-    <lastmod>2025-07-05</lastmod>
+    <lastmod>2025-07-04</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>http://localhost:5174/plan-your-trip</loc>
-    <lastmod>2025-07-05</lastmod>
+    <lastmod>2025-07-04</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>http://localhost:5174/careers</loc>
-    <lastmod>2025-07-05</lastmod>
+    <lastmod>2025-07-04</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>http://localhost:5174/p/xzcxcz</loc>
-    <lastmod>2025-07-05</lastmod>
+    <loc>http://localhost:5174/p/adad</loc>
+    <lastmod>2025-07-04</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>http://localhost:5174/destinations/delhi-india</loc>
-    <lastmod>2025-07-05</lastmod>
+    <lastmod>2025-07-04</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
