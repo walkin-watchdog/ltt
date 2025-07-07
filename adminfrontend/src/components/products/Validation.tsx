@@ -8,7 +8,7 @@ export const validateTab = (tabId: string, formData: any) => {
     case 'images':
       return formData.images && formData.images.length > 0;
     case 'itinerary':
-      return formData.type !== 'TOUR' || (formData.itinerary && formData.itinerary.length > 0);
+      return formData.type !== 'TOUR' || (formData.itineraries && formData.itineraries.length > 0);
     case 'pickup':
       return formData.pickupOption;
     case 'content':
@@ -67,7 +67,7 @@ export const validateTabWithToast = (tabId: string, formData: any, toast: (t: Om
       }
       return true;
     case 'itinerary':
-      if (formData.type === 'TOUR' && (!formData.itinerary || formData.itinerary.length === 0)) {
+      if (formData.type === 'TOUR' && (!formData.itineraries || formData.itineraries.length === 0)) {
         toast({
           message: 'Please add at least one day to the itinerary for tours',
           type: 'error'

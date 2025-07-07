@@ -1,82 +1,517 @@
+import React, { useState, useEffect, useRef } from 'react';
 import type { RootState } from "../../store/store";
 import { useSelector } from "react-redux";
+import { Clock, ChevronDown, ChevronUp, MapPin, Navigation } from 'lucide-react';
 
- export const Itinerary = ({ itineraryRef }: {itineraryRef: React.RefObject<HTMLDivElement | null> }) => {
-    const { currentProduct } = useSelector((state: RootState) => state.products);
-    return (
-        
-        <div>
+// Google Maps types
+declare global {
+  interface Window {
+    google: any;
+  }
+}
 
- {currentProduct &&
-    currentProduct.type === 'TOUR' &&
-    currentProduct.itineraries &&
-    currentProduct.itineraries.length > 0 && (
-        <div ref={itineraryRef} className="bg-white rounded-lg shadow-sm p-6 mb-8 scroll-mt-20">
-                                    <h2 className="text-xl font-bold text-gray-900 mb-4">Itinerary</h2>
-                                    <div className="space-y-8">
-                                        {currentProduct.itineraries.map((day: any) => (
-                                            <section
-                                            key={day.day}
-                                            className="border-l-4 border-[#ff914d] pl-4 space-y-4"
-                                            >
-                                                {/* Day header */}
-                                                <header>
-                                                    <h3 className="font-semibold text-gray-900">
-                                                        Day&nbsp;{day.day}: {day.title}
-                                                    </h3>
-                                                    <p className="text-gray-700 mt-1">{day.description}</p>
-                                                </header>
+interface Activity {
+  id?: string;
+  location: string;
+  locationLat?: number;
+  locationLng?: number;
+  locationPlaceId?: string;
+  isStop: boolean;
+  description?: string;
+  stopDuration?: number;
+  duration?: number;
+  durationUnit?: string;
+  isAdmissionIncluded: boolean;
+  inclusions: string[];
+  exclusions: string[];
+  order: number;
+  lat?: number;
+  lng?: number;
+  placeId?: string;
+}
 
-                                                {/* Activities */}
-                                                {day.activities && day.activities.length > 0 && (
-                                                    <div>
-                                                        <h4 className="text-sm font-medium text-gray-800 mb-1">
-                                                            Activities
-                                                        </h4>
-                                                        <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
-                                                            {day.activities.map((act: any, idx: number) => (
-                                                                <li key={idx}>
-                                                                    <span className="font-semibold">{act.location}</span>
-                                                                    {act.isStop && (
-                                                                        <span className="ml-2 text-blue-600">
-                                                                            (Stop{act.stopDuration ? ` - ${act.stopDuration} min` : ''})
-                                                                        </span>
-                                                                    )}
-                                                                    {/* Optionally show inclusions/exclusions */}
-                                                                    {act.inclusions && act.inclusions.length > 0 && (
-                                                                        <span className="ml-2 text-green-600">
-                                                                            Includes: {act.inclusions.join(', ')}
-                                                                        </span>
-                                                                    )}
-                                                                    {act.exclusions && act.exclusions.length > 0 && (
-                                                                        <span className="ml-2 text-red-600">
-                                                                            Excludes: {act.exclusions.join(', ')}
-                                                                        </span>
-                                                                    )}
-                                                                </li>
-                                                            ))}
-                                                        </ul>
-                                                    </div>
-                                                )}
+interface ItineraryDay {
+  id?: string;
+  day: number;
+  title: string;
+  description: string;
+  images: string[];
+  activities: Activity[];
+}
 
-                                                {/* Images */}
-                                                {day.images && day.images.length > 0 && (
-                                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                                                        {day.images.map((img: string, idx: number) => (
-                                                            <img
-                                                            key={idx}
-                                                            src={img}
-                                                            alt={`Day ${day.day} ${idx + 1}`}
-                                                            className="w-full h-32 object-cover rounded"
-                                                            />
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </section>
-                                        ))}
-                                    </div>
+interface ExpandedActivities {
+  [key: string]: boolean;
+}
+
+export const Itinerary = ({ itineraryRef }: {itineraryRef: React.RefObject<HTMLDivElement | null> }) => {
+  const { currentProduct } = useSelector((state: RootState) => state.products);
+  const [selectedDay, setSelectedDay] = useState<number>(1);
+  const [expandedActivities, setExpandedActivities] = useState<ExpandedActivities>({});
+  const [showPickupInfo, setShowPickupInfo] = useState(false);
+  const mapRef = useRef<HTMLDivElement>(null);
+
+  // Initialize Google Maps when component mounts
+  useEffect(() => {
+    if (currentProduct?.itineraries && currentProduct.itineraries.length > 0) {
+      setSelectedDay(1);
+      loadGoogleMapsIfNeeded();
+    }
+  }, [currentProduct]);
+  console.log('current product',currentProduct)
+  // Load Google Maps script if needed
+  const loadGoogleMapsIfNeeded = () => {
+    if (window.google && window.google.maps) {
+      initializeMap();
+      return;
+    }
+
+    // Check if script is already loading
+    if (document.querySelector('script[src*="maps.googleapis.com"]')) {
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&libraries=places`;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+      initializeMap();
+    };
+    document.head.appendChild(script);
+  };
+
+  // Initialize map with markers
+  const initializeMap = () => {
+    if (!mapRef.current || !currentProduct?.itineraries) return;
+
+    const selectedDayData = getCurrentDayData();
+    if (!selectedDayData || !selectedDayData.activities.length) return;
+
+    const activities = selectedDayData.activities.filter(act => 
+      (act.locationLat && act.locationLng) || (act.lat && act.lng)
+    );
+
+    if (activities.length === 0) return;
+
+    const bounds = new window.google.maps.LatLngBounds();
+    const center = activities.length > 0 ? {
+      lat: activities[0].locationLat || activities[0].lat || 28.6139,
+      lng: activities[0].locationLng || activities[0].lng || 77.2090
+    } : { lat: 28.6139, lng: 77.2090 };
+
+    const map = new window.google.maps.Map(mapRef.current, {
+      zoom: 13,
+      center: center,
+      mapTypeId: window.google.maps.MapTypeId.ROADMAP,
+      styles: [
+        {
+          featureType: "poi",
+          elementType: "labels",
+          stylers: [{ visibility: "off" }]
+        }
+      ]
+    });
+
+    // Add markers for each activity
+    activities.forEach((activity, index) => {
+      const position = {
+        lat: activity.locationLat || activity.lat || 0,
+        lng: activity.locationLng || activity.lng || 0
+      };
+
+      const marker = new window.google.maps.Marker({
+        position: position,
+        map: map,
+        title: activity.location,
+        label: {
+          text: (index + 1).toString(),
+          color: 'white',
+          fontWeight: 'bold'
+        },
+        icon: {
+          path: window.google.maps.SymbolPath.CIRCLE,
+          scale: 20,
+          fillColor: '#ff914d',
+          fillOpacity: 1,
+          strokeColor: '#ffffff',
+          strokeWeight: 2
+        }
+      });
+
+      const infoWindow = new window.google.maps.InfoWindow({
+        content: `
+          <div style="max-width: 250px; padding: 8px;">
+            <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: bold; color: #1f2937;">
+              ${activity.location}
+            </h3>
+            ${activity.isStop ? `
+              <p style="margin: 0 0 4px 0; font-size: 12px; color: #6b7280;">
+                <strong>Stop:</strong> ${activity.stopDuration || 0} ${activity.durationUnit || 'minutes'}
+              </p>
+            ` : ''}
+            <p style="margin: 0 0 4px 0; font-size: 12px; color: ${activity.isAdmissionIncluded ? '#10b981' : '#ef4444'};">
+              <strong>Admission:</strong> ${activity.isAdmissionIncluded ? 'Included' : 'Not included'}
+            </p>
+            ${activity.description ? `
+              <p style="margin: 0; font-size: 11px; color: #6b7280;">
+                ${activity.description}
+              </p>
+            ` : ''}
+          </div>
+        `
+      });
+
+      marker.addListener('click', () => {
+        infoWindow.open(map, marker);
+      });
+
+      bounds.extend(position);
+    });
+
+    // Fit map to show all markers
+    if (activities.length === 1) {
+      map.setCenter(bounds.getCenter());
+      map.setZoom(15);
+    } else if (activities.length > 1) {
+      map.fitBounds(bounds);
+    }
+  };
+
+  // Update map when selected day changes
+  useEffect(() => {
+    if (window.google && window.google.maps) {
+      initializeMap();
+    }
+  }, [selectedDay]);
+
+  const getCurrentDayData = (): ItineraryDay | undefined => {
+    if (!currentProduct?.itineraries) return undefined;
+    
+    // Handle both numbered days and array index access
+    const dayData = currentProduct.itineraries.find((day: any) => day.day === selectedDay);
+    if (dayData) return dayData as unknown as ItineraryDay;
+    
+    // Fallback to itinerary array if structured differently
+    const itineraryArray = (currentProduct as any).itinerary || currentProduct.itineraries;
+    return itineraryArray?.[selectedDay - 1] as unknown as ItineraryDay;
+  };
+
+  const toggleActivity = (activityId: string) => {
+    setExpandedActivities(prev => ({
+      ...prev,
+      [activityId]: !prev[activityId]
+    }));
+  };
+
+  const formatDuration = (duration: number | undefined, unit: string = 'minutes') => {
+    if (!duration) return '';
+    return `${duration} ${unit}`;
+  };
+
+  const getPickupInfo = () => {
+    if (!currentProduct) return null;
+    
+    const {
+      pickupOption,
+      pickupStartTime,
+      additionalPickupDetails,
+      pickupLocationDetails
+    } = currentProduct as any;
+
+    return {
+      option: pickupOption || 'Details not available',
+      startTime: pickupStartTime || '30 minutes',
+      details: additionalPickupDetails || '',
+      locations: pickupLocationDetails || []
+    };
+  };
+
+  const getEndingInfo = () => {
+    if (!currentProduct) return "You'll return to the starting point";
+    
+    const { doesTourEndAtMeetingPoint, endPoints } = currentProduct as any;
+    
+    if (doesTourEndAtMeetingPoint) {
+      return "You'll return to the starting point";
+    }
+    
+    if (endPoints && endPoints.length > 0) {
+      return `Tour ends at: ${endPoints[0].address || 'designated location'}`;
+    }
+    
+    return "You'll return to the starting point";
+  };
+
+  if (!currentProduct ||
+      currentProduct.type !== 'TOUR' ||
+      !currentProduct.itineraries ||
+      currentProduct.itineraries.length === 0) {
+    return null;
+  }
+
+  const itineraryDays = currentProduct.itineraries || [];
+  const currentDayData = getCurrentDayData();
+
+  return (
+    <div ref={itineraryRef} className="bg-white rounded-lg shadow-sm p-6 mb-8 scroll-mt-20">
+      <h2 className="text-xl font-bold text-gray-900 mb-6">Itinerary</h2>
+      
+      {/* Day Selector Tabs */}
+      <div className="mb-6">
+        <div className="flex space-x-2 overflow-x-auto pb-2 scrollbar-hide">
+          {itineraryDays.map((day: any) => (
+            <button
+              key={day.day}
+              onClick={() => setSelectedDay(day.day)}
+              className={`flex-shrink-0 px-4 py-3 rounded-lg border-2 transition-all duration-200 ${
+                selectedDay === day.day
+                  ? 'bg-[#ff914d] text-white border-[#ff914d]'
+                  : 'bg-white text-gray-700 border-gray-200 hover:border-[#ff914d] hover:text-[#ff914d]'
+              }`}
+            >
+              <div className="text-sm font-medium">Day {day.day}</div>
+              <div className="text-xs opacity-90 truncate max-w-32">
+                {day.title}
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Main Content */}
+      {currentDayData && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Left Column - Timeline */}
+          <div className="space-y-6">
+            {/* Day Header */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Day {currentDayData.day}: {currentDayData.title}
+              </h3>
+              <p className="text-gray-700 text-sm">
+                {currentDayData.description}
+              </p>
+            </div>
+
+            {/* Pickup Information */}
+            <div className="relative">
+              <div className="flex items-center mb-4">
+                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3">
+                  <Navigation className="w-4 h-4 text-green-600" />
+                </div>
+                <div>
+                  <h4 className="font-medium text-gray-900">You'll get picked up</h4>
+                  <button
+                    onClick={() => setShowPickupInfo(!showPickupInfo)}
+                    className="text-sm text-[#ff914d] hover:underline"
+                  >
+                    See pickup and meeting information
+                  </button>
+                </div>
+              </div>
+
+              {/* Pickup Details */}
+              {showPickupInfo && (
+                <div className="ml-11 bg-blue-50 rounded-lg p-4 mb-4">
+                  <div className="space-y-2 text-sm">
+                    <p><strong>Pickup Option:</strong> {getPickupInfo()?.option}</p>
+                    <p><strong>Pickup Time:</strong> {getPickupInfo()?.startTime} before departure</p>
+                    {getPickupInfo()?.details && (
+                      <p><strong>Details:</strong> {getPickupInfo()?.details}</p>
+                    )}
+                    {getPickupInfo()?.locations && getPickupInfo()?.locations.length > 0 && (
+                      <div>
+                        <p><strong>Pickup Locations:</strong></p>
+                        <ul className="list-disc list-inside mt-1 space-y-1">
+                          {getPickupInfo()?.locations.map((location: any, idx: number) => (
+                            <li key={idx} className="text-xs text-gray-600">
+                              {location.address}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Vertical Line */}
+              <div className="absolute left-4 top-12 w-0.5 bg-gray-300 h-full"></div>
+            </div>
+
+            {/* Activities Timeline */}
+            <div className="space-y-6">
+              {currentDayData.activities.map((activity: Activity, index: number) => {
+                const activityId = `${selectedDay}-${index}`;
+                const isExpanded = expandedActivities[activityId];
+                
+                return (
+                  <div key={activityId} className="relative">
+                    {/* Activity Marker */}
+                    <div className="flex items-start">
+                      <div className="w-8 h-8 bg-[#ff914d] rounded-full flex items-center justify-center mr-3 z-10">
+                        <span className="text-white text-sm font-bold">{index + 1}</span>
+                      </div>
+                      
+                      <div className="flex-1">
+                        <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-gray-900 mb-2">
+                                {activity.location}
+                              </h4>
+                              
+                              <div className="flex items-center space-x-4 text-sm text-gray-600 mb-2">
+                                {activity.isStop && (
+                                  <div className="flex items-center">
+                                    <Clock className="w-4 h-4 mr-1" />
+                                    <span>Stop: {formatDuration(activity.stopDuration, activity.durationUnit)}</span>
+                                  </div>
+                                )}
+                                
+                                <div className={`px-2 py-1 rounded-full text-xs ${
+                                  activity.isAdmissionIncluded 
+                                    ? 'bg-green-100 text-green-800' 
+                                    : 'bg-red-100 text-red-800'
+                                }`}>
+                                  {activity.isAdmissionIncluded ? 'Admission included' : 'Admission not included'}
                                 </div>
-                            )}
+                              </div>
                             </div>
+                            
+                            {(activity.description || activity.inclusions.length > 0 || activity.exclusions.length > 0) && (
+                              <button
+                                onClick={() => toggleActivity(activityId)}
+                                className="ml-2 p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                              >
+                                {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                              </button>
+                            )}
+                          </div>
+                          
+                          {/* Expanded Content */}
+                          {isExpanded && (
+                            <div className="mt-4 pt-4 border-t border-gray-100 space-y-3">
+                              {activity.description && (
+                                <p className="text-sm text-gray-700">{activity.description}</p>
+                              )}
+                              
+                              {activity.inclusions.length > 0 && (
+                                <div>
+                                  <h5 className="text-sm font-medium text-green-800 mb-1">Inclusions:</h5>
+                                  <ul className="text-sm text-gray-600 space-y-1">
+                                    {activity.inclusions.map((inclusion, idx) => (
+                                      <li key={idx} className="flex items-start">
+                                        <span className="text-green-500 mr-2">•</span>
+                                        {inclusion}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                              
+                              {activity.exclusions.length > 0 && (
+                                <div>
+                                  <h5 className="text-sm font-medium text-red-800 mb-1">Exclusions:</h5>
+                                  <ul className="text-sm text-gray-600 space-y-1">
+                                    {activity.exclusions.map((exclusion, idx) => (
+                                      <li key={idx} className="flex items-start">
+                                        <span className="text-red-500 mr-2">•</span>
+                                        {exclusion}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Vertical line continues */}
+                    {index < currentDayData.activities.length - 1 && (
+                      <div className="absolute left-4 top-12 w-0.5 bg-gray-300 h-6"></div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
 
-                        )}
+            {/* End Point */}
+            <div className="relative">
+              <div className="flex items-center">
+                <div className="w-8 h-8 bg-gray-400 rounded-full flex items-center justify-center mr-3">
+                  <MapPin className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <h4 className="font-medium text-gray-900">{getEndingInfo()}</h4>
+                </div>
+              </div>
+            </div>
+
+            {/* Day Images */}
+            {currentDayData.images && currentDayData.images.length > 0 && (
+              <div className="mt-6">
+                <h4 className="font-medium text-gray-900 mb-3">Day {currentDayData.day} Photos</h4>
+                <div className="grid grid-cols-2 gap-2">
+                  {currentDayData.images.map((image: string, idx: number) => (
+                    <img
+                      key={idx}
+                      src={image}
+                      alt={`Day ${currentDayData.day} photo ${idx + 1}`}
+                      className="w-full h-32 object-cover rounded-lg shadow-sm"
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Right Column - Map */}
+          <div className="lg:sticky lg:top-6 lg:self-start">
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h4 className="font-medium text-gray-900 mb-4 flex items-center">
+                <MapPin className="w-4 h-4 mr-2" />
+                Route Map - Day {currentDayData.day}
+              </h4>
+              
+              <div className="bg-white rounded-lg overflow-hidden shadow-sm">
+                <div
+                  ref={mapRef}
+                  className="w-full h-96 bg-gray-100 flex items-center justify-center"
+                >
+                  {!window.google ? (
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ff914d] mx-auto mb-2"></div>
+                      <p className="text-gray-500 text-sm">Loading map...</p>
+                    </div>
+                  ) : (
+                    <div className="text-center">
+                      <MapPin className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                      <p className="text-gray-500 text-sm">Map will appear here</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Map Legend */}
+              <div className="mt-4 text-xs text-gray-600">
+                <div className="flex items-center space-x-4">
+                  <div className="flex items-center">
+                    <div className="w-4 h-4 bg-[#ff914d] rounded-full mr-2"></div>
+                    <span>Activity locations</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-4 h-4 bg-green-500 rounded-full mr-2"></div>
+                    <span>Pickup point</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};

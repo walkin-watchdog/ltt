@@ -113,23 +113,33 @@ export const BookingFlow = () => {
     }
   }, [currentProduct, searchParams, navigate]);
 
-  useEffect(() => {
-    if (currentProduct && formData.selectedPackage && formData.selectedDate && formData.selectedTimeSlot) {
-      const cutoffTime = currentProduct.cutoffTime || 24;
-      const { isBookable, reason } = isSlotBookable(
-        formatDate(parse(formData.selectedDate, 'MM/dd/yyyy', new Date()), 'yyyy-MM-dd'),
-        formData.selectedTimeSlot,
-        cutoffTime
-      );
-      
-      if (!isBookable) {
-        toast.error(reason || 'This time slot is no longer available for booking');
-        // Redirect back to product page
-        navigate(`/product/${currentProduct.id}`, { replace: true });
-        return;
-      }
+ useEffect(() => {
+  if (
+    currentProduct &&
+    formData.selectedPackage &&
+    formData.selectedDate &&
+    formData.selectedTimeSlot
+  ) {
+    // Validate date before parsing
+    const parsedDate = parse(formData.selectedDate, 'MM/dd/yyyy', new Date());
+    if (isNaN(parsedDate.getTime())) {
+      // Invalid date, skip or handle error
+      return;
     }
-  }, [currentProduct, formData.selectedPackage, formData.selectedDate, formData.selectedTimeSlot, navigate]);
+    const cutoffTime = currentProduct.cutoffTime || 24;
+    const { isBookable, reason } = isSlotBookable(
+      formatDate(parsedDate, 'yyyy-MM-dd'),
+      formData.selectedTimeSlot,
+      cutoffTime
+    );
+
+    if (!isBookable) {
+      toast.error(reason || 'This time slot is no longer available for booking');
+      navigate(`/product/${currentProduct.id}`, { replace: true });
+      return;
+    }
+  }
+}, [currentProduct, formData.selectedPackage, formData.selectedDate, formData.selectedTimeSlot, navigate]);
 
   const calculateTotal = useCallback(() => {
     const basePrice = formData.selectedPackage?.basePrice || 0;

@@ -174,7 +174,7 @@ export const ProductForm = () => {
       return missing;
     },
     images: f => !f.images?.length ? ['At least one image'] : [],
-    itinerary: f => (f.duration !== 'Full Day' && f.duration !== 'Half Day' && (f.itinerary?.length || 0) < (parseInt(f.duration)||1))
+    itinerary: f => (f.duration !== 'Full Day' && f.duration !== 'Half Day' && (f.itineraries?.length || 0) < (parseInt(f.duration)||1))
       ? [`At least ${(parseInt(f.duration)||1)} itinerary day(s)`] : [],
     pickup: f => {
       const m: string[] = [];
@@ -370,12 +370,12 @@ export const ProductForm = () => {
     }
     if (
       formData.type === 'TOUR' &&
-      formData.itinerary &&
+      formData.itineraries &&
       formData.duration &&
       formData.duration !== 'Full Day'
     ) {
       const expectedDays = parseInt(formData.duration.split(' ')[0]) || 2;
-      if (formData.itinerary.length < expectedDays) {
+      if (formData.itineraries.length < expectedDays) {
         toast({
           message: `You must add at least ${expectedDays} days to the itinerary for a ${formData.duration} tour.`,
           type: 'error'
@@ -393,8 +393,9 @@ export const ProductForm = () => {
           ? `${formData.pickupStartTimeValue} ${formData.pickupStartTimeUnit}`
           : '',
     };
-    console.log(formData.pickupStartTimeUnit, formData.pickupStartTimeValue);
-    console.log(formData.pickupStartTime);
+    console.log('payload', payload)
+    // console.log(formData.pickupStartTimeUnit, formData.pickupStartTimeValue);
+    // console.log(formData.pickupStartTime);
     try {
       const url = isEdit
         ? `${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/products/${id}`

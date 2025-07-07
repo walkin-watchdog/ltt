@@ -62,6 +62,9 @@ export const ProductContentTab = ({
   const [editingDay, setEditingDay] = useState<ItineraryDay | null>(null);
   const [newActivity, setNewActivity] = useState<ItineraryActivity>({
     location: '',
+    lat: undefined,
+    lng: undefined,
+    placeId: undefined,
     isStop: false,
     stopDuration: undefined,
     durationUnit: 'minutes',
@@ -69,6 +72,7 @@ export const ProductContentTab = ({
     inclusions: [],
     exclusions: [],
     order: 0,
+    description: '',
   });
   const [isDestinationModalOpen, setIsDestinationModalOpen] = useState(false);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
@@ -76,7 +80,7 @@ export const ProductContentTab = ({
   useEffect(() => {
     setPickupOption(formData.pickupOption || '');
   }, [formData.pickupOption]);
-  
+
   const isDraft = formData.isDraft;
 
   const getAllowedDays = () => {
@@ -96,12 +100,6 @@ export const ProductContentTab = ({
   const [activityExclusionCustomTitle, setActivityExclusionCustomTitle] = useState('');
   const [activityExclusionCustomDescription, setActivityExclusionCustomDescription] = useState('');
   const [showActivityExclusionCustomForm, setShowActivityExclusionCustomForm] = useState(false);
-
-  useEffect(() => {
-    if (formData.itineraries && formData.itineraries.length > 0) {
-      updateFormData({ itinerary: formData.itineraries });
-    }
-  }, [formData.itineraries]);
 
   const handleTabChange = (newTabId: string) => {
     const currentTabIndex = contentTabs.findIndex(tab => tab.id === activeContentTab);
@@ -159,6 +157,9 @@ export const ProductContentTab = ({
 
       setNewActivity({
         location: '',
+        lat: undefined,
+        lng: undefined,
+        placeId: undefined,
         isStop: false,
         stopDuration: undefined,
         durationUnit: 'minutes',
@@ -166,6 +167,7 @@ export const ProductContentTab = ({
         inclusions: [],
         exclusions: [],
         order: 0,
+        description: '',
       });
     }
   };
@@ -191,7 +193,7 @@ export const ProductContentTab = ({
       activities: activitiesWithOrder
     };
 
-    const currentItinerary = formData.itinerary || formData.itineraries || [];
+    const currentItinerary = formData.itineraries || [];
     const existingIndex = currentItinerary.findIndex((day: ItineraryDay) => day.day === dayToSave.day);
 
     const next = existingIndex >= 0
@@ -201,13 +203,13 @@ export const ProductContentTab = ({
       .sort((a: ItineraryDay, b: ItineraryDay) => a.day - b.day)
       .map((d: ItineraryDay, idx: number) => ({ ...d, day: idx + 1 }));
 
-    updateFormData({ itinerary: updatedItinerary });
+    updateFormData({ itineraries: updatedItinerary });
     setEditingDay(null);
     setShowItineraryBuilder(false);
   };
 
   const createNewDay = () => {
-    const currentItinerary = formData.itinerary || formData.itineraries || [];
+    const currentItinerary = formData.itineraries || [];
     const maxDays = getAllowedDays();
     if (currentItinerary.length >= maxDays) {
       toast({ message: `Itinerary already has the maximum of ${maxDays} day${maxDays > 1 ? 's' : ''}.`, type: 'error' });
@@ -231,10 +233,10 @@ export const ProductContentTab = ({
   };
 
   const removeDay = (dayNumber: number) => {
-    const currentItinerary = formData.itinerary || formData.itineraries || [];
+    const currentItinerary = formData.itineraries || [];
     const filtered = currentItinerary.filter((day: ItineraryDay) => day.day !== dayNumber);
     const renumbered = filtered.map((d: ItineraryDay, idx: number) => ({ ...d, day: idx + 1 }));
-    updateFormData({ itinerary: renumbered });
+    updateFormData({ itineraries: renumbered });
   };
 
   const addItem = (field: string, value: string) => {
@@ -413,11 +415,10 @@ export const ProductContentTab = ({
                 <button
                   key={tab.id}
                   onClick={() => handleTabChange(tab.id)}
-                  className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                    activeContentTab === tab.id
-                      ? 'bg-[#ff914d] text-white'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
+                  className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${activeContentTab === tab.id
+                    ? 'bg-[#ff914d] text-white'
+                    : 'text-gray-700 hover:bg-gray-100'
+                    }`}
                 >
                   <Icon className="h-5 w-5 mr-2" />
                   <span className="flex-1 text-left">{tab.name}</span>
@@ -447,7 +448,7 @@ export const ProductContentTab = ({
                 >
                   <ChevronLeft className="h-5 w-5" />
                 </button>
-                
+
                 <div className="flex-1 text-center">
                   <button
                     onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -456,7 +457,7 @@ export const ProductContentTab = ({
                     {contentTabs.find(tab => tab.id === activeContentTab)?.name}
                   </button>
                 </div>
-                
+
                 <button
                   onClick={handleNext}
                   disabled={!canGoNext()}
@@ -465,7 +466,7 @@ export const ProductContentTab = ({
                   <ChevronRight className="h-5 w-5" />
                 </button>
               </div>
-              
+
               {/* Mobile Menu Dropdown */}
               {isMobileMenuOpen && (
                 <div className="absolute z-20 left-0 right-0 bg-white border-b border-gray-200 shadow-lg">
@@ -477,9 +478,8 @@ export const ProductContentTab = ({
                         <button
                           key={tab.id}
                           onClick={() => handleTabChange(tab.id)}
-                          className={`w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 ${
-                            activeContentTab === tab.id ? 'bg-orange-50 text-[#ff914d]' : 'text-gray-700'
-                          }`}
+                          className={`w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 ${activeContentTab === tab.id ? 'bg-orange-50 text-[#ff914d]' : 'text-gray-700'
+                            }`}
                         >
                           <div className="flex items-center space-x-3">
                             <Icon className="h-5 w-5" />
@@ -509,11 +509,10 @@ export const ProductContentTab = ({
                   <button
                     key={tab.id}
                     onClick={() => handleTabChange(tab.id)}
-                    className={`py-4 px-3 border-b-2 font-medium text-sm transition-colors flex items-center space-x-2 whitespace-nowrap flex-shrink-0 min-w-max ${
-                      activeContentTab === tab.id
-                        ? 'border-[#ff914d] text-[#ff914d]'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                    }`}
+                    className={`py-4 px-3 border-b-2 font-medium text-sm transition-colors flex items-center space-x-2 whitespace-nowrap flex-shrink-0 min-w-max ${activeContentTab === tab.id
+                      ? 'border-[#ff914d] text-[#ff914d]'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      }`}
                   >
                     <Icon className="h-4 w-4" />
                     <span className="hidden lg:inline">{tab.name}</span>

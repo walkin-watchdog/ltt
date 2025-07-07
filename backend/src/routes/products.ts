@@ -60,7 +60,7 @@ const productSchema = z.object({
   highlights: z.array(z.string()),
   inclusions: z.array(z.string()),
   exclusions: z.array(z.string()),
-  itinerary: z.array(itinerarySchema).optional(),
+  itineraries: z.array(itinerarySchema).optional(),
   packages: z.array(z.object({
     name: z.string().min(1),
     description: z.string().min(1),
@@ -458,7 +458,7 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
     const data = draft
       ? productSchema.partial().parse(draft)
       : productSchema.parse(req.body);
-    const { blockedDates = [], itinerary = [], packages = [], accessibilityFeatures = [], isDraft = false, ...rest } = data;
+    const { blockedDates = [], itineraries= [], packages = [], accessibilityFeatures = [], isDraft = false, ...rest } = data;
 
     const baseSlug = generateSlug(rest.title ?? `draft-${Date.now()}`);
 
@@ -538,9 +538,9 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
             }))
           }
         }),
-        ...(itinerary.length && {
+        ...(itineraries.length && {
           itineraries: {
-            create: itinerary.map(day => ({
+            create: itineraries.map(day => ({
               day: day.day,
               title: day.title,
               description: day.description,
@@ -726,7 +726,7 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
   try {
     let data = productSchema.partial().parse(req.body);
 
-    const { blockedDates, itinerary, packages, ...rest } = data;
+    const { blockedDates, itineraries, packages, ...rest } = data;
 
     if (data.guides) {
       data.guides = data.guides.map(guide => ({
@@ -800,13 +800,13 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
         }
       }
 
-      if (itinerary) {
+      if (itineraries) {
         await tx.itineraryActivity.deleteMany({
           where: { itinerary: { productId: req.params.id } }
         });
         await tx.itinerary.deleteMany({ where: { productId: req.params.id } });
-        if (itinerary.length > 0) {
-          for (const day of itinerary) {
+        if (itineraries.length > 0) {
+          for (const day of itineraries) {
             await tx.itinerary.create({
               data: {
                 productId: req.params.id,

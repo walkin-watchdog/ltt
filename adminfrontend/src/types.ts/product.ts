@@ -126,7 +126,7 @@ export interface ProductFormData {
   highlights: string[];
   inclusions: string[];
   exclusions: string[];
-  itinerary?: ItineraryDay[];
+  itineraries?: ItineraryDay[];
   tags: string[];
   
   // Location & Meeting

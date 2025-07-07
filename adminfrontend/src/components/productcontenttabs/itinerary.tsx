@@ -15,7 +15,7 @@ export const ItineraryTab = ({
             {formData.type === 'TOUR' ? (
                 <>
                     <div className="mb-4 text-red-600 text-sm">
-                        {formData.itinerary?.length < (formData.duration && formData.duration !== 'Full Day' ?
+                        {formData.itineraries?.length < (formData.duration && formData.duration !== 'Full Day' ?
                             parseInt(formData.duration.split(' ')[0]) || 2 : 2) &&
                             `You must add at least ${formData.duration && formData.duration !== 'Full Day' ?
                                 parseInt(formData.duration.split(' ')[0]) || 2 : 2} days to the itinerary for a ${formData.duration && formData.duration !== 'Full Day' ?
@@ -29,20 +29,20 @@ export const ItineraryTab = ({
                         <button
                             type="button"
                             onClick={createNewDay}
-                            className={`flex items-center px-4 py-2 rounded-md transition-colors text-white ${(formData.itinerary?.length || 0) >= getAllowedDays()
+                            className={`flex items-center px-4 py-2 rounded-md transition-colors text-white ${(formData.itineraries?.length || 0) >= getAllowedDays()
                                 ? 'bg-gray-300 cursor-not-allowed'
                                 : 'bg-[#ff914d] hover:bg-[#e8823d]'
                                 }`}
-                            disabled={(formData.itinerary?.length || 0) >= getAllowedDays()}
+                            disabled={(formData.itineraries?.length || 0) >= getAllowedDays()}
                         >
                             <Calendar className="h-4 w-4 mr-2" />
                             Add Day
                         </button>
                     </div>
 
-                    {formData.itinerary && formData.itinerary.length > 0 ? (
+                    {formData.itineraries && formData.itineraries.length > 0 ? (
                         <div className="space-y-4">
-                            {formData.itinerary.map((day: ItineraryDay) => (
+                            {formData.itineraries.map((day: ItineraryDay) => (
                                 <div key={day.day} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
                                     <div className="flex items-center justify-between mb-2">
                                         <h4 className="font-medium text-gray-900">Day {day.day}: {day.title}</h4>
