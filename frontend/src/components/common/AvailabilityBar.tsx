@@ -239,7 +239,6 @@ const BarUI = ({
               >
                 <div>
                   <p className="font-semibold">{label}</p>
-                  <p className="text-sm text-gray-600">${price}</p>
                 </div>
                 <div className="flex items-center space-x-6">
                   <CircleBtn

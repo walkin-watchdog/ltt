@@ -41,7 +41,7 @@ model Product {
   duration    String?     @default("")
   capacity    Int?     @default(1)
   minPeople   Int?     @default(1)
-  tourType    String?     @default("")
+  tourType    String?     @default("public")
   highlights  String[]     @default([])
   inclusions  String[]     @default([])
   exclusions  String[]     @default([])

@@ -57,9 +57,9 @@ const productSchema = z.object({
   duration: z.string().min(1),
   capacity: z.number().min(1),
   minparticipants: z.number().min(1).optional().default(1),
-  highlights: z.array(z.string()),
+  highlights: z.array(z.string()).optional().default([]),
   inclusions: z.array(z.string()),
-  exclusions: z.array(z.string()),
+  exclusions: z.array(z.string()).optional().default([]),
   itineraries: z.array(itinerarySchema).optional(),
   packages: z.array(z.object({
     name: z.string().min(1),
@@ -175,7 +175,7 @@ const productSchema = z.object({
   infantSeatsRequired: z.string().min(1).default('no').optional(),
   infantSeatsAvailable: z.string().min(1).default('no').optional(),
   phonenumber: z.string().default(''),
-  tourType: z.string().default(''),
+  tourType: z.string().default('public').optional(),
   cutoffTime: z.number().min(0).optional().default(24), 
   passportDetailsOption: z.string().optional(),
 });

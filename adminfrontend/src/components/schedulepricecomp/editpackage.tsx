@@ -76,7 +76,7 @@ return (
               </label>
               <input
                 type="number"
-                name="MaxTravellersPerBooking"
+                name="maxPeople"
                 min={1}
                 value={packageFormData.maxPeople}
                 onChange={handlePackageChange}

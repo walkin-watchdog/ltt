@@ -13,9 +13,7 @@ export const validateTab = (tabId: string, formData: any) => {
       return formData.pickupOption;
     case 'content':
       return (
-        (formData.highlights && formData.highlights.length > 0) ||
         (formData.inclusions && formData.inclusions.length > 0) ||
-        (formData.exclusions && formData.exclusions.length > 0) ||
         (formData.tags && formData.tags.length > 0)
       );
     case 'details':

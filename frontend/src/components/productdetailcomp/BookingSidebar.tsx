@@ -319,19 +319,29 @@ export const BookingSidebar = ({
                             </span>
                         </div>
 
-                        {childrenCount > 0 && (
+                        {/* Children Pricing or Not Allowed Message */}
+                        {selectedPackage.ageGroups?.child?.enabled !== false ? (
+                            childrenCount > 0 && (
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm text-gray-700">Children:</span>
+                                    <span className="text-sm font-medium">
+                                        {childrenCount} × {selectedPackage.currency === 'INR' ? '₹' : selectedPackage.currency === 'USD' ? '$' : selectedPackage.currency === 'EUR' ? '€' : '£'}
+                                        {selectedSlot.childTiers && selectedSlot.childTiers.length > 0
+                                            ? selectedSlot.childTiers[0].price.toLocaleString()
+                                            : (calculateEffectivePrice(
+                                                selectedPackage.basePrice,
+                                                selectedPackage.discountType,
+                                                selectedPackage.discountValue
+                                            ) * 0.5).toLocaleString()
+                                        }
+                                    </span>
+                                </div>
+                            )
+                        ) : (
                             <div className="flex items-center justify-between">
                                 <span className="text-sm text-gray-700">Children:</span>
-                                <span className="text-sm font-medium">
-                                    {childrenCount} × {selectedPackage.currency === 'INR' ? '₹' : selectedPackage.currency === 'USD' ? '$' : selectedPackage.currency === 'EUR' ? '€' : '£'}
-                                    {selectedSlot.childTiers && selectedSlot.childTiers.length > 0
-                                        ? selectedSlot.childTiers[0].price.toLocaleString()
-                                        : (calculateEffectivePrice(
-                                            selectedPackage.basePrice,
-                                            selectedPackage.discountType,
-                                            selectedPackage.discountValue
-                                        ) * 0.5).toLocaleString()
-                                    }
+                                <span className="text-sm font-medium text-red-500">
+                                    Children are not allowed in this tour
                                 </span>
                             </div>
                         )}
@@ -346,12 +356,16 @@ export const BookingSidebar = ({
                                         selectedPackage.discountType,
                                         selectedPackage.discountValue
                                     )) +
-                                    childrenCount * (selectedSlot.childTiers?.[0]?.price ||
-                                        (calculateEffectivePrice(
-                                            selectedPackage.basePrice,
-                                            selectedPackage.discountType,
-                                            selectedPackage.discountValue
-                                        ) * 0.5))).toLocaleString()}
+                                    (selectedPackage.ageGroups?.child?.enabled !== false
+                                        ? childrenCount * (selectedSlot.childTiers?.[0]?.price ||
+                                            (calculateEffectivePrice(
+                                                selectedPackage.basePrice,
+                                                selectedPackage.discountType,
+                                                selectedPackage.discountValue
+                                            ) * 0.5))
+                                        : 0
+                                    )
+                                ).toLocaleString()}
                             </span>
                         </div>
 
