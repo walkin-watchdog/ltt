@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Search, X, FolderOpen, Loader, Check, Trash } from 'lucide-react';
 import { useToast } from '../ui/toaster';
@@ -18,6 +18,8 @@ export const ImageBrowser = ({
   const { token } = useAuth();
   const toast = useToast();
   const [images, setImages] = useState<any[]>([]);
+  const toastRef = useRef(toast);
+  useEffect(() => { toastRef.current = toast }, [toast]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedImages, setSelectedImages] = useState<string[]>(preSelectedImages);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
@@ -34,9 +36,9 @@ export const ImageBrowser = ({
       setFolders(defaultFolders);
     } catch (error) {
       console.error('Error fetching folders:', error);
-      toast({ message: 'Failed to load folders', type: 'error' });
+      toastRef.current({ message: 'Failed to load folders', type: 'error' });
     }
-  }, [toast]);
+  }, []);
 
   const fetchImages = useCallback(async (cursor = '', loadMore = false) => {
     if (loadMore) setLoadingMore(true);
@@ -72,12 +74,12 @@ export const ImageBrowser = ({
       }
     } catch (error) {
       console.error('Error fetching images:', error);
-      toast({ message: 'Failed to load images', type: 'error' });
+      toastRef.current({ message: 'Failed to load images', type: 'error' });
     } finally {
       if (loadMore) setLoadingMore(false);
       else setIsLoading(false);
     }
-  }, [activeFolder, token, toast]);
+  }, [activeFolder, token]);
 
   const searchImages = useCallback(async () => {
     if (!searchTerm.trim()) {
@@ -106,11 +108,11 @@ export const ImageBrowser = ({
       }
     } catch (error) {
       console.error('Error searching images:', error);
-      toast({ message: 'Failed to search images', type: 'error' });
+      toastRef.current({ message: 'Failed to search images', type: 'error' });
     } finally {
       setIsLoading(false);
     }
-  }, [searchTerm, token, toast, fetchImages]);
+  }, [searchTerm, token, fetchImages]);
 
   useEffect(() => {
     if (isOpen) {
@@ -120,10 +122,9 @@ export const ImageBrowser = ({
   }, [isOpen, fetchFolders, preSelectedImages]);
 
   useEffect(() => {
-    if (isOpen) {
-      fetchImages();
-    }
-  }, [isOpen, activeFolder, fetchImages]);
+    if (!isOpen) return;
+    fetchImages();
+  }, [isOpen, activeFolder]);
 
   const debouncedSearch = useCallback(() => {
     const handler = setTimeout(() => {

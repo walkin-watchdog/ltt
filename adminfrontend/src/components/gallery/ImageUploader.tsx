@@ -6,6 +6,18 @@ import axios from 'axios';
 import { ImageBrowser } from './ImageBrowser';
 import type { ImageUploaderProps } from '@/types.ts';
 
+const extractPublicId = (url: string): string => {
+  try {
+    const pathname = new URL(url).pathname;
+    const segments = pathname.split('/').filter(Boolean);
+    const versionIndex = segments.findIndex(s => /^v\d+$/.test(s));
+    const idSegments = versionIndex >= 0 ? segments.slice(versionIndex + 1) : segments;
+    const publicIdWithExt = idSegments.join('/');
+    return publicIdWithExt.replace(/\.[^/.]+$/, '');
+  } catch {
+    return '';
+  }
+}
 
 export const ImageUploader = ({
   images = [],
@@ -84,10 +96,29 @@ export const ImageUploader = ({
     }
   };
 
-  const handleRemoveImage = (index: number) => {
-    const newImages = [...images];
-    newImages.splice(index, 1);
-    onChange(newImages);
+  const handleRemoveImage = async (index: number) => {
+    const imageEntry = (images as any[])[index];
+    const publicId = typeof imageEntry === 'string'
+      ? extractPublicId(imageEntry)
+      : imageEntry.id;
+
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/uploads/${publicId}`,
+        {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      if (!res.ok) throw new Error('Delete failed');
+      const updated = [...images];
+      updated.splice(index, 1);
+      onChange(updated);
+      toast({ message: 'Image deleted successfully', type: 'success' });
+    } catch (err) {
+      console.error('Error deleting image:', err);
+      toast({ message: 'Failed to delete image', type: 'error' });
+    }
   };
 
   const handleMoveImage = (index: number, direction: 'up' | 'down') => {
