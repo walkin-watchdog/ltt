@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { Calendar, User, CreditCard, CheckCircle, Phone, Mail, MapPin, CalendarIcon, AlertTriangle, Clock } from 'lucide-react';
+import { Calendar, User, CreditCard, CheckCircle, MapPin, CalendarIcon, AlertTriangle, Clock } from 'lucide-react';
 import { useAbandonedCart } from '../hooks/useAbandonedCart';
 import { PriceDisplay } from '../components/common/PriceDisplay';
 import type { RootState, AppDispatch } from '../store/store';
@@ -29,6 +29,7 @@ interface BookingFormData {
 export const BookingFlow = () => {
   const { productId } = useParams<{ productId: string }>();
   const [searchParams] = useSearchParams();
+  const recoverToken = searchParams.get('recoverToken');
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
   
@@ -64,11 +65,14 @@ export const BookingFlow = () => {
       const slotId = searchParams.get('slot');
       const timeParam = searchParams.get('time');
       if (date) {
-        const iso = formatDate(parse(date, 'MM/dd/yyyy', new Date()), 'yyyy-MM-dd');
-        if (iso) {
-          date = iso
+        const parsed = parse(date, 'MM/dd/yyyy', new Date());
+        if (!isNaN(parsed.getTime())) {
+          date = formatDate(parsed, 'MM/dd/yyyy');
         } else {
-          date = '';
+          const isoParsed = new Date(date);
+          date = isNaN(isoParsed.getTime())
+            ? ''
+            : formatDate(isoParsed, 'MM/dd/yyyy');
         }
       }
   
@@ -204,8 +208,50 @@ export const BookingFlow = () => {
     appliedDiscount
   ]);
 
-  const { saveAbandonedCart } = useAbandonedCart(productId);
+  const { saveAbandonedCart, clearAbandonedCart } = useAbandonedCart(productId);
   const beganRef = useRef(false);
+
+  useEffect(() => {
+    if (!recoverToken || !productId || !currentProduct) return;
+    (async () => {
+      try {
+        const resp = await fetch(
+          `${import.meta.env.VITE_API_URL}/abandoned-carts/recover/${recoverToken}`,
+          { credentials: 'include' }
+        );
+        if (!resp.ok) return;
+        const data = await resp.json();
+
+        setFormData(prev => {
+          let pkg = prev.selectedPackage;
+          if (currentProduct && data.packageId) {
+            const foundPkg = currentProduct.packages?.find((p: any) => p.id === data.packageId);
+            if (foundPkg) pkg = foundPkg;
+          }
+
+          let slot = prev.selectedSlot;
+          if (pkg && data.slotId) {
+            const foundSlot = (pkg.slots || []).find((s: any) => s.id === data.slotId);
+            if (foundSlot) slot = foundSlot;
+          }
+          return {
+            ...prev,
+            selectedPackage:  pkg,
+            selectedSlot:     slot,
+            customerName:     data.customerName    ?? prev.customerName,
+            customerEmail:    data.customerEmail   ?? prev.customerEmail,
+            customerPhone:    data.customerPhone   ?? prev.customerPhone,
+            adults:           data.adults         ?? prev.adults,
+            children:         data.children       ?? prev.children,
+            selectedDate:     data.selectedDate   ?? prev.selectedDate,
+            selectedTimeSlot: data.selectedTimeSlot ?? prev.selectedTimeSlot,
+          };
+        });
+      } catch (err) {
+        console.error('Failed to recover abandoned cart:', err);
+      }
+    })();
+  }, [recoverToken, productId, currentProduct]);
 
   useEffect(() => {
     if (productId) {
@@ -238,23 +284,37 @@ export const BookingFlow = () => {
     
     // Check for recovered cart from abandonment
     const recoveryData = sessionStorage.getItem('recover_cart');
-    if (recoveryData) {
+    if (recoveryData && currentProduct) {
       try {
         const cartData = JSON.parse(recoveryData);
         if (cartData.productId === productId) {
-          // Pre-fill customer data from abandoned cart
-          setFormData(prev => ({
-            ...prev,
-            customerName: cartData.customerName || prev.customerName,
-            customerEmail: cartData.customerEmail || prev.customerEmail,
-            customerPhone: cartData.customerPhone || prev.customerPhone,
-            adults: cartData.adults || prev.adults,
-            children: cartData.children || prev.children,
-            selectedDate: cartData.selectedDate || prev.selectedDate,
-            selectedTimeSlot: cartData.selectedTimeSlot || prev.selectedTimeSlot
-          }));
-          
-          // Clear recovery data after successful application
+          setFormData(prev => {
+
+            let pkg = prev.selectedPackage;
+            if (currentProduct && cartData.packageId) {
+              const foundPkg = currentProduct.packages?.find((p: any) => p.id === cartData.packageId);
+              if (foundPkg) pkg = foundPkg;
+            }
+
+            let slot = prev.selectedSlot;
+            if (pkg && cartData.slotId) {
+              const foundSlot = (pkg.slots || []).find((s: any) => s.id === cartData.slotId);
+              if (foundSlot) slot = foundSlot;
+            }
+
+            return {
+              ...prev,
+              selectedPackage: pkg,
+              selectedSlot: slot,
+              customerName:    cartData.customerName   || prev.customerName,
+              customerEmail:   cartData.customerEmail  || prev.customerEmail,
+              customerPhone:   cartData.customerPhone  || prev.customerPhone,
+              adults:          cartData.adults ?? prev.adults,
+              children:        cartData.children ?? prev.children,
+              selectedDate:    cartData.selectedDate   || prev.selectedDate,
+              selectedTimeSlot:cartData.selectedTimeSlot|| prev.selectedTimeSlot,
+            };
+          });
           sessionStorage.removeItem('recover_cart');
         }
       } catch (e) {
@@ -262,13 +322,13 @@ export const BookingFlow = () => {
       }
     }
     
-  }, [formData, currentStep, emailBlurred, calculateTotal]);
+  }, [formData, currentStep, emailBlurred, calculateTotal, currentProduct]);
 
   const handleStepSubmit = async () => {
     if (currentStep === 1) {
       // Validate step 1
       if (!formData.selectedDate || formData.adults < 1) {
-        alert('Please select number of people');
+        toast.error('Please select number of people');
         return;
       }
       setCurrentStep(2);
@@ -276,12 +336,12 @@ export const BookingFlow = () => {
       
       // Validate step 2 and create booking
       if (!formData.customerName || !formData.customerEmail || !formData.customerPhone) {
-        alert('Please fill in all required customer details');
+        toast.error('Please fill in all required customer details');
         return;
       }
       
       if (!formData.selectedPackage || !formData.selectedTimeSlot) {
-        alert('Please select a package and time slot');
+        toast.error('Please select a package and time slot');
         return;
       }
 
@@ -301,9 +361,11 @@ export const BookingFlow = () => {
 
       try {
         await dispatch(createBooking(bookingData)).unwrap();
+        clearAbandonedCart(formData.customerEmail);
         setCurrentStep(3);
       } catch (error) {
         console.error('Booking failed:', error);
+        toast.error('Booking Failed')
       }
     } else if (currentStep === 3) {
       // Proceed to payment
@@ -350,11 +412,11 @@ export const BookingFlow = () => {
             if (verifyResponse.ok) {
               setCurrentStep(4);
             } else {
-              alert('Payment verification failed');
+              toast.error('Payment verification failed');
             }
           } catch (error) {
             console.error('Payment verification error:', error);
-            alert('Payment verification failed');
+            toast.error('Payment verification failed');
           }
         },
         prefill: {
@@ -371,7 +433,7 @@ export const BookingFlow = () => {
       rzp.open();
     } catch (error) {
       console.error('Payment initialization error:', error);
-      alert('Failed to initialize payment');
+      toast.error('Failed to initialize payment');
     }
   };
 

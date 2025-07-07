@@ -371,10 +371,13 @@ model AbandonedCart {
   email         String
   productId     String
   packageId     String?
+  slotId        String?
   customerData  Json
   remindersSent Int      @default(0)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+  recoverToken  String?  @unique
+  tokenExpiresAt DateTime?
 
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 

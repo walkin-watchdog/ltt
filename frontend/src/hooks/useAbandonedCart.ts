@@ -132,7 +132,7 @@ export const useAbandonedCart = (productId?: string) => {
     debouncedBroadcast(key, null);
     debouncedPost.cancel?.();
     latestPayload.current = null;
-    hasCleared.current    = true;
+    hasCleared.current    = false;
     setCart(null);
   };
 

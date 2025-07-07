@@ -98,12 +98,6 @@ export const ProductContentTab = ({
   const [activityExclusionCustomDescription, setActivityExclusionCustomDescription] = useState('');
   const [showActivityExclusionCustomForm, setShowActivityExclusionCustomForm] = useState(false);
 
-  useEffect(() => {
-    if (formData.itineraries && formData.itineraries.length > 0) {
-      updateFormData({ itinerary: formData.itineraries });
-    }
-  }, [formData.itineraries]);
-
   const handleTabChange = (newTabId: string) => {
     const currentTabIndex = contentTabs.findIndex(tab => tab.id === activeContentTab);
     const newTabIndex = contentTabs.findIndex(tab => tab.id === newTabId);

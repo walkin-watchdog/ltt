@@ -26,7 +26,7 @@ export function isSlotBookable(
   selectedDate: string, // Format: 'YYYY-MM-DD' or 'MM/dd/yyyy'
   slotTime: string, // Format: 'HH:mm'
   cutoffTimeHours: number = 24
-): { isBookable: boolean; reason?: string } {
+): { isBookable: boolean; reason: string } {
   try {
     // Parse the selected date
     let bookingDate: Date;
@@ -71,7 +71,7 @@ export function isSlotBookable(
       }
     }
     
-    return { isBookable: true };
+    return { isBookable: true, reason: '' };
   } catch (error) {
     console.error('Error checking slot bookability:', error);
     return {

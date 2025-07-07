@@ -1,5 +1,7 @@
 import express from 'express';
 import { z } from 'zod';
+import crypto from 'crypto';
+import rateLimit from 'express-rate-limit';
 import { prisma } from '../utils/prisma'
 import { authenticate, authorize } from '../middleware/auth';
 import { EmailService } from '../services/emailService';
@@ -11,6 +13,7 @@ const abandonedCartSchema = z.object({
   email: z.string().email(),
   productId: z.string(),
   packageId: z.string().optional(),
+  slotId: z.string().optional(),
   customerData: z.object({
     customerName: z.string(),
     customerEmail: z.string().email(),
@@ -23,6 +26,11 @@ const abandonedCartSchema = z.object({
   })
 });
 
+const TOKEN_TTL_HOURS = 24;
+function newRecoverToken() {
+  return crypto.randomUUID();
+}
+
 // Create abandoned cart entry
 router.post('/', async (req, res, next) => {
   try {
@@ -33,7 +41,8 @@ router.post('/', async (req, res, next) => {
       where: {
         email: data.email,
         productId: data.productId,
-        packageId: data.packageId || null
+        packageId: data.packageId || null,
+        slotId: data.slotId || null
       }
     });
 
@@ -44,7 +53,9 @@ router.post('/', async (req, res, next) => {
         data: {
           customerData: data.customerData,
           updatedAt: new Date(),
-          remindersSent: 0 // Reset reminders for updated cart
+          remindersSent: 0, // Reset reminders for updated cart
+          recoverToken: existingCart.recoverToken ?? newRecoverToken(),
+          tokenExpiresAt: new Date(Date.now() + TOKEN_TTL_HOURS * 3_600_000)
         }
       });
       return res.json({ ...updatedCart, status: 'open' });
@@ -56,7 +67,10 @@ router.post('/', async (req, res, next) => {
         email: data.email,
         productId: data.productId,
         packageId: data.packageId,
-        customerData: data.customerData
+        slotId: data.slotId,
+        customerData: data.customerData,
+        recoverToken: newRecoverToken(),
+        tokenExpiresAt: new Date(Date.now() + TOKEN_TTL_HOURS * 3_600_000)
       }
     });
 
@@ -205,6 +219,39 @@ router.post('/:id/convert', async (req, res, next) => {
     });
 
     res.json(booking);
+  } catch (error) {
+    next(error);
+  }
+});
+
+const recoverLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,  // 15 min
+  max     : 100,
+  standardHeaders: true,
+  legacyHeaders  : false
+});
+
+router.get('/recover/:token', recoverLimiter, async (req, res, next) => {
+  try {
+    const { token } = req.params;
+
+    const cart = await prisma.abandonedCart.findFirst({
+      where: {
+        recoverToken : token,
+        tokenExpiresAt: { gte: new Date() }
+      }
+    });
+
+    if (!cart) return res.status(404).json({ error: 'Invalid or expired token' });
+
+    const safe = {
+      productId       : cart.productId,
+      packageId       : cart.packageId,
+      slotId          : cart.slotId,
+      ...(cart.customerData as Record<string, unknown>),
+      updatedAt       : cart.updatedAt
+    };
+    res.json(safe);
   } catch (error) {
     next(error);
   }

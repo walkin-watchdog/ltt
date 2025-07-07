@@ -124,7 +124,7 @@ export class EmailService {
         customerName: sanitize(cart.customerData.customerName),
         productTitle: sanitize(product.title),
         productImage: sanitize(product.images[0]),
-        bookingUrl: `${process.env.FRONTEND_URL}/book/${product.id}`,
+        bookingUrl: `${process.env.FRONTEND_URL}/book/${product.id}?recoverToken=${cart.recoverToken}`,
         companyName: process.env.COMPANY_NAME,
       },
     };

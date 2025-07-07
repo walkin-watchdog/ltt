@@ -11,6 +11,9 @@ interface AbandonedCartNotificationProps {
     adults?: number;
     children?: number;
     date: string;
+    customerName?: string;
+    customerEmail?: string;
+    customerPhone?: string;
   };
   onDismiss: () => void;
 }
@@ -20,6 +23,13 @@ export const AbandonedCartNotification: React.FC<AbandonedCartNotificationProps>
   onDismiss 
 }) => {
   const [isExiting, setIsExiting] = useState(false);
+
+  const isInBookingFlow =
+    typeof window !== 'undefined' &&
+    window.location.pathname.includes(`/book/${cart.productId}`) &&
+    new URLSearchParams(window.location.search).get('recover') === 'true';
+
+  if (isInBookingFlow) return null;
 
   const handleDismiss = () => {
     setIsExiting(true);
@@ -40,7 +50,10 @@ export const AbandonedCartNotification: React.FC<AbandonedCartNotificationProps>
       adults: cart.adults || 2,
       children: cart.children || 0,
       selectedDate: cart.date,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      customerName : cart.customerName  || '',
+      customerEmail: cart.customerEmail || '',
+      customerPhone: cart.customerPhone || '',
     }));
   };
 

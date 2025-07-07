@@ -72,9 +72,16 @@ function App() {
 
     setAbandonedCart({
       productId: open.cartData.productId,
+      packageId: open.cartData.packageId,
+      slotId: open.cartData.slotId || '',
       productTitle: open.cartData.productTitle || '',
       date: open.cartData.selectedDate || new Date().toISOString(),
       selectedTimeSlot: open.cartData.selectedTimeSlot || '',
+      adults: open.cartData.adults,
+      children: open.cartData.children,
+      customerName: open.cartData.customerName || '',
+      customerEmail: open.cartData.customerEmail || '',
+      customerPhone: open.cartData.customerPhone || '',
     });
   }, [email]);
 
