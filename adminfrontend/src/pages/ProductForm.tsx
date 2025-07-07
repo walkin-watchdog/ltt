@@ -410,9 +410,8 @@ export const ProductForm = () => {
           ? `${formData.pickupStartTimeValue} ${formData.pickupStartTimeUnit}`
           : '',
     };
-    console.log('payload', payload)
-    // console.log(formData.pickupStartTimeUnit, formData.pickupStartTimeValue);
-    // console.log(formData.pickupStartTime);
+    console.log(formData.pickupStartTimeUnit, formData.pickupStartTimeValue);
+    console.log(formData.pickupStartTime);
     try {
       const url = isEdit
         ? `${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/products/${id}`

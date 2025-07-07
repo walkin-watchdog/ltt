@@ -106,9 +106,9 @@ export const EditItineraryModel = ({
                             setNewActivity({
                               ...newActivity,
                               location: location,
-                              locationLat: lat,
-                              locationLng: lng,
-                              locationPlaceId: placeId,
+                              lat,
+                              lng,
+                              placeId,
                             })
                           }
                           placeholder="Activity location"
@@ -426,10 +426,6 @@ export const EditItineraryModel = ({
                                 inclusions: [],
                                 exclusions: [],
                                 order: 0,
-                                description: '',
-                                lat: undefined,
-                                lng: undefined,
-                                placeId: undefined,
                               });
                               setEditingActivityIndex(null);
                             }}
@@ -442,10 +438,7 @@ export const EditItineraryModel = ({
                             onClick={() => {
                               if (editingDay && editingActivityIndex !== null) {
                                 const updatedActivities = [...editingDay.activities];
-                                updatedActivities[editingActivityIndex] = {
-                                  ...newActivity, order: editingActivityIndex,
-                                };
-                                console.log('updated activity', updatedActivities)
+                                updatedActivities[editingActivityIndex] = { ...newActivity, order: editingActivityIndex };
                                 setEditingDay({ ...editingDay, activities: updatedActivities });
                                 setNewActivity({
                                   location: '',
@@ -456,10 +449,6 @@ export const EditItineraryModel = ({
                                   inclusions: [],
                                   exclusions: [],
                                   order: 0,
-                                  description: '',
-                                  lat: undefined,
-                                  lng: undefined,
-                                  placeId: undefined,
                                 });
                                 setEditingActivityIndex(null);
                               }
