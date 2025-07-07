@@ -238,10 +238,22 @@ router.post('/slides', authenticate, authorize(['ADMIN', 'EDITOR']), uploadSlide
 });
 
 // Delete image
-router.delete('/:publicId', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, next) => {
+router.delete('/:publicId(.*)', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, next) => {
   try {
     const { publicId } = req.params;
     const result = await UploadService.deleteImage(publicId);
+
+    if (result.result === 'ok') {
+      if (publicId.startsWith('luxe-travel/partners/')) {
+        await prisma.partners.deleteMany({
+          where: { imageUrl: { contains: publicId } },
+        });
+      } else if (publicId.startsWith('luxe-travel/slides/')) {
+        await prisma.slides.deleteMany({
+          where: { imageUrl: { contains: publicId } },
+        });
+      }
+    }
     
     res.json({
       success: true,
@@ -251,48 +263,6 @@ router.delete('/:publicId', authenticate, authorize(['ADMIN', 'EDITOR']), async 
     next(error);
   }
 });
-
-router.get(
-  '/partners',
-  authenticate,
-  authorize(['ADMIN', 'EDITOR', 'VIEWER']),
-  async (req, res, next) => {
-    try {
-      const partners = await prisma.partners.findMany();
-
-      res.json({
-        images: partners.map((p) => ({
-          id: p.id,
-          url: p.imageUrl,
-          bytes: 0,
-        })),
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-router.get(
-  '/slides',
-  authenticate,
-  authorize(['ADMIN', 'EDITOR', 'VIEWER']),
-  async (req, res, next) => {
-    try {
-      const slides = await prisma.slides.findMany();
-
-      res.json({
-        images: slides.map((s) => ({
-          id: s.id,
-          url: s.imageUrl,
-          bytes: 0,
-        })),
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-);
 
 // Get all images
 router.get('/:folder?', authenticate, authorize(['ADMIN', 'EDITOR', 'VIEWER']), async (req, res, next) => {
