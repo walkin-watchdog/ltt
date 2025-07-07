@@ -247,6 +247,23 @@ export const ProductForm = () => {
 
   // Transform slots data to slotConfigs format for the form
   const transformProductDataForForm = (product: any) => {
+    const normaliseCoords = (day: any) => ({
+      ...day,
+      activities: day.activities.map((a: any) => ({
+        ...a,
+        lat:     a.lat     ?? a.locationLat     ?? null,
+        lng:     a.lng     ?? a.locationLng     ?? null,
+        placeId: a.placeId ?? a.locationPlaceId ?? null,
+      })),
+    });
+
+    if (product?.itineraries?.length) {
+      product.itineraries = product.itineraries.map(normaliseCoords);
+    }
+    if (product?.itinerary?.length) {
+      product.itinerary = product.itinerary.map(normaliseCoords);
+    }
+    
     if (product && product.packages) {
       const transformedPackages = product.packages.map((pkg: any) => {
         // Only transform if slots exist and slotConfigs doesn't
