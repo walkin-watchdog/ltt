@@ -161,6 +161,13 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
   };
 
   const handleSavePackage = () => {
+    if (packageFormData.maxPeople > formData.capacity) {
+      toast({
+        message: `Max travellers per booking (${packageFormData.maxPeople}) cannot exceed product capacity (${formData.capacity})`,
+        type: 'error'
+      });
+      return;
+    }
     const updatedPackages = formData.packages ? [...formData.packages] : [];
 
     // Deep clone ageGroups to avoid reference issues
