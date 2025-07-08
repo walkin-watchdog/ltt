@@ -27,7 +27,8 @@ handleAddInclusionFromCategory,
 handleAddInclusion,
 handleRemoveInclusion,
 newInclusion,
-setNewInclusion
+setNewInclusion,
+maxCapacity, // New prop for max capacity
 }: EditPackageProps) => {
 
 return (
@@ -79,6 +80,7 @@ return (
                 name="maxPeople"
                 min={1}
                 value={packageFormData.maxPeople}
+                max={maxCapacity}
                 onChange={handlePackageChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
                 required

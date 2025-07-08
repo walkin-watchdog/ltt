@@ -234,6 +234,7 @@ export interface EditItineraryModelProps {
 
 // Package and Slot Props
 export interface EditPackageProps {
+  maxCapacity: number; // New prop for max capacity
   isAddingPackage: boolean;
   isEditingPackage: boolean;
   setIsAddingPackage: (value: boolean) => void;

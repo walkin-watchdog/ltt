@@ -420,6 +420,7 @@ export const SchedulePriceTab: React.FC<SchedulePriceTabProps> = ({
         />
       </div>
       <EditPackage
+        maxCapacity={formData.capacity}
         isAddingPackage={isAddingPackage}
         isEditingPackage={isEditingPackage}
         setIsAddingPackage={setIsAddingPackage}

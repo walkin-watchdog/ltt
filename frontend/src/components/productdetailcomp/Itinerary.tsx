@@ -257,25 +257,27 @@ export const Itinerary = ({ itineraryRef }: { itineraryRef: React.RefObject<HTML
       <h2 className="text-xl font-bold text-gray-900 mb-6">Itinerary</h2>
 
       {/* Day Selector Tabs */}
-      <div className="mb-6">
-        <div className="flex space-x-2 overflow-x-auto pb-2 scrollbar-hide">
-          {itineraryDays.map((day: any) => (
-            <button
-              key={day.day}
-              onClick={() => setSelectedDay(day.day)}
-              className={`flex-shrink-0 px-4 py-3 rounded-lg border-2 transition-all duration-200 ${selectedDay === day.day
+      {itineraryDays.length > 1 && (
+        <div className="mb-6">
+          <div className="flex space-x-2 overflow-x-auto pb-2 scrollbar-hide">
+            {itineraryDays.map((day: any) => (
+              <button
+                key={day.day}
+                onClick={() => setSelectedDay(day.day)}
+                className={`flex-shrink-0 px-4 py-3 rounded-lg border-2 transition-all duration-200 ${selectedDay === day.day
                   ? 'bg-[#ff914d] text-white border-[#ff914d]'
                   : 'bg-white text-gray-700 border-gray-200 hover:border-[#ff914d] hover:text-[#ff914d]'
-                }`}
-            >
-              <div className="text-sm font-medium">Day {day.day}</div>
-              <div className="text-xs opacity-90 truncate max-w-32">
-                {day.title}
-              </div>
-            </button>
-          ))}
+                  }`}
+              >
+                <div className="text-sm font-medium">Day {day.day}</div>
+                <div className="text-xs opacity-90 truncate max-w-32">
+                  {day.title}
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Main Content */}
       {currentDayData && (
@@ -285,7 +287,10 @@ export const Itinerary = ({ itineraryRef }: { itineraryRef: React.RefObject<HTML
             {/* Day Header */}
             <div className="bg-gray-50 rounded-lg p-4">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Day {currentDayData.day}: {currentDayData.title}
+                {itineraryDays.length === 1
+                  ? <>Trip Plan{currentDayData.title ? `: ${currentDayData.title}` : ''}</>
+                  : <>Day {currentDayData.day}: {currentDayData.title}</>
+                }
               </h3>
               <p className="text-gray-700 text-sm">
                 {currentDayData.description}
@@ -369,8 +374,8 @@ export const Itinerary = ({ itineraryRef }: { itineraryRef: React.RefObject<HTML
                                 )}
 
                                 <div className={`px-2 py-1 rounded-full text-xs ${activity.isAdmissionIncluded
-                                    ? 'bg-green-100 text-green-800'
-                                    : 'bg-red-100 text-red-800'
+                                  ? 'bg-green-100 text-green-800'
+                                  : 'bg-red-100 text-red-800'
                                   }`}>
                                   {activity.isAdmissionIncluded ? 'Admission included' : 'Admission not included'}
                                 </div>
@@ -471,7 +476,9 @@ export const Itinerary = ({ itineraryRef }: { itineraryRef: React.RefObject<HTML
             <div className="bg-gray-50 rounded-lg p-4">
               <h4 className="font-medium text-gray-900 mb-4 flex items-center">
                 <MapPin className="w-4 h-4 mr-2" />
-                Route Map - Day {currentDayData.day}
+                {itineraryDays.length === 1
+                  ? "Trip Route"
+                  : `Route Map - Day ${currentDayData.day}`}
               </h4>
 
               <div className="bg-white rounded-lg overflow-hidden shadow-sm">
