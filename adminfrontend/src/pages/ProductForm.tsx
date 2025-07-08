@@ -183,18 +183,23 @@ export const ProductForm = () => {
         return ['Please add at least one itinerary day'];
       }
 
-      if (typeof f.duration === 'string' && f.duration.includes('Hour')) {
-        if (f.itineraries!.length !== 1) {
-          return ['For hourly duration, only one itinerary day is allowed'];
-        }
+      if (typeof f.duration === 'string' &&
+          (f.duration.includes('Hour') || f.duration === 'Full Day' || f.duration === 'Half Day')
+      ) {
+          if (f.itineraries!.length !== 1) {
+              return ['Hourly, Full Day, and Half Day tours require exactly one itinerary day'];
+          }
       }
 
-      if (
-        typeof f.duration === 'string' &&
-        !f.duration.includes('Hour') &&
-        (f.itineraries!.length < (parseInt(f.duration) || 1))
+      if (typeof f.duration === 'string' &&
+          !f.duration.includes('Hour') &&
+          f.duration !== 'Full Day' &&
+          f.duration !== 'Half Day'
       ) {
-        return [`At least ${(parseInt(f.duration) || 1)} itinerary day(s)`];
+          const expected = parseInt(f.duration, 10) || 1;
+          if (f.itineraries!.length !== expected) {
+              return [`Itinerary must have exactly ${expected} day(s)`];
+          }
       }
       return [];
     },
