@@ -4,6 +4,7 @@ import {
   ShoppingCart,
   Calendar,
   Mail,
+  Phone,
   Clock,
   User,
   Send,
@@ -215,6 +216,10 @@ export const AbandonedCarts = () => {
                     <div className="flex items-center text-xs text-gray-500">
                       <Mail className="h-3 w-3 mr-1" />
                       {cart.email}
+                    </div>
+                    <div className="flex items-center text-xs text-gray-500">
+                      <Phone className="h-3 w-3 mr-1" />
+                      {cart.customerData.customerPhone}
                     </div>
                   </div>
                 </div>

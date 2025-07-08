@@ -26,8 +26,7 @@ export const AbandonedCartNotification: React.FC<AbandonedCartNotificationProps>
 
   const isInBookingFlow =
     typeof window !== 'undefined' &&
-    window.location.pathname.includes(`/book/${cart.productId}`) &&
-    new URLSearchParams(window.location.search).get('recover') === 'true';
+    window.location.pathname.includes(`/book/${cart.productId}`);
 
   if (isInBookingFlow) return null;
 

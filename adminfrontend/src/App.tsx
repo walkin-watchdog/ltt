@@ -27,6 +27,7 @@ import { Gallery } from './pages/Gallery';
 import { ContentIndex } from './pages/content/ContentIndex';
 import { NotFound } from './pages/NotFound';
 import { GetStarted } from './pages/GetStarted';
+import { BookingDetails } from './pages/BookingDetails'
 
 function AdminCheckRoute({ children }: { children: React.ReactElement }) {
   const [allowed, setAllowed] = useState(false);
@@ -127,6 +128,13 @@ function App() {
                   <ProtectedRoute requiredRoles={['ADMIN', 'EDITOR']}>
                     <Layout>
                       <ManualBooking />
+                    </Layout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/bookings/:id/details" element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <BookingDetails/>
                     </Layout>
                   </ProtectedRoute>
                 } />

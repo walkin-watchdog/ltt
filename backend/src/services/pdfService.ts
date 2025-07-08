@@ -8,7 +8,7 @@ export interface VoucherData {
   product: any;
   customer: any;
   packageDetails?: any;
-  slotDetails?: any;
+  timeSlot?: string;
 }
 
 export class PDFService {
@@ -40,7 +40,7 @@ export class PDFService {
            .text(`Phone: ${process.env.COMPANY_PHONE}`, 50, 140);
 
         // Booking Details Box
-        doc.rect(50, 170, 500, 200)
+        doc.rect(50, 170, 500, 300)
            .stroke('#104c57');
 
         doc.fontSize(14)
@@ -65,24 +65,27 @@ export class PDFService {
           yPos += 20;
         }
 
-        if (data.slotDetails && data.slotDetails.Time && data.slotDetails.Time.length > 0) {
-          doc.text(`Time: ${data.slotDetails.Time[0]}`, 70, yPos);
+        if (data.timeSlot) {
+          doc.text(`Time: ${data.timeSlot}`, 70, yPos);
           yPos += 20;
         }
 
         doc.text(`Total Amount: ₹${data.booking.totalAmount.toLocaleString()}`, 70, yPos);
 
         // Product Details
-        doc.fontSize(14)
+        doc.moveDown(2)
+           .fontSize(14)
            .fillColor('#104c57')
-           .text('Tour/Experience Details', 50, 400);
+           .text('Tour/Experience Details:');
 
         doc.fontSize(11)
            .fillColor('#333333')
-           .text(`Location: ${data.product.location}`, 70, 425)
-           .text(`Duration: ${data.product.duration}`, 70, 445)
-           .text(`Category: ${data.product.category}`, 70, 465);
-
+           .text(`Location: ${data.product.location}`)
+           .text(`Duration: ${data.product.duration}`);
+        if (data.product.category) {
+          doc.text(`Category: ${data.product.category}`);
+        }
+        
         // Meeting Point
         if (data.product.meetingPoint) {
           doc.text(`Meeting Point: ${data.product.meetingPoint}`, 70, 485);
@@ -108,7 +111,7 @@ export class PDFService {
 
           // Add policy type indicator
           if (data.product.cancellationPolicyType && data.product.cancellationPolicyType !== 'custom') {
-            const policyTypeLabels = {
+            const policyTypeLabels: Record<string, string> = {
               standard: 'Standard Policy',
               moderate: 'Moderate Policy', 
               strict: 'Strict Policy',
@@ -142,47 +145,43 @@ export class PDFService {
         }
 
         // Additional Requirements
-        const hasRequirements = data.product.requirePhone || data.product.requireId || 
-                              data.product.requireAge || data.product.requireMedical ||
-                              data.product.requireDietary || data.product.requireEmergencyContact ||
-                              data.product.requirePassportDetails ||
-                              (data.product.customRequirementFields && data.product.customRequirementFields.length > 0) ||
-                              data.product.additionalRequirements;
+        const hasRequirements = data.product.requirePhone
+                              || data.product.requireId
+                              || data.product.requireAge
+                              || data.product.requireMedical
+                              || data.product.requireDietary
+                              || data.product.requireEmergencyContact
+                              || data.product.requirePassportDetails
+                              || (data.product.customRequirementFields?.length > 0)
+                              || data.product.additionalRequirements;
 
         if (hasRequirements) {
-          doc.fontSize(12)
+          doc.moveDown(2)
+             .fontSize(12)
              .fillColor('#ff914d')
-             .text('Required Information from Travelers:', 50, 720);
+             .text('Required Information from Travelers:');
 
-          let reqYPos = 740;
-          const requirements = [];
-          
-          if (data.product.requirePhone) requirements.push('Valid phone number');
-          if (data.product.requireId) requirements.push('Government-issued photo ID');
-          if (data.product.requireAge) requirements.push('Age verification for all travelers');
-          if (data.product.requireMedical) requirements.push('Medical information and restrictions');
-          if (data.product.requireDietary) requirements.push('Dietary restrictions and preferences');
-          if (data.product.requireEmergencyContact) requirements.push('Emergency contact information');
-          if (data.product.requirePassportDetails) requirements.push('Passport details for international travelers');
+          const bullets: string[] = [];
+          if (data.product.requirePhone) bullets.push('Valid phone number');
+          if (data.product.requireId) bullets.push('Government-issued photo ID');
+          if (data.product.requireAge) bullets.push('Age verification for all travelers');
+          if (data.product.requireMedical) bullets.push('Medical information and restrictions');
+          if (data.product.requireDietary) bullets.push('Dietary restrictions and preferences');
+          if (data.product.requireEmergencyContact) bullets.push('Emergency contact information');
+          if (data.product.requirePassportDetails) bullets.push('Passport details for international travelers');
+          data.product.customRequirementFields?.forEach((f: any) => {
+            bullets.push(`${f.label}${f.required ? ' (Required)' : ' (Optional)'}`);
+          });
+          if (data.product.additionalRequirements) {
+            bullets.push(data.product.additionalRequirements);
+          }
 
-          requirements.forEach(req => {
+          bullets.forEach(text => {
             doc.fontSize(10)
                .fillColor('#333333')
-               .text(`• ${req}`, 70, reqYPos);
-            reqYPos += 15;
+               .text(`• ${text}`, { indent: 20 });
           });
-
-          if (data.product.customRequirementFields && data.product.customRequirementFields.length > 0) {
-            data.product.customRequirementFields.forEach((field: any) => {
-              doc.text(`• ${field.label}${field.required ? ' (Required)' : ' (Optional)'}`, 70, reqYPos);
-              reqYPos += 15;
-            });
-          }
-
-          if (data.product.additionalRequirements) {
-            doc.text(`• ${data.product.additionalRequirements}`, 70, reqYPos);
-          }
-        }
+         }
 
         // Footer
         doc.fontSize(10)

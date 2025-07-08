@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, Filter, Calendar, User, Phone, Mail, Eye, Download, Plus, Send } from 'lucide-react';
+import { Search, Filter, Calendar, User, Phone, Mail, Eye, Download, Plus, Send, DollarSign } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import type { BookingProp } from '../types.ts';
 import { useToast } from '../components/ui/toaster.tsx';
@@ -154,6 +154,46 @@ export const Bookings = () => {
     }
   };
   
+  const sendVoucher = async (bookingId: string) => {
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL}/bookings/${bookingId}/send-voucher`,
+        { method: 'POST', headers: { Authorization: `Bearer ${token}` } }
+      )
+      if (!res.ok) throw new Error()
+      toast({
+        message: 'Voucher Sent',
+        type: 'info',
+      });
+    } catch {
+      toast({
+        message: 'Failed to send voucher',
+        type: 'error',
+      });
+    } finally {
+    }
+  }
+
+  const sendReminder = async (bookingId: string) => {
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL}/bookings/${bookingId}/payment-reminder`,
+        { method: 'POST', headers: { Authorization: `Bearer ${token}` } }
+      )
+      if (!res.ok) throw new Error()
+      toast({
+        message: 'Remider Sent',
+        type: 'info',
+      });
+    } catch {
+      toast({
+        message: 'Failed to send reminder',
+        type: 'error',
+      });
+    } finally {
+    }
+  }
+
   const handleExportSingle = async (bookingId: string) => {
     try {
       const response = await fetch(
@@ -532,13 +572,20 @@ export const Bookings = () => {
                       >
                         <Download className="h-4 w-4" />
                       </button>
-                      <Link 
-                        to={`/bookings/${booking.id}/send-voucher`}
+                      <button
+                        onClick={() => sendVoucher(booking.id)}
                         className="p-1 text-gray-400 hover:text-green-600 transition-colors"
                         title="Send Voucher"
                       >
                         <Send className="h-4 w-4" />
-                      </Link>
+                      </button>
+                      <button
+                        onClick={() => sendReminder(booking.id)}
+                        className="p-1 text-gray-400 hover:text-yellow-600 transition-colors"
+                        title="Send Reminder"
+                      >
+                        <DollarSign className="h-4 w-4" />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -638,13 +685,20 @@ export const Bookings = () => {
               >
                 <Download className="h-5 w-5" />
               </button>
-              <Link
-                to={`/bookings/${booking.id}/send-voucher`}
+              <button
+                onClick={() => sendVoucher(booking.id)}
                 className="p-1 text-gray-400 hover:text-green-600"
                 title="Send Voucher"
               >
                 <Send className="h-5 w-5" />
-              </Link>
+              </button>
+              <button
+                onClick={() => sendReminder(booking.id)}
+                className="p-1 text-gray-400 hover:text-yellow-600"
+                title="Send Reminder"
+              >
+                <DollarSign className="h-5 w-5" />
+              </button>
             </div>
           </div>
         ))}

@@ -231,7 +231,7 @@ export const BookingSidebar = ({
                                                 )}
                                                 currency={pkg.currency}
                                             />
-                                            <span className="text-sm text-gray-500 font-normal"> /person</span>
+                                            <span className="text-sm text-gray-500 font-normal"> per person</span>
                                         </div>
                                         <button
                                             className="text-[#104c57] font-medium text-sm hover:text-[#ff914d]"

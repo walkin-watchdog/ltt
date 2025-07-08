@@ -1,18 +1,27 @@
 import { useState, useEffect } from 'react';
-import { Ticket, X, CheckCircle, AlertCircle } from 'lucide-react';
+import { Ticket, Trash2, CheckCircle, AlertCircle } from 'lucide-react';
 
 interface CouponFormProps {
   totalAmount: number;
   productId: string;
-  onApply: (discountAmount: number) => void;
+  onApply: (couponCode: string) => void;
   onRemove: () => void;
+  onError: string;
+  discount: number;
 }
 
-export const CouponForm = ({ totalAmount, productId, onApply, onRemove }: CouponFormProps) => {
+export const CouponForm = ({ totalAmount, productId, onApply, onRemove, onError, discount }: CouponFormProps) => {
   const [couponCode, setCouponCode] = useState('');
   const [isValidating, setIsValidating] = useState(false);
   const [validCoupon, setValidCoupon] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (onError) {
+      setError(onError);
+    }
+  }, [onError]);
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,7 +55,7 @@ export const CouponForm = ({ totalAmount, productId, onApply, onRemove }: Coupon
       
       const data = await response.json();
       setValidCoupon(data);
-      onApply(data.discount);
+      onApply(couponCode);
     } catch (error) {
       console.error('Error validating coupon:', error);
       setError('An error occurred. Please try again.');
@@ -65,7 +74,7 @@ export const CouponForm = ({ totalAmount, productId, onApply, onRemove }: Coupon
 
   return (
     <div className="mt-4 mb-6">
-      {!validCoupon ? (
+      {discount <= 0 ? (
         <form onSubmit={handleSubmit} className="flex flex-col space-y-2">
           <label className="text-sm font-medium text-gray-700">
             Apply Coupon Code
@@ -90,7 +99,7 @@ export const CouponForm = ({ totalAmount, productId, onApply, onRemove }: Coupon
             </button>
           </div>
           
-          {error && (
+          {error && discount <= 0 && (
             <div className="flex items-start text-red-600 text-xs mt-1">
               <AlertCircle className="h-4 w-4 mr-1 flex-shrink-0" />
               <span>{error}</span>
@@ -103,9 +112,9 @@ export const CouponForm = ({ totalAmount, productId, onApply, onRemove }: Coupon
             <div className="flex items-start">
               <CheckCircle className="h-5 w-5 text-green-600 mr-2 flex-shrink-0" />
               <div>
-                <p className="font-medium text-green-800">{couponCode} applied!</p>
+                <p className="font-sm text-green-800">{couponCode} applied!</p>
                 <p className="text-sm text-green-700">
-                  You saved ₹{validCoupon.discount.toLocaleString()}
+                  You saved ₹{discount.toLocaleString()}
                 </p>
               </div>
             </div>
@@ -113,7 +122,7 @@ export const CouponForm = ({ totalAmount, productId, onApply, onRemove }: Coupon
               onClick={removeCoupon}
               className="text-gray-500 hover:text-gray-700"
             >
-              <X className="h-4 w-4" />
+              <Trash2 className="h-4 w-4" />
             </button>
           </div>
         </div>

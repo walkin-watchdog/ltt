@@ -29,6 +29,8 @@
                 <h3>Booking Details</h3>
                 <p><strong>Booking Code:</strong> {{bookingCode}}</p>
                 <p><strong>Tour/Experience:</strong> {{productTitle}}</p>
+                <p><strong>Package:</strong> {{packageName}}</p>
+                {{#if timeSlot}}<p><strong>Time Slot:</strong> {{timeSlot}}</p>{{/if}}
                 <p><strong>Date:</strong> {{bookingDate}}</p>
                 <p><strong>Participants:</strong> {{adults}} Adults{{#if children}}, {{children}} Children{{/if}}</p>
                 <p><strong>Total Amount:</strong> ₹{{totalAmount}}</p>

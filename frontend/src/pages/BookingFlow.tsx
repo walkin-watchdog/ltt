@@ -6,7 +6,7 @@ import { useAbandonedCart } from '../hooks/useAbandonedCart';
 import { PriceDisplay } from '../components/common/PriceDisplay';
 import type { RootState, AppDispatch } from '../store/store';
 import { fetchProduct } from '../store/slices/productsSlice';
-import { createBooking } from '../store/slices/bookingSlice';
+import { createBooking, rnpaylater } from '../store/slices/bookingSlice';
 import { trackBookingStart } from '../components/analytics/GoogleAnalytics';
 import { formatDate, parse } from 'date-fns';
 import { CouponForm } from '../components/payment/CouponForm';
@@ -34,11 +34,14 @@ export const BookingFlow = () => {
   const dispatch = useDispatch<AppDispatch>();
   
   const { currentProduct, isLoading: productLoading } = useSelector((state: RootState) => state.products);
-  const { currentBooking, isLoading: bookingLoading } = useSelector((state: RootState) => state.booking);
+  const { isLoading: bookingLoading } = useSelector((state: RootState) => state.booking);
 
   const [currentStep, setCurrentStep] = useState(1);
   const [emailBlurred, setEmailBlurred] = useState(false);
   const [appliedDiscount, setAppliedDiscount] = useState(0);
+  const [couponCode, setCouponCode] = useState<string | null>(null);
+  const [couponError, setCouponError] = useState<string>('');
+  const [agreeTerms, setAgreeTerms] = useState(false)
 
   const [formData, setFormData] = useState<BookingFormData>({
     selectedDate: '',
@@ -55,6 +58,33 @@ export const BookingFlow = () => {
 
   // Check if children are allowed based on selected package
   const childrenAllowed = !formData.selectedPackage || formData.selectedPackage.ageGroups?.child?.enabled !== false;
+  const payLater = async() => {
+    if (currentStep === 3) {
+
+      const bookingData = {
+        productId: productId!,
+        packageId: formData.selectedPackage?.id,
+        slotId: formData.selectedSlot?.id,
+        customerName: formData.customerName,
+        customerEmail: formData.customerEmail,
+        customerPhone: formData.customerPhone,
+        adults: formData.adults,
+        children: formData.children,
+        bookingDate: formData.selectedDate,
+        selectedTimeSlot: formData.selectedTimeSlot,
+        notes: formData.notes
+      };
+      try {
+        await dispatch(rnpaylater(bookingData)).unwrap();
+        clearAbandonedCart(formData.customerEmail);
+        toast.success('Reservation Complete!')
+        setCurrentStep(4)
+      } catch (error) {
+        console.error('Booking failed:', error);
+        toast.error('Booking Failed')
+      }
+    }
+  };
 
   useEffect(() => {
     if (currentProduct?.packages && currentProduct.packages.length > 0) {
@@ -372,6 +402,10 @@ export const BookingFlow = () => {
         return;
       }
 
+      setCurrentStep(3);
+
+    } else if (currentStep === 3) {
+
       const bookingData = {
         productId: productId!,
         packageId: formData.selectedPackage?.id,
@@ -385,30 +419,25 @@ export const BookingFlow = () => {
         selectedTimeSlot: formData.selectedTimeSlot,
         notes: formData.notes
       };
-
       try {
-        await dispatch(createBooking(bookingData)).unwrap();
+        const booking = await dispatch(createBooking(bookingData)).unwrap();
         clearAbandonedCart(formData.customerEmail);
-        setCurrentStep(3);
+        initializePayment(booking);
       } catch (error) {
         console.error('Booking failed:', error);
         toast.error('Booking Failed')
       }
-    } else if (currentStep === 3) {
-      // Proceed to payment
-      initializePayment();
     }
   };
 
-  const initializePayment = async () => {
-    if (!currentBooking) return;
+  const initializePayment = async (booking: { id: string }) => {
     try {
       // Create Razorpay order
       const orderResponse = await fetch(`${import.meta.env.VITE_API_URL}/payments/create-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          bookingId: currentBooking.id,
+          bookingId: booking.id,
           amount: calculateTotal(),
           currency: 'INR'
         })
@@ -429,7 +458,7 @@ export const BookingFlow = () => {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                bookingId: currentBooking.id,
+                bookingId: booking.id,
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_signature: response.razorpay_signature
@@ -464,12 +493,71 @@ export const BookingFlow = () => {
     }
   };
 
-  const handleApplyCoupon = (discountAmount: number) => {
-    setAppliedDiscount(discountAmount);
+  const handleApplyCoupon = async (code: string) => {
+    try {
+      const resp = await fetch(`${import.meta.env.VITE_API_URL}/coupons/validate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: code,
+          productId: formData.selectedPackage?.productId || productId,
+          adults: formData.adults,
+          children: formData.children,
+          amount: calculateTotal()
+        })
+      });
+      const data = await resp.json();
+
+      if (resp.ok) {
+        setAppliedDiscount(data.discount);
+        setCouponCode(code);
+        setCouponError('');
+      } else {
+        setAppliedDiscount(0);
+        setCouponCode(code);
+        setCouponError(data.message || 'Coupon invalid');
+      }
+    } catch (err) {
+      setAppliedDiscount(0);
+      setCouponCode(code);
+      setCouponError('Failed to validate coupon');
+    }
   };
+
+  useEffect(() => {
+    if (!couponCode) return;
+    (async () => {
+      try {
+        const resp = await fetch(`${import.meta.env.VITE_API_URL}/coupons/validate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            code: couponCode,
+            productId: formData.selectedPackage?.productId || productId,
+            adults: formData.adults,
+            children: formData.children,
+            amount: calculateTotal()
+          })
+        });
+        const data = await resp.json();
+        if (resp.ok) {
+          setAppliedDiscount(data.discount);
+          setCouponError('');
+        } else {
+          setAppliedDiscount(0);
+          setCouponError(data.message || 'Reapply Coupon after changes');
+        }
+      } catch {
+        setAppliedDiscount(0);
+        setCouponError('Failed to re-validate coupon');
+      }
+    })();
+  }, [formData.adults, formData.children]);
 
   const handleRemoveCoupon = () => {
     setAppliedDiscount(0);
+    setCouponCode(null);
+    setCouponError('');
   };
 
   const renderBookingSummary = () => {
@@ -752,6 +840,20 @@ export const BookingFlow = () => {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Phone Number *
+                      </label>
+                      <input
+                        type="tel"
+                        value={formData.customerPhone}
+                        onChange={(e) => setFormData(prev => ({ ...prev, customerPhone: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+                        placeholder="Enter your phone number"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
                         Email Address *
                       </label>
                       <input
@@ -763,20 +865,6 @@ export const BookingFlow = () => {
                         onBlur={() => setEmailBlurred(true)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
                         placeholder="Enter your email address"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Phone Number *
-                      </label>
-                      <input
-                        type="tel"
-                        value={formData.customerPhone}
-                        onChange={(e) => setFormData(prev => ({ ...prev, customerPhone: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                        placeholder="Enter your phone number"
                         required
                       />
                     </div>
@@ -813,6 +901,10 @@ export const BookingFlow = () => {
                           type="checkbox"
                           className="mt-1 h-4 w-4 text-[#ff914d] focus:ring-[#ff914d] border-gray-300 rounded"
                           required
+                          checked={agreeTerms}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                            setAgreeTerms(e.target.checked)
+                          }
                         />
                         <span className="ml-3 text-sm text-gray-700">
                           I agree to the{' '}
@@ -838,13 +930,6 @@ export const BookingFlow = () => {
                   <p className="text-gray-600 mb-6">
                     Your booking has been confirmed. You will receive a confirmation email with your voucher shortly.
                   </p>
-                  {currentBooking && (
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-                      <p className="text-sm text-green-800">
-                        Booking Code: <span className="font-bold">{currentBooking.bookingCode}</span>
-                      </p>
-                    </div>
-                  )}
                   <button
                     onClick={() => navigate('/')}
                     className="bg-[#ff914d] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[#e8823d] transition-colors"
@@ -863,15 +948,24 @@ export const BookingFlow = () => {
                   >
                     {currentStep === 1 ? 'Back to Product' : 'Previous'}
                   </button>
+                  {/* Reserve Now, Pay Later */}
+                  <button
+                    onClick={payLater}
+                    disabled={bookingLoading || !agreeTerms}
+                    hidden={currentStep !== 3}
+                    className="px-6 py-2 bg-[#104c57] text-white rounded-lg hover:bg-[#104c57] transition-colors disabled:opacity-50"
+                  >
+                    Pay Later 
+                  </button>
                   <button
                     onClick={handleStepSubmit}
-                    disabled={bookingLoading}
+                    disabled={bookingLoading || !agreeTerms && currentStep === 3}
                     className="px-6 py-2 bg-[#ff914d] text-white rounded-lg hover:bg-[#e8823d] transition-colors disabled:opacity-50"
                   >
                     {bookingLoading ? 'Processing...' : 
                      currentStep === 1 ? 'Continue' :
-                     currentStep === 2 ? 'Create Booking' :
-                     'Review Payment Options'}
+                     currentStep === 2 ? 'Review' :
+                     'Pay Now'}
                   </button>
                 </div>
               )}
@@ -922,28 +1016,38 @@ export const BookingFlow = () => {
                 
                 <hr className="my-2" />
                 <div className="flex justify-between font-semibold text-lg">
-                  <span>Total:</span>
+                  <span>Gross Total:</span>
+                  <PriceDisplay 
+                    amount={calculateTotal() + appliedDiscount}
+                    currency="INR"
+                    className="text-[#ff914d]"
+                  />
+                </div>
+                {appliedDiscount > 0 && (
+                  <div className="flex justify-between font-semibold text-lg text-green-600">
+                    <span>Savings:</span>
+                    <span><PriceDisplay amount={appliedDiscount} currency="INR" /></span>
+                  </div>
+                )}
+                <div className="flex justify-between font-semibold text-lg">
+                  <span>Payable:</span>
                   <PriceDisplay 
                     amount={calculateTotal()}
                     currency="INR"
                     className="text-[#ff914d]"
                   />
                 </div>
-                {appliedDiscount > 0 && (
-                  <div className="flex justify-between text-sm text-green-600">
-                    <span>Coupon Discount:</span>
-                    <span>-<PriceDisplay amount={appliedDiscount} currency="INR" /></span>
-                  </div>
-                )}
               </div>
 
               {/* Coupon Code */}
-              {currentStep === 3 && formData.selectedPackage && (
+              {formData.selectedPackage && (
                 <CouponForm
                   totalAmount={calculateTotal() + appliedDiscount}
                   productId={formData.selectedPackage.productId || productId || ''}
                   onApply={handleApplyCoupon}
                   onRemove={handleRemoveCoupon}
+                  onError={couponError}
+                  discount={appliedDiscount}
                 />
               )}
 

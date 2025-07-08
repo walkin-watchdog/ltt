@@ -4,6 +4,7 @@ import { prisma } from '../utils/prisma'
 import { authenticate, authorize } from '../middleware/auth';
 import { sendBookingVoucher } from './payments';
 import { ExcelService } from '../services/excelService';
+import { EmailService } from '../services/emailService';
 
 const router = express.Router();
 
@@ -489,6 +490,18 @@ router.post('/:id/send-voucher', authenticate, authorize(['ADMIN', 'EDITOR']), a
   }
 });
 
+// GET /bookings/:id
+router.get('/:id', authenticate, authorize(['ADMIN','EDITOR','VIEWER']), async (req,res,next)=>{
+  try{
+    const booking = await prisma.booking.findUnique({
+      where:{ id:req.params.id },
+      include:{ product:true, package:true, slot:true, payments:true }
+    });
+    if (!booking) return res.status(404).json({error:'Not found'});
+    res.json(booking);
+  }catch(e){ next(e); }
+});
+
 // Update booking status (Admin/Editor only)
 router.patch('/:id/status', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, next) => {
   try {
@@ -517,6 +530,178 @@ router.patch('/:id/status', authenticate, authorize(['ADMIN', 'EDITOR']), async 
     });
 
     res.json(booking);
+  } catch (error) {
+    next(error);
+  }
+});
+
+
+// Reserve Now Pay Later
+router.post('/pay-later', async (req, res, next) => {
+  try {
+    const data = bookingSchema.parse(req.body);
+
+    // Verify the slot exists
+    const packageSlot = await prisma.packageSlot.findUnique({ 
+      where: { id: data.slotId },
+      include: {
+        adultTiers: true,
+        childTiers: true,
+        package: true
+      } 
+    });
+    
+    if (!packageSlot) {
+      return res.status(404).json({ error: 'Selected time-slot not found' });
+    }
+    
+    // Count existing bookings for this slot
+    const existingBookings = await prisma.booking.findMany({
+      where: {
+        slotId: data.slotId,
+        status: { in: ['CONFIRMED', 'PENDING'] },
+      },
+      select: {
+        adults: true,
+        children: true
+      }
+    });
+    
+    // Calculate total booked seats
+    const seats = data.adults + data.children;
+    const bookedSeats = existingBookings.reduce((total, booking) => 
+      total + booking.adults + booking.children, 0);
+    
+    // Check if there's enough capacity
+    if (packageSlot.package.maxPeople - bookedSeats < seats) {
+      return res.status(400).json({ error: 'Not enough seats in selected slot' });
+    }
+    
+    const product = await prisma.product.findUnique({
+      where: { id: data.productId },
+      include: { packages: true }
+    });
+
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    // Get pricing based on package and tiers
+    let totalAmount = 0;
+
+    if (data.packageId) {
+      const pkg = product.packages.find(p => p.id === data.packageId);
+      
+      if (!pkg) {
+        return res.status(400).json({ error: 'Selected package not found' });
+      }
+
+      // Calculate adult price from tiers if available
+      let adultPrice = pkg.basePrice;
+      let childPrice = pkg.basePrice * 0.5; // Default child price is 50% of adult price
+      
+      // Apply package-level discount if available
+      if (pkg.discountType === 'percentage' && pkg.discountValue) {
+        adultPrice = adultPrice * (1 - (pkg.discountValue / 100));
+        childPrice = childPrice * (1 - (pkg.discountValue / 100));
+      } else if (pkg.discountType === 'fixed' && pkg.discountValue) {
+        adultPrice = Math.max(0, adultPrice - pkg.discountValue);
+        childPrice = Math.max(0, childPrice - pkg.discountValue);
+      }
+
+      // Use tier pricing if available
+      if (packageSlot.adultTiers && packageSlot.adultTiers.length > 0) {
+        // Find applicable adult tier
+        const adultTier = packageSlot.adultTiers.find(tier => 
+          data.adults >= tier.min && data.adults <= tier.max
+        );
+        
+        if (adultTier) {
+          adultPrice = adultTier.price;
+        }
+      }
+      
+      if (data.children > 0 && packageSlot.childTiers && packageSlot.childTiers.length > 0) {
+        // Find applicable child tier
+        const childTier = packageSlot.childTiers.find(tier => 
+          data.children >= tier.min && data.children <= tier.max
+        );
+        
+        if (childTier) {
+          childPrice = childTier.price;
+        }
+      }
+      
+      totalAmount = (adultPrice * data.adults) + (childPrice * data.children);
+    }
+
+    // Generate booking code
+    const bookingCode = `LT${Date.now()}${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+
+    // Create the booking
+    const booking = await prisma.booking.create({
+      data: {
+        ...data,
+        bookingCode,
+        totalAmount
+      },
+      include: {
+        product: {
+          select: {
+            id: true,
+            title: true,
+            productCode: true
+          }
+        },
+        package: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
+      }
+    });
+
+    await prisma.abandonedCart.deleteMany({
+      where: { email: data.customerEmail }
+    });
+    await EmailService.sendBookingConfirmation(booking, product);
+    res.json({ success: true, booking })
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Send voucher for a booking
+router.post('/:id/payment-reminder', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    
+    const booking = await prisma.booking.findUnique({
+      where: { id },
+      include: {
+        product: true,
+        package: true,
+        slot: true
+      }
+    });
+
+    const product = await prisma.product.findUnique({
+      where: { id: booking?.productId },
+    });
+    
+    if (!booking) {
+      return res.status(404).json({ error: 'Booking not found' });
+    }
+    
+    // Send reminder using the shared function
+    const success = await EmailService.sendPaymentPendingNotice(booking, product);
+    
+    if (success) {
+      res.json({ message: 'Reminder sent successfully' });
+    } else {
+      res.status(500).json({ error: 'Failed to send remider' });
+    }
   } catch (error) {
     next(error);
   }

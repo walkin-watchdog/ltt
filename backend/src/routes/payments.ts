@@ -25,7 +25,7 @@ const verifyPaymentSchema = z.object({
 });
 
 // Create Razorpay order
-router.post('/create-order', authenticate, rateLimitPayment, async (req, res, next) => {
+router.post('/create-order', rateLimitPayment, async (req, res, next) => {
   try {
     const { bookingId, amount, currency } = createOrderSchema.parse(req.body);
     
@@ -76,7 +76,7 @@ router.post('/create-order', authenticate, rateLimitPayment, async (req, res, ne
 });
 
 // Verify payment
-router.post('/verify', authenticate, rateLimitPayment, async (req, res, next) => {
+router.post('/verify', rateLimitPayment, async (req, res, next) => {
   try {
     const paymentData = verifyPaymentSchema.parse(req.body);
     
@@ -247,7 +247,7 @@ router.post('/:paymentId/refund', authenticate, authorize(['ADMIN']), async (req
     await prisma.payment.update({
       where: { id: payment.id },
       data: { 
-        status: refundAmount >= payment.amount ? 'REFUNDED' : 'PARTIAL_REFUND'
+        status: 'REFUNDED'
       },
     });
 
@@ -255,7 +255,7 @@ router.post('/:paymentId/refund', authenticate, authorize(['ADMIN']), async (req
     await prisma.booking.update({
       where: { id: payment.bookingId },
       data: { 
-        status: refundAmount >= payment.amount ? 'CANCELLED' : 'PARTIALLY_REFUNDED'
+        status: 'CANCELLED'
       },
     });
 
@@ -287,7 +287,7 @@ export const sendBookingVoucher = async (booking: any) => {
         phone: booking.customerPhone,
       },
       packageDetails: booking.package,
-      slotDetails: booking.slot
+      timeSlot: booking.selectedTimeSlot
     });
 
     // Send email with voucher attachment
@@ -309,7 +309,7 @@ export const sendBookingVoucher = async (booking: any) => {
         children: booking.children,
         packageName: booking.package?.name || 'Standard Package',
         totalAmount: booking.totalAmount.toLocaleString('en-IN'),
-        timeSlot: booking.slot?.Time?.[0] || 'As per confirmation'
+        timeSlot: booking.selectedTimeSlot || 'As per confirmation'
       },
       attachments: [
         {

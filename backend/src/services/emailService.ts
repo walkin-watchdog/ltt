@@ -85,7 +85,9 @@ export class EmailService {
         }),
         adults: booking.adults,
         children: booking.children,
-        totalAmount: booking.totalAmount,
+        totalAmount: booking.totalAmount.toLocaleString('en-IN'),
+        packageName: booking.package?.name || 'Standard Package',
+        timeSlot: booking.selectedTimeSlot || 'As per confirmation',
         companyName: process.env.COMPANY_NAME,
         companyEmail: process.env.COMPANY_EMAIL,
         companyPhone: process.env.COMPANY_PHONE,
@@ -174,6 +176,29 @@ export class EmailService {
         message: request.message,
         partnershipType: request.partnershipType,
         website: request.website,
+      },
+    };
+    return this.sendEmail(emailData);
+  }
+
+  static async sendPaymentPendingNotice(
+    booking: any,
+    product: any,
+  ) {
+    const emailData: EmailData = {
+      to: booking.customerEmail,
+      subject: `Gentle Reminder – Secure your reservation for ${product.title}`,
+      template: 'payment-pending',
+      context: {
+        customerName: sanitize(booking.customerName),
+        bookingCode:  sanitize(booking.bookingCode),
+        productTitle: sanitize(product.title),
+        adults:       booking.adults,
+        children:     booking.children,
+        totalAmount:  booking.totalAmount,
+        companyName:  process.env.COMPANY_NAME,
+        companyEmail: process.env.COMPANY_EMAIL,
+        companyPhone: process.env.COMPANY_PHONE,
       },
     };
     return this.sendEmail(emailData);

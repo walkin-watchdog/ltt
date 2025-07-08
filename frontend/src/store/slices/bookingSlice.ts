@@ -46,6 +46,26 @@ export const createBooking = createAsyncThunk(
   }
 );
 
+export const rnpaylater = createAsyncThunk(
+  'booking/paylater',
+  async (bookingData: BookingData) => {
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/bookings/pay-later`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(bookingData),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error);
+    }
+
+    return await response.json();
+  }
+);
+
 const bookingSlice = createSlice({
   name: 'booking',
   initialState,
@@ -74,6 +94,18 @@ const bookingSlice = createSlice({
         state.step = 2; // Move to payment step
       })
       .addCase(createBooking.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.error.message || 'Failed to create booking';
+      })
+      .addCase(rnpaylater.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(rnpaylater.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.currentBooking = action.payload;
+      })
+      .addCase(rnpaylater.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.error.message || 'Failed to create booking';
       });
