@@ -209,7 +209,6 @@ export const BasicInfo = ({
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
             required
           >
-            <option value="">Select tour type</option>
             <option value="public">Public</option>
             <option value="private">Private</option>
           </select>
