@@ -175,18 +175,24 @@ export const ProductForm = () => {
     },
     images: f => !f.images?.length ? ['At least one image'] : [],
     itinerary: f => {
-      // If duration is in hours, only 1 itinerary day is allowed
-      if (typeof f.duration === 'string' && f.duration.includes('Hour')) {
-        if ((f.itineraries?.length || 0) !== 1) {
-          return ['For hourly duration, only one itinerary day is allowed'];
-        }
+      if (f.type !== 'TOUR') {
         return [];
       }
-      // For other durations, require at least as many days as specified
+
+      if ((f.itineraries?.length || 0) < 1) {
+        return ['Please add at least one itinerary day'];
+      }
+
+      if (typeof f.duration === 'string' && f.duration.includes('Hour')) {
+        if (f.itineraries!.length !== 1) {
+          return ['For hourly duration, only one itinerary day is allowed'];
+        }
+      }
+
       if (
-        f.duration !== 'Full Day' &&
-        f.duration !== 'Half Day' &&
-        (f.itineraries?.length || 0) < (parseInt(f.duration) || 1)
+        typeof f.duration === 'string' &&
+        !f.duration.includes('Hour') &&
+        (f.itineraries!.length < (parseInt(f.duration) || 1))
       ) {
         return [`At least ${(parseInt(f.duration) || 1)} itinerary day(s)`];
       }

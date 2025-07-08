@@ -82,6 +82,8 @@ export const ProductContentTab = ({
   const isDraft = formData.isDraft;
 
   const getAllowedDays = () => {
+    const durationLower = formData.duration?.toLowerCase() || '';
+    if (durationLower.includes('hour')) return 1;
     if (formData.duration === 'Full Day' || formData.duration === 'Half Day') return 1;
     const n = parseInt(formData.duration?.split(' ')[0] || '0', 10);
     return isNaN(n) || n < 1 ? 0 : n;

@@ -15,11 +15,19 @@ export const ItineraryTab = ({
             {formData.type === 'TOUR' ? (
                 <>
                     <div className="mb-4 text-red-600 text-sm">
-                        {formData.itineraries?.length < (formData.duration && formData.duration !== 'Full Day' ?
-                            parseInt(formData.duration.split(' ')[0]) || 2 : 2) &&
-                            `You must add at least ${formData.duration && formData.duration !== 'Full Day' ?
-                                parseInt(formData.duration.split(' ')[0]) || 2 : 2} days to the itinerary for a ${formData.duration && formData.duration !== 'Full Day' ?
-                                    parseInt(formData.duration.split(' ')[0]) || 2 : 2}-day tour.`}
+                      {(() => {
+                        let requiredDays = getAllowedDays();
+                        if (formData.duration.toLowerCase().includes('hour')) {
+                          requiredDays = 1;
+                        }
+                        const label = formData.duration
+                          .toLowerCase()
+                          .replace(/s$/, '');
+        
+                        return (formData.itineraries?.length || 0) < requiredDays
+                          ? `You must add at least ${requiredDays} day${requiredDays > 1 ? 's' : ''} to the itinerary for a ${label} tour.`
+                          : null;
+                      })()}
                     </div>
                     <div className="flex items-center justify-between">
                         <div>
