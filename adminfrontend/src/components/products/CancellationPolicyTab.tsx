@@ -6,24 +6,30 @@ import { predefinedPolicies } from '../productcontenttabs/predefinedcategories';
 export const CancellationPolicyTab = ({ formData, updateFormData }: CancellationPolicyTabProps) => {
   const [, setActivePolicyTab] = useState<'standard' | 'custom'>('standard');
 
-  // Set default standard policy on component mount if no policy is set
+  // Set default standard policy
   useEffect(() => {
-    if (!formData.cancellationPolicyType) {
-      const defaultPolicyKey = 'standard'; // You can change this to any default policy key
+    if (formData.cancellationPolicyType === 'standard' && !formData.cancellationPolicy) {
+      const defaultPolicyKey = 'standard';
       const defaultPolicy = predefinedPolicies[defaultPolicyKey];
-      
+      const policyText = `${defaultPolicy.label}: ${defaultPolicy.description}\n\n` +
+        defaultPolicy.terms.map(term =>
+          `• ${term.timeframe}: ${term.refundPercent}% refund - ${term.description}`
+        ).join('\n');
+
       updateFormData({
         cancellationPolicyType: defaultPolicyKey,
         freeCancellationHours: defaultPolicy.freeCancellationHours,
         partialRefundPercent: defaultPolicy.partialRefundPercent,
         noRefundAfterHours: defaultPolicy.noRefundAfterHours,
         cancellationTerms: defaultPolicy.terms,
-        cancellationPolicy: `${defaultPolicy.label}: ${defaultPolicy.description}\n\n${defaultPolicy.terms.map(term => 
-          `• ${term.timeframe}: ${term.refundPercent}% refund - ${term.description}`
-        ).join('\n')}`
+        cancellationPolicy: policyText
       });
     }
-  }, [formData.cancellationPolicyType, updateFormData]);
+  }, [
+    formData.cancellationPolicyType,
+    formData.cancellationPolicy,
+    updateFormData
+  ]);
 
 
   const handlePolicyTypeChange = (policyType: string) => {
