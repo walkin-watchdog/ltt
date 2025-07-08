@@ -728,6 +728,11 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
 router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, next) => {
   try {
     let data = productSchema.partial().parse(req.body);
+    const existing = await prisma.product.findUnique({ where: { id: req.params.id } });
+    const effectiveType = data.type ?? existing?.type;
+    if (effectiveType === 'TOUR' && (!data.itineraries || data.itineraries.length === 0)) {
+      return res.status(400).json({ error: 'Itinerary is required for this product' });
+    }
 
     const { blockedDates, itineraries, packages, ...rest } = data;
 
