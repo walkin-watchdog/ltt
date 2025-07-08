@@ -319,6 +319,10 @@ router.post('/', async (req, res, next) => {
       }
     });
 
+    await prisma.abandonedCart.deleteMany({
+      where: { email: data.customerEmail }
+    });
+
     res.status(201).json(booking);
   } catch (error) {
     next(error);
@@ -442,6 +446,10 @@ router.post('/admin', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, 
         package: true,
         slot: true
       }
+    });
+
+    await prisma.abandonedCart.deleteMany({
+      where: { email: data.customerEmail }
     });
 
     res.status(201).json(booking);
