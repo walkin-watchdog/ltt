@@ -145,6 +145,21 @@ export const BookingFlow = () => {
   }
 }, [currentProduct, formData.selectedPackage, formData.selectedDate, formData.selectedTimeSlot, navigate]);
 
+  // Helper function to calculate effective price with discount
+  const calculateEffectivePrice = (basePrice: number, discountType?: string, discountValue?: number) => {
+    if (!discountType || discountType === 'none' || !discountValue) {
+      return basePrice;
+    }
+    
+    if (discountType === 'percentage') {
+      return basePrice * (1 - (discountValue / 100));
+    } else if (discountType === 'fixed') {
+      return Math.max(0, basePrice - discountValue);
+    }
+    
+    return basePrice;
+  };
+
   const calculateTotal = useCallback(() => {
     const basePrice = formData.selectedPackage?.basePrice || 0;
     // Apply package discount if available
@@ -169,7 +184,13 @@ export const BookingFlow = () => {
         );
         
         if (applicableTier) {
-          totalAdultPrice = applicableTier.price * formData.adults;
+          // Apply package discount to tier price
+          const tierPriceWithDiscount = calculateEffectivePrice(
+            applicableTier.price,
+            formData.selectedPackage?.discountType,
+            formData.selectedPackage?.discountValue
+          );
+          totalAdultPrice = tierPriceWithDiscount * formData.adults;
         }
       }
       
@@ -181,7 +202,13 @@ export const BookingFlow = () => {
         );
         
         if (applicableTier) {
-          totalChildPrice = applicableTier.price * formData.children;
+          // Apply package discount to child tier price
+          const tierPriceWithDiscount = calculateEffectivePrice(
+            applicableTier.price,
+            formData.selectedPackage?.discountType,
+            formData.selectedPackage?.discountValue
+          );
+          totalChildPrice = tierPriceWithDiscount * formData.children;
         } else {
           // Default fallback if no tier matches
           totalChildPrice = (adultPrice * 0.5) * formData.children;

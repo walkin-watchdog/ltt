@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import type { RootState } from "../../store/store";
 import { useSelector } from "react-redux";
 import { Clock, ChevronDown, ChevronUp, MapPin, Navigation } from 'lucide-react';
-
 // Google Maps types
 declare global {
   interface Window {
@@ -11,6 +10,7 @@ declare global {
 }
 
 interface Activity {
+  images: string[];
   id?: string;
   location: string;
   locationLat?: number;
@@ -43,7 +43,7 @@ interface ExpandedActivities {
   [key: string]: boolean;
 }
 
-export const Itinerary = ({ itineraryRef }: {itineraryRef: React.RefObject<HTMLDivElement | null> }) => {
+export const Itinerary = ({ itineraryRef }: { itineraryRef: React.RefObject<HTMLDivElement | null> }) => {
   const { currentProduct } = useSelector((state: RootState) => state.products);
   const [selectedDay, setSelectedDay] = useState<number>(1);
   const [expandedActivities, setExpandedActivities] = useState<ExpandedActivities>({});
@@ -57,7 +57,7 @@ export const Itinerary = ({ itineraryRef }: {itineraryRef: React.RefObject<HTMLD
       loadGoogleMapsIfNeeded();
     }
   }, [currentProduct]);
-  console.log('current product',currentProduct)
+  console.log('current product', currentProduct)
   // Load Google Maps script if needed
   const loadGoogleMapsIfNeeded = () => {
     if (window.google && window.google.maps) {
@@ -87,7 +87,7 @@ export const Itinerary = ({ itineraryRef }: {itineraryRef: React.RefObject<HTMLD
     const selectedDayData = getCurrentDayData();
     if (!selectedDayData || !selectedDayData.activities.length) return;
 
-    const activities = selectedDayData.activities.filter(act => 
+    const activities = selectedDayData.activities.filter(act =>
       (act.locationLat && act.locationLng) || (act.lat && act.lng)
     );
 
@@ -186,11 +186,11 @@ export const Itinerary = ({ itineraryRef }: {itineraryRef: React.RefObject<HTMLD
 
   const getCurrentDayData = (): ItineraryDay | undefined => {
     if (!currentProduct?.itineraries) return undefined;
-    
+
     // Handle both numbered days and array index access
     const dayData = currentProduct.itineraries.find((day: any) => day.day === selectedDay);
     if (dayData) return dayData as unknown as ItineraryDay;
-    
+
     // Fallback to itinerary array if structured differently
     const itineraryArray = (currentProduct as any).itinerary || currentProduct.itineraries;
     return itineraryArray?.[selectedDay - 1] as unknown as ItineraryDay;
@@ -210,7 +210,7 @@ export const Itinerary = ({ itineraryRef }: {itineraryRef: React.RefObject<HTMLD
 
   const getPickupInfo = () => {
     if (!currentProduct) return null;
-    
+
     const {
       pickupOption,
       pickupStartTime,
@@ -228,24 +228,24 @@ export const Itinerary = ({ itineraryRef }: {itineraryRef: React.RefObject<HTMLD
 
   const getEndingInfo = () => {
     if (!currentProduct) return "You'll return to the starting point";
-    
+
     const { doesTourEndAtMeetingPoint, endPoints } = currentProduct as any;
-    
+
     if (doesTourEndAtMeetingPoint) {
       return "You'll return to the starting point";
     }
-    
+
     if (endPoints && endPoints.length > 0) {
       return `Tour ends at: ${endPoints[0].address || 'designated location'}`;
     }
-    
+
     return "You'll return to the starting point";
   };
 
   if (!currentProduct ||
-      currentProduct.type !== 'TOUR' ||
-      !currentProduct.itineraries ||
-      currentProduct.itineraries.length === 0) {
+    currentProduct.type !== 'TOUR' ||
+    !currentProduct.itineraries ||
+    currentProduct.itineraries.length === 0) {
     return null;
   }
 
@@ -255,7 +255,7 @@ export const Itinerary = ({ itineraryRef }: {itineraryRef: React.RefObject<HTMLD
   return (
     <div ref={itineraryRef} className="bg-white rounded-lg shadow-sm p-6 mb-8 scroll-mt-20">
       <h2 className="text-xl font-bold text-gray-900 mb-6">Itinerary</h2>
-      
+
       {/* Day Selector Tabs */}
       <div className="mb-6">
         <div className="flex space-x-2 overflow-x-auto pb-2 scrollbar-hide">
@@ -263,11 +263,10 @@ export const Itinerary = ({ itineraryRef }: {itineraryRef: React.RefObject<HTMLD
             <button
               key={day.day}
               onClick={() => setSelectedDay(day.day)}
-              className={`flex-shrink-0 px-4 py-3 rounded-lg border-2 transition-all duration-200 ${
-                selectedDay === day.day
+              className={`flex-shrink-0 px-4 py-3 rounded-lg border-2 transition-all duration-200 ${selectedDay === day.day
                   ? 'bg-[#ff914d] text-white border-[#ff914d]'
                   : 'bg-white text-gray-700 border-gray-200 hover:border-[#ff914d] hover:text-[#ff914d]'
-              }`}
+                }`}
             >
               <div className="text-sm font-medium">Day {day.day}</div>
               <div className="text-xs opacity-90 truncate max-w-32">
@@ -344,7 +343,7 @@ export const Itinerary = ({ itineraryRef }: {itineraryRef: React.RefObject<HTMLD
               {currentDayData.activities.map((activity: Activity, index: number) => {
                 const activityId = `${selectedDay}-${index}`;
                 const isExpanded = expandedActivities[activityId];
-                
+
                 return (
                   <div key={activityId} className="relative">
                     {/* Activity Marker */}
@@ -352,7 +351,7 @@ export const Itinerary = ({ itineraryRef }: {itineraryRef: React.RefObject<HTMLD
                       <div className="w-8 h-8 bg-[#ff914d] rounded-full flex items-center justify-center mr-3 z-10">
                         <span className="text-white text-sm font-bold">{index + 1}</span>
                       </div>
-                      
+
                       <div className="flex-1">
                         <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
                           <div className="flex items-start justify-between">
@@ -360,7 +359,7 @@ export const Itinerary = ({ itineraryRef }: {itineraryRef: React.RefObject<HTMLD
                               <h4 className="font-semibold text-gray-900 mb-2">
                                 {activity.location}
                               </h4>
-                              
+
                               <div className="flex items-center space-x-4 text-sm text-gray-600 mb-2">
                                 {activity.isStop && (
                                   <div className="flex items-center">
@@ -368,18 +367,17 @@ export const Itinerary = ({ itineraryRef }: {itineraryRef: React.RefObject<HTMLD
                                     <span>Stop: {formatDuration(activity.stopDuration, activity.durationUnit)}</span>
                                   </div>
                                 )}
-                                
-                                <div className={`px-2 py-1 rounded-full text-xs ${
-                                  activity.isAdmissionIncluded 
-                                    ? 'bg-green-100 text-green-800' 
+
+                                <div className={`px-2 py-1 rounded-full text-xs ${activity.isAdmissionIncluded
+                                    ? 'bg-green-100 text-green-800'
                                     : 'bg-red-100 text-red-800'
-                                }`}>
+                                  }`}>
                                   {activity.isAdmissionIncluded ? 'Admission included' : 'Admission not included'}
                                 </div>
                               </div>
                             </div>
-                            
-                            {(activity.description || activity.inclusions.length > 0 || activity.exclusions.length > 0) && (
+
+                            {(activity.description || activity.inclusions.length > 0 || activity.exclusions.length > 0 || activity.images && activity.images.length > 0) && (
                               <button
                                 onClick={() => toggleActivity(activityId)}
                                 className="ml-2 p-1 text-gray-400 hover:text-gray-600 transition-colors"
@@ -388,14 +386,14 @@ export const Itinerary = ({ itineraryRef }: {itineraryRef: React.RefObject<HTMLD
                               </button>
                             )}
                           </div>
-                          
+
                           {/* Expanded Content */}
                           {isExpanded && (
                             <div className="mt-4 pt-4 border-t border-gray-100 space-y-3">
                               {activity.description && (
                                 <p className="text-sm text-gray-700">{activity.description}</p>
                               )}
-                              
+
                               {activity.inclusions.length > 0 && (
                                 <div>
                                   <h5 className="text-sm font-medium text-green-800 mb-1">Inclusions:</h5>
@@ -409,7 +407,7 @@ export const Itinerary = ({ itineraryRef }: {itineraryRef: React.RefObject<HTMLD
                                   </ul>
                                 </div>
                               )}
-                              
+
                               {activity.exclusions.length > 0 && (
                                 <div>
                                   <h5 className="text-sm font-medium text-red-800 mb-1">Exclusions:</h5>
@@ -423,12 +421,29 @@ export const Itinerary = ({ itineraryRef }: {itineraryRef: React.RefObject<HTMLD
                                   </ul>
                                 </div>
                               )}
+
+                              {/* Activity Images */}
+                              {activity.images && activity.images.length > 0 && (
+                                <div className="mt-3">
+                                  <h5 className="text-sm font-medium text-gray-900 mb-1">Activity Photos</h5>
+                                  <div className="grid grid-cols-2 gap-2">
+                                    {activity.images.map((img: string, idx: number) => (
+                                      <img
+                                        key={idx}
+                                        src={img}
+                                        alt={`Activity photo ${idx + 1}`}
+                                        className="w-full h-32 object-cover rounded-lg shadow-sm"
+                                      />
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
                       </div>
                     </div>
-                    
+
                     {/* Vertical line continues */}
                     {index < currentDayData.activities.length - 1 && (
                       <div className="absolute left-4 top-12 w-0.5 bg-gray-300 h-6"></div>
@@ -449,23 +464,6 @@ export const Itinerary = ({ itineraryRef }: {itineraryRef: React.RefObject<HTMLD
                 </div>
               </div>
             </div>
-
-            {/* Day Images */}
-            {currentDayData.images && currentDayData.images.length > 0 && (
-              <div className="mt-6">
-                <h4 className="font-medium text-gray-900 mb-3">Day {currentDayData.day} Photos</h4>
-                <div className="grid grid-cols-2 gap-2">
-                  {currentDayData.images.map((image: string, idx: number) => (
-                    <img
-                      key={idx}
-                      src={image}
-                      alt={`Day ${currentDayData.day} photo ${idx + 1}`}
-                      className="w-full h-32 object-cover rounded-lg shadow-sm"
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Right Column - Map */}
@@ -475,7 +473,7 @@ export const Itinerary = ({ itineraryRef }: {itineraryRef: React.RefObject<HTMLD
                 <MapPin className="w-4 h-4 mr-2" />
                 Route Map - Day {currentDayData.day}
               </h4>
-              
+
               <div className="bg-white rounded-lg overflow-hidden shadow-sm">
                 <div
                   ref={mapRef}
@@ -494,7 +492,7 @@ export const Itinerary = ({ itineraryRef }: {itineraryRef: React.RefObject<HTMLD
                   )}
                 </div>
               </div>
-              
+
               {/* Map Legend */}
               <div className="mt-4 text-xs text-gray-600">
                 <div className="flex items-center space-x-4">

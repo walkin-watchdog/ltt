@@ -140,6 +140,22 @@ export const EditItineraryModel = ({
                         rows={2}
                       />
                     </div>
+                    <div className="mt-3">
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Activity Images (Optional)
+                      </label>
+                      <ImageUploader
+                        images={newActivity.images || []}
+                        onChange={(images) =>
+                          setNewActivity({ ...newActivity, images })
+                        }
+                        maxImages={10}
+                        folder="itinerary-activity"
+                        title="Activity Images"
+                        allowReordering={false}
+                        className="mb-4"
+                      />
+                    </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
                       {/* Duration Fields - Only show when isStop is true */}
@@ -498,6 +514,18 @@ export const EditItineraryModel = ({
                               Excludes: {activity.exclusions.join(', ')}
                             </div>
                           )}
+                          {activity.images && activity.images.length > 0 && (
+                            <div className="flex space-x-2 mt-2">
+                              {activity.images.slice(0, 3).map((img: string, idx: number) => (
+                                <img key={idx} src={img} alt="" className="w-10 h-10 object-cover rounded" />
+                              ))}
+                              {activity.images.length > 3 && (
+                                <div className="w-10 h-10 bg-gray-200 rounded flex items-center justify-center text-xs text-gray-600">
+                                  +{activity.images.length - 3}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                         <div className="flex items-center space-x-2 ml-3">
                           <button
@@ -524,23 +552,6 @@ export const EditItineraryModel = ({
                     ))}
                   </div>
                 </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Images (Optional)
-                </label>
-                <ImageUploader
-                  images={editingDay.images}
-                  onChange={(images) =>
-                    setEditingDay({ ...editingDay, images })
-                  }
-                  maxImages={10}
-                  folder="itinerary"
-                  title="Day Images"
-                  allowReordering={false}
-                  className="mb-4"
-                />
               </div>
 
               <div className="flex justify-end space-x-3 pt-4">

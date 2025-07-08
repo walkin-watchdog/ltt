@@ -37,6 +37,7 @@ const itineraryActivitySchema = z.object({
   inclusions: z.array(z.string()).optional().default([]),
   exclusions: z.array(z.string()).optional().default([]),
   order: z.number().optional(),
+  images: z.array(z.string()).default([]),
 });
 
 const itinerarySchema = z.object({
@@ -44,7 +45,7 @@ const itinerarySchema = z.object({
   title: z.string().min(1),
   description: z.string().min(1),
   activities: z.array(itineraryActivitySchema).default([]),
-  images: z.array(z.string()).default([]),
+ 
 });
 
 const productSchema = z.object({
@@ -544,7 +545,7 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
               day: day.day,
               title: day.title,
               description: day.description,
-              images: day.images,
+
               activities: {
                 create: (day.activities || []).map(act => ({
                   location: act.location,
@@ -559,6 +560,8 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
                   inclusions: act.inclusions ?? [],
                   exclusions: act.exclusions ?? [],
                   order: act.order ?? 0,
+                  description: act.description || '', // New description field
+                                images: act.images,
                 }))
               }
             }))
@@ -813,7 +816,6 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
                 day: day.day,
                 title: day.title,
                 description: day.description,
-                images: day.images,
                 activities: {
                   create: (day.activities || []).map(act => ({
                     location: act.location,
@@ -828,6 +830,7 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
                     inclusions: act.inclusions ?? [],
                     exclusions: act.exclusions ?? [],
                     order: act.order ?? 0,
+                    images: act.images,
                   }))
                 }
               }
@@ -1307,6 +1310,7 @@ router.post('/:id/clone', authenticate, authorize(['ADMIN', 'EDITOR']), async (r
                 locationLat: actData.locationLat || undefined,
                 locationLng: actData.locationLng || undefined,
                 locationPlaceId: actData.locationPlaceId || undefined,
+                description: actData.description || '',
               };
             })
           });

@@ -1,57 +1,30 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Trash2, GripVertical } from 'lucide-react';
 import type { CancellationPolicyTabProps, CancellationTerm } from '@/types.ts';
+import { predefinedPolicies } from '../productcontenttabs/predefinedcategories';
 
 export const CancellationPolicyTab = ({ formData, updateFormData }: CancellationPolicyTabProps) => {
   const [, setActivePolicyTab] = useState<'standard' | 'custom'>('standard');
 
-  const predefinedPolicies = {
-    standard: {
-      label: 'Standard (Recommended)',
-      description: 'Full refund 24+ hours before, no refund after',
-      freeCancellationHours: 24,
-      partialRefundPercent: 0,
-      noRefundAfterHours: 24,
-      terms: [
-        { timeframe: '24+ hours before start', refundPercent: 100, description: 'Full refund available' },
-        { timeframe: 'Less than 24 hours', refundPercent: 0, description: 'No refund available' }
-      ]
-    },
-    moderate: {
-      label: 'Moderate',
-      description: 'Full refund 4+ days before, 50% refund 3-6 days before',
-      freeCancellationHours: 96, // 4 days
-      partialRefundPercent: 50,
-      noRefundAfterHours: 72, // 3 days
-      terms: [
-        { timeframe: '4+ days before start', refundPercent: 100, description: 'Full refund available' },
-        { timeframe: '3-6 days before start', refundPercent: 50, description: '50% refund available' },
-        { timeframe: 'Less than 3 days', refundPercent: 0, description: 'No refund available' }
-      ]
-    },
-    strict: {
-      label: 'Strict',
-      description: 'Full refund 7+ days before, 50% refund 3-6 days before',
-      freeCancellationHours: 168, // 7 days
-      partialRefundPercent: 50,
-      noRefundAfterHours: 72, // 3 days
-      terms: [
-        { timeframe: '7+ days before start', refundPercent: 100, description: 'Full refund available' },
-        { timeframe: '3-6 days before start', refundPercent: 50, description: '50% refund available' },
-        { timeframe: 'Less than 3 days', refundPercent: 0, description: 'No refund available' }
-      ]
-    },
-    no_refund: {
-      label: 'All Sales Final',
-      description: 'No refunds regardless of cancellation timing',
-      freeCancellationHours: 0,
-      partialRefundPercent: 0,
-      noRefundAfterHours: 0,
-      terms: [
-        { timeframe: 'Any time before start', refundPercent: 0, description: 'No refunds available' }
-      ]
+  // Set default standard policy on component mount if no policy is set
+  useEffect(() => {
+    if (!formData.cancellationPolicyType) {
+      const defaultPolicyKey = 'standard'; // You can change this to any default policy key
+      const defaultPolicy = predefinedPolicies[defaultPolicyKey];
+      
+      updateFormData({
+        cancellationPolicyType: defaultPolicyKey,
+        freeCancellationHours: defaultPolicy.freeCancellationHours,
+        partialRefundPercent: defaultPolicy.partialRefundPercent,
+        noRefundAfterHours: defaultPolicy.noRefundAfterHours,
+        cancellationTerms: defaultPolicy.terms,
+        cancellationPolicy: `${defaultPolicy.label}: ${defaultPolicy.description}\n\n${defaultPolicy.terms.map(term => 
+          `• ${term.timeframe}: ${term.refundPercent}% refund - ${term.description}`
+        ).join('\n')}`
+      });
     }
-  };
+  }, [formData.cancellationPolicyType, updateFormData]);
+
 
   const handlePolicyTypeChange = (policyType: string) => {
     if (policyType === 'custom') {

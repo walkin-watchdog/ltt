@@ -70,13 +70,19 @@ export const BookingSidebar = ({
                     <div className="flex items-center justify-between mb-2">
                         <span className="text-sm text-gray-600">Price per {cheapestPackage?.isPerGroup ? 'group' : 'person'}</span>
                         {cheapestPackage && cheapestPackage.discountType !== 'none' && cheapestPackage.discountValue > 0 && (
-                            <span className="bg-[#ff914d] text-white px-2 py-1 rounded text-xs font-semibold">
-                                {cheapestPackage.discountType === 'percentage' ?
-                                    `${cheapestPackage.discountValue}% OFF` :
-                                    `Save ${cheapestPackage.currency === 'INR' ? '₹' :
-                                        cheapestPackage.currency === 'USD' ? '$' :
-                                            cheapestPackage.currency === 'EUR' ? '€' : '£'}${cheapestPackage.discountValue.toLocaleString()}`
-                                }
+                            <span className="bg-[#ff914d] text-white px-2 py-1 rounded text-xs font-semibold flex items-center">
+                                {cheapestPackage.discountType === 'percentage' ? (
+                                    `${cheapestPackage.discountValue}% OFF`
+                                ) : (
+                                    <>
+                                        Save&nbsp;
+                                        <PriceDisplay
+                                            amount={cheapestPackage.discountValue}
+                                            currency={cheapestPackage.currency}
+                                            className="inline"
+                                        />
+                                    </>
+                                )}
                             </span>
                         )}
                     </div>
@@ -217,11 +223,14 @@ export const BookingSidebar = ({
 
                                     <div className="mt-3 flex justify-between items-center">
                                         <div className="font-bold text-[#ff914d]">
-                                            ₹{calculateEffectivePrice(
-                                                pkg.basePrice,
-                                                pkg.discountType,
-                                                pkg.discountValue
-                                            ).toLocaleString()}
+                                            <PriceDisplay
+                                                amount={calculateEffectivePrice(
+                                                    pkg.basePrice,
+                                                    pkg.discountType,
+                                                    pkg.discountValue
+                                                )}
+                                                currency={pkg.currency}
+                                            />
                                             <span className="text-sm text-gray-500 font-normal"> /person</span>
                                         </div>
                                         <button
@@ -306,17 +315,37 @@ export const BookingSidebar = ({
                     <div className="mb-4 p-4 bg-gray-50 rounded-lg">
                         <div className="flex items-center justify-between mb-2">
                             <span className="text-sm text-gray-700">Adults:</span>
-                            <span className="text-sm font-medium">
-                                {adultsCount} × {selectedPackage.currency === 'INR' ? '₹' : selectedPackage.currency === 'USD' ? '$' : selectedPackage.currency === 'EUR' ? '€' : '£'}
-                                {selectedSlot.adultTiers && selectedSlot.adultTiers.length > 0
-                                    ? selectedSlot.adultTiers[0].price.toLocaleString()
-                                    : calculateEffectivePrice(
-                                        selectedPackage.basePrice,
-                                        selectedPackage.discountType,
-                                        selectedPackage.discountValue
-                                    ).toLocaleString()
-                                }
-                            </span>
+                            <div className="text-sm font-medium">
+                                {adultsCount} ×
+                                {selectedSlot.adultTiers && selectedSlot.adultTiers.length > 0 ? (
+                                    <span>
+                                        {/* Show original price with strikethrough if discount exists */}
+                                        {selectedPackage.discountType !== 'none' && selectedPackage.discountValue > 0 && (
+                                            <span className="line-through text-gray-400 mr-2">
+                                                <PriceDisplay amount={selectedSlot.adultTiers[0].price} currency={selectedPackage.currency} />
+                                            </span>
+                                        )}
+                                        <span className={selectedPackage.discountType !== 'none' && selectedPackage.discountValue > 0 ? "text-[#ff914d] font-bold" : ""}>
+                                            <PriceDisplay
+                                                amount={calculateEffectivePrice(
+                                                    selectedSlot.adultTiers[0].price,
+                                                    selectedPackage.discountType,
+                                                    selectedPackage.discountValue
+                                                )}
+                                                currency={selectedPackage.currency}
+                                            />
+                                        </span>
+                                    </span>) : (
+                                    <PriceDisplay
+                                        amount={calculateEffectivePrice(
+                                            selectedPackage.basePrice,
+                                            selectedPackage.discountType,
+                                            selectedPackage.discountValue
+                                        )}
+                                        currency={selectedPackage.currency}
+                                    />
+                                )}
+                            </div>
                         </div>
 
                         {/* Children Pricing or Not Allowed Message */}
@@ -324,17 +353,38 @@ export const BookingSidebar = ({
                             childrenCount > 0 && (
                                 <div className="flex items-center justify-between">
                                     <span className="text-sm text-gray-700">Children:</span>
-                                    <span className="text-sm font-medium">
-                                        {childrenCount} × {selectedPackage.currency === 'INR' ? '₹' : selectedPackage.currency === 'USD' ? '$' : selectedPackage.currency === 'EUR' ? '€' : '£'}
-                                        {selectedSlot.childTiers && selectedSlot.childTiers.length > 0
-                                            ? selectedSlot.childTiers[0].price.toLocaleString()
-                                            : (calculateEffectivePrice(
-                                                selectedPackage.basePrice,
-                                                selectedPackage.discountType,
-                                                selectedPackage.discountValue
-                                            ) * 0.5).toLocaleString()
-                                        }
-                                    </span>
+                                    <div className="text-sm font-medium">
+                                        {childrenCount} ×
+                                        {selectedSlot.childTiers && selectedSlot.childTiers.length > 0 ? (
+                                            <span>
+                                                {/* Show original price with strikethrough if discount exists */}
+                                                {selectedPackage.discountType !== 'none' && selectedPackage.discountValue > 0 && (
+                                                    <span className="line-through text-gray-400 mr-2">
+                                                        <PriceDisplay amount={selectedSlot.childTiers[0].price} currency={selectedPackage.currency} />
+                                                    </span>
+                                                )}
+                                                <span className={selectedPackage.discountType !== 'none' && selectedPackage.discountValue > 0 ? "text-[#ff914d] font-bold" : ""}>
+                                                    <PriceDisplay
+                                                        amount={calculateEffectivePrice(
+                                                            selectedSlot.childTiers[0].price,
+                                                            selectedPackage.discountType,
+                                                            selectedPackage.discountValue
+                                                        )}
+                                                        currency={selectedPackage.currency}
+                                                    />
+                                                </span>
+                                            </span>
+                                        ) : (
+                                            <PriceDisplay
+                                                amount={calculateEffectivePrice(
+                                                    selectedPackage.basePrice,
+                                                    selectedPackage.discountType,
+                                                    selectedPackage.discountValue
+                                                ) * 0.5}
+                                                currency={selectedPackage.currency}
+                                            />
+                                        )}
+                                    </div>
                                 </div>
                             )
                         ) : (
@@ -349,23 +399,34 @@ export const BookingSidebar = ({
                         <div className="mt-3 pt-2 border-t border-gray-200 flex justify-between items-center">
                             <span className="font-medium">Total:</span>
                             <span className="font-bold text-[#ff914d]">
-                                {selectedPackage.currency === 'INR' ? '₹' : selectedPackage.currency === 'USD' ? '$' : selectedPackage.currency === 'EUR' ? '€' : '£'}
-                                {(adultsCount * (selectedSlot.adultTiers?.[0]?.price ||
-                                    calculateEffectivePrice(
-                                        selectedPackage.basePrice,
-                                        selectedPackage.discountType,
-                                        selectedPackage.discountValue
-                                    )) +
-                                    (selectedPackage.ageGroups?.child?.enabled !== false
-                                        ? childrenCount * (selectedSlot.childTiers?.[0]?.price ||
-                                            (calculateEffectivePrice(
-                                                selectedPackage.basePrice,
-                                                selectedPackage.discountType,
-                                                selectedPackage.discountValue
-                                            ) * 0.5))
-                                        : 0
-                                    )
-                                ).toLocaleString()}
+                                <PriceDisplay
+                                    amount={adultsCount * (selectedSlot.adultTiers?.[0]?.price
+                                        ? calculateEffectivePrice(
+                                            selectedSlot.adultTiers[0].price,
+                                            selectedPackage.discountType,
+                                            selectedPackage.discountValue
+                                        )
+                                        : calculateEffectivePrice(
+                                            selectedPackage.basePrice,
+                                            selectedPackage.discountType,
+                                            selectedPackage.discountValue
+                                        )) +
+                                        (selectedPackage.ageGroups?.child?.enabled !== false
+                                            ? childrenCount * (selectedSlot.childTiers?.[0]?.price
+                                                ? calculateEffectivePrice(
+                                                    selectedSlot.childTiers[0].price,
+                                                    selectedPackage.discountType,
+                                                    selectedPackage.discountValue
+                                                )
+                                                : (calculateEffectivePrice(
+                                                    selectedPackage.basePrice,
+                                                    selectedPackage.discountType,
+                                                    selectedPackage.discountValue
+                                                ) * 0.5))
+                                            : 0
+                                        )}
+                                    currency={selectedPackage.currency}
+                                />
                             </span>
                         </div>
 

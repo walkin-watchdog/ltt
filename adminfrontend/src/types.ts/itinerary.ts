@@ -8,6 +8,7 @@ export interface ItineraryDay {
 }
 
 export interface ItineraryActivity {
+  images: string[];
   location: string;
   lat?: number;
   lng?: number;

@@ -77,7 +77,7 @@ export const AvailabilityTab: React.FC<AvailabilityTabProps> = ({
           </label>
           <input
             type="date"
-            defaultValue=""
+            // defaultValue=""
             min={availabilityStartDate || undefined}
             value={availabilityEndDate || ''}
             onChange={e => updateFormData({ availabilityEndDate: e.target.value || undefined })}
@@ -98,7 +98,7 @@ export const AvailabilityTab: React.FC<AvailabilityTabProps> = ({
             <label className="block text-sm text-gray-700 mb-1">Choose a Date to Block</label>
             <input
               type="date"
-              defaultValue=""
+              // defaultValue=""
               value={blockDate || ''}
               min={availabilityStartDate || undefined}
               max={availabilityEndDate || undefined}

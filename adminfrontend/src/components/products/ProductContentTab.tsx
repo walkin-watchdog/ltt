@@ -70,6 +70,7 @@ export const ProductContentTab = ({
     exclusions: [],
     order: 0,
     description: '',
+    images: [],
   });
   const [isDestinationModalOpen, setIsDestinationModalOpen] = useState(false);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
@@ -162,6 +163,7 @@ export const ProductContentTab = ({
         exclusions: [],
         order: 0,
         description: '',
+        images: []
       });
     }
   };

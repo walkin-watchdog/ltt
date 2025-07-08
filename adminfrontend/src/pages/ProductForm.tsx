@@ -58,40 +58,40 @@ export const ProductForm = () => {
   }, [id, isEdit, token]);
 
   const makeContent = useCallback((inner: string) =>
-  (props: any) => (
-    <ProductContentTab
-      {...props}
-      initialTab={inner}
-      hideSidebar
-      destinations={destinations}
-      experienceCategories={experienceCategories}
-      isLoadingDestinations={isLoadingDestinations}
-      isLoadingCategories={isLoadingCategories}
-      onDestinationsCreated={fetchDestinations}
-      onCategoriesCreated={fetchExperienceCategories}
-    />
-  ), [destinations, experienceCategories, isLoadingDestinations, isLoadingCategories, fetchDestinations, fetchExperienceCategories]);
+    (props: any) => (
+      <ProductContentTab
+        {...props}
+        initialTab={inner}
+        hideSidebar
+        destinations={destinations}
+        experienceCategories={experienceCategories}
+        isLoadingDestinations={isLoadingDestinations}
+        isLoadingCategories={isLoadingCategories}
+        onDestinationsCreated={fetchDestinations}
+        onCategoriesCreated={fetchExperienceCategories}
+      />
+    ), [destinations, experienceCategories, isLoadingDestinations, isLoadingCategories, fetchDestinations, fetchExperienceCategories]);
 
   const tabs = useMemo(() => [
-    { id: 'basic',      name: 'Basic Info',            icon: Info,         component: makeContent('basic') },
-    { id: 'images',     name: 'Images',                icon: Image,        component: makeContent('images') },
-    { id: 'itinerary',  name: 'Itinerary',             icon: Route,        component: makeContent('itinerary') },
-    { id: 'pickup',     name: 'Pickup Options',        icon: MapPin,       component: makeContent('pickup') },
-    { id: 'content',    name: 'Content Elements',      icon: Star,         component: makeContent('content') },
-    { id: 'details',    name: 'Additional Details',    icon: Settings,     component: makeContent('details') },
-    { id: 'guides',     name: 'Guides & Languages',    icon: Users,        component: makeContent('guides') },
+    { id: 'basic', name: 'Basic Info', icon: Info, component: makeContent('basic') },
+    { id: 'images', name: 'Images', icon: Image, component: makeContent('images') },
+    { id: 'itinerary', name: 'Itinerary', icon: Route, component: makeContent('itinerary') },
+    { id: 'pickup', name: 'Pickup Options', icon: MapPin, component: makeContent('pickup') },
+    { id: 'content', name: 'Content Elements', icon: Star, component: makeContent('content') },
+    { id: 'details', name: 'Additional Details', icon: Settings, component: makeContent('details') },
+    { id: 'guides', name: 'Guides & Languages', icon: Users, component: makeContent('guides') },
 
-    { id: 'schedule',             name: 'Schedule & Price',          icon: CalendarClock, component: SchedulePriceTab },
-    { id: 'payment-options',      name: 'Payment Options',         icon: ClipboardCheck, component: BookingProcessTab },
-    { id: 'cancellation',         name: 'Cancellation Policy',       icon: Ban,            component: CancellationPolicyTab },
-    { id: 'traveler-requirements',name: 'Traveler Requirements',     icon: UserCheck,      component: TravelerRequirementsTab },
-    { id: 'availability',         name: 'Availability',              icon: CalendarRange,  component: AvailabilityTab },
+    { id: 'schedule', name: 'Schedule & Price', icon: CalendarClock, component: SchedulePriceTab },
+    { id: 'payment-options', name: 'Payment Options', icon: ClipboardCheck, component: BookingProcessTab },
+    { id: 'cancellation', name: 'Cancellation Policy', icon: Ban, component: CancellationPolicyTab },
+    { id: 'traveler-requirements', name: 'Traveler Requirements', icon: UserCheck, component: TravelerRequirementsTab },
+    { id: 'availability', name: 'Availability', icon: CalendarRange, component: AvailabilityTab },
   ], [makeContent]);
 
   const [activeTab, setActiveTab] = useState('basic');
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  
+
   const [formData, setFormData] = useState<ProductFormData>({
     title: '',
     productCode: '',
@@ -150,7 +150,7 @@ export const ProductForm = () => {
     meetingPoints: [],
     phonenumber: '',
     tourType: '',
-    
+
   });
 
   const tabValidations: Record<string, (formData: any) => string[]> = {
@@ -174,8 +174,24 @@ export const ProductForm = () => {
       return missing;
     },
     images: f => !f.images?.length ? ['At least one image'] : [],
-    itinerary: f => (f.duration !== 'Full Day' && f.duration !== 'Half Day' && (f.itineraries?.length || 0) < (parseInt(f.duration)||1))
-      ? [`At least ${(parseInt(f.duration)||1)} itinerary day(s)`] : [],
+    itinerary: f => {
+      // If duration is in hours, only 1 itinerary day is allowed
+      if (typeof f.duration === 'string' && f.duration.includes('Hour')) {
+        if ((f.itineraries?.length || 0) !== 1) {
+          return ['For hourly duration, only one itinerary day is allowed'];
+        }
+        return [];
+      }
+      // For other durations, require at least as many days as specified
+      if (
+        f.duration !== 'Full Day' &&
+        f.duration !== 'Half Day' &&
+        (f.itineraries?.length || 0) < (parseInt(f.duration) || 1)
+      ) {
+        return [`At least ${(parseInt(f.duration) || 1)} itinerary day(s)`];
+      }
+      return [];
+    },
     pickup: f => {
       const m: string[] = [];
       if (!f.pickupOption) m.push('Pickup Option');
@@ -205,20 +221,20 @@ export const ProductForm = () => {
     'payment-options': _ => [],
     cancellation: f => {
       const m: string[] = [];
-        if (!f.cancellationPolicy) m.push('Cancellation Policy');
-        if (f.cancellationPolicyType === 'custom') {
-          if (!f.cancellationTerms.length) m.push('At least one Cancellation Term');
-          else {
-            const invalid = f.cancellationTerms.some((t: any) =>
-              !t.timeframe || !t.description || t.refundPercent < 0 || t.refundPercent > 100
-            );
-            if (invalid) m.push('Complete all Cancellation Term details');
-          }
+      if (!f.cancellationPolicy) m.push('Cancellation Policy');
+      if (f.cancellationPolicyType === 'custom') {
+        if (!f.cancellationTerms.length) m.push('At least one Cancellation Term');
+        else {
+          const invalid = f.cancellationTerms.some((t: any) =>
+            !t.timeframe || !t.description || t.refundPercent < 0 || t.refundPercent > 100
+          );
+          if (invalid) m.push('Complete all Cancellation Term details');
         }
+      }
       return m;
     },
     'traveler-requirements': f => {
-    const m: string[] = [];
+      const m: string[] = [];
       if (f.customRequirementFields.length) {
         const invalidField = f.customRequirementFields.some((fld: any) =>
           !fld.label || (fld.type === 'select' && !fld.options.length)
@@ -251,8 +267,8 @@ export const ProductForm = () => {
       ...day,
       activities: day.activities.map((a: any) => ({
         ...a,
-        lat:     a.lat     ?? a.locationLat     ?? null,
-        lng:     a.lng     ?? a.locationLng     ?? null,
+        lat: a.lat ?? a.locationLat ?? null,
+        lng: a.lng ?? a.locationLng ?? null,
         placeId: a.placeId ?? a.locationPlaceId ?? null,
       })),
     });
@@ -263,7 +279,7 @@ export const ProductForm = () => {
     if (product?.itinerary?.length) {
       product.itinerary = product.itinerary.map(normaliseCoords);
     }
-    
+
     if (product && product.packages) {
       const transformedPackages = product.packages.map((pkg: any) => {
         // Only transform if slots exist and slotConfigs doesn't
@@ -386,20 +402,31 @@ export const ProductForm = () => {
       }
     }
     if (
-      formData.type === 'TOUR' &&
-      formData.itineraries &&
-      formData.duration &&
-      formData.duration !== 'Full Day'
-    ) {
-      const expectedDays = parseInt(formData.duration.split(' ')[0]) || 2;
-      if (formData.itineraries.length < expectedDays) {
-        toast({
-          message: `You must add at least ${expectedDays} days to the itinerary for a ${formData.duration} tour.`,
-          type: 'error'
-        });
-        return; // Prevent update
+    formData.type === 'TOUR' &&
+    formData.itineraries &&
+    formData.duration &&
+    formData.duration !== 'Full Day' &&
+    formData.duration !== 'Half Day'
+  ) {
+    let expectedDays = 1;
+    if (typeof formData.duration === 'string') {
+      if (formData.duration.includes('Hour')) {
+        expectedDays = 1;
+      } else if (formData.duration.includes('Day')) {
+        expectedDays = parseInt(formData.duration.split(' ')[0]) || 1;
       }
     }
+    const actualDays = formData.itineraries.length;
+    if (actualDays !== expectedDays) {
+      toast({
+        message: `Itinerary days (${actualDays}) must exactly match the duration (${expectedDays} day${expectedDays > 1 ? 's' : ''}).`,
+        type: 'error'
+      });
+      setActiveTab('itinerary');
+      setIsSaving(false);
+      return;
+    }
+  }
     console.log('Submitting form data:', formData);
 
     const payload = {
@@ -498,34 +525,31 @@ export const ProductForm = () => {
           {/* Draft Toggle */}
           <div className="flex items-center justify-between sm:justify-start space-x-2 p-2 sm:p-0">
             <span
-              className={`text-sm font-medium ${
-                formData.isDraft ? 'text-yellow-800' : 'text-gray-500'
-              }`}
+              className={`text-sm font-medium ${formData.isDraft ? 'text-yellow-800' : 'text-gray-500'
+                }`}
             >
               Draft
             </span>
             <button
               onClick={() =>
-                  updateFormData({
-                    isDraft: !formData.isDraft,
-                    ...( !formData.isDraft
-                        ? { isActive: false }
-                        : { isActive: true }
-                    ),
-                  })
-                }
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                formData.isDraft ? 'bg-[#ff914d]' : 'bg-gray-200'
-              }`}
+                updateFormData({
+                  isDraft: !formData.isDraft,
+                  ...(!formData.isDraft
+                    ? { isActive: false }
+                    : { isActive: true }
+                  ),
+                })
+              }
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.isDraft ? 'bg-[#ff914d]' : 'bg-gray-200'
+                }`}
             >
               <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  formData.isDraft ? 'translate-x-1' : 'translate-x-6'
-                }`}
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.isDraft ? 'translate-x-1' : 'translate-x-6'
+                  }`}
               />
             </button>
           </div>
-          
+
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
             {/* Discard Draft Button */}
@@ -542,32 +566,29 @@ export const ProductForm = () => {
                 Discard
               </button>
             )}
-            
+
             {/* Status Toggle */}
             {!formData.isDraft && (
               <div className="flex items-center justify-between sm:justify-start space-x-2 p-2 sm:p-0">
                 <span
-                  className={`text-sm font-medium ${
-                    formData.isActive ? 'text-green-600' : 'text-gray-500'
-                  }`}
+                  className={`text-sm font-medium ${formData.isActive ? 'text-green-600' : 'text-gray-500'
+                    }`}
                 >
                   {formData.isActive ? 'Active' : 'Inactive'}
                 </span>
                 <button
                   onClick={() => updateFormData({ isActive: !formData.isActive })}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    formData.isActive ? 'bg-[#ff914d]' : 'bg-gray-200'
-                  }`}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.isActive ? 'bg-[#ff914d]' : 'bg-gray-200'
+                    }`}
                 >
                   <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      formData.isActive ? 'translate-x-1' : 'translate-x-6'
-                    }`}
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.isActive ? 'translate-x-1' : 'translate-x-6'
+                      }`}
                   />
                 </button>
               </div>
             )}
-            
+
             {/* Cancel */}
             {!isEdit && !formData.isDraft && (
               <button
@@ -597,7 +618,7 @@ export const ProductForm = () => {
                 Go Back
               </button>
             )}
-            
+
             {/* Preview Button */}
             {isEdit && (
               <button
@@ -609,7 +630,7 @@ export const ProductForm = () => {
                 <span className="hidden sm:inline">Preview</span>
               </button>
             )}
-            
+
             {/* Save Button */}
             <button
               onClick={handleSubmit}
@@ -621,12 +642,12 @@ export const ProductForm = () => {
                 {isSaving
                   ? 'Saving...'
                   : isEdit && formData.isDraft
-                  ? 'Update Draft'
-                  : isEdit
-                  ? 'Update Product'
-                  : formData.isDraft
-                  ? 'Create Draft'
-                  : 'Create Product'}
+                    ? 'Update Draft'
+                    : isEdit
+                      ? 'Update Product'
+                      : formData.isDraft
+                        ? 'Create Draft'
+                        : 'Create Product'}
               </span>
             </button>
           </div>
@@ -644,11 +665,10 @@ export const ProductForm = () => {
                 <button
                   key={tab.id}
                   onClick={() => handleTabChange(tab.id)}
-                  className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                    activeTab === tab.id
+                  className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === tab.id
                       ? 'bg-[#ff914d] text-white'
                       : 'text-gray-700 hover:bg-gray-100'
-                  }`}
+                    }`}
                 >
                   {Icon && <Icon className="h-5 w-5 mr-2" />}
                   <span className="flex-1 text-left">{tab.name}</span>
@@ -684,7 +704,7 @@ export const ProductForm = () => {
           <button
             onClick={() => {
               const raw = tabs.findIndex((t) => t.id === activeTab);
-              const currentIndex = raw===-1 ? 0 : raw;
+              const currentIndex = raw === -1 ? 0 : raw;
               if (currentIndex > 0) {
                 handleTabChange(tabs[currentIndex - 1].id);
               }
@@ -694,19 +714,18 @@ export const ProductForm = () => {
           >
             Previous
           </button>
-          
+
           <div className="flex space-x-1">
             {tabs.map((tab, _index) => (
               <button
                 key={tab.id}
                 onClick={() => handleTabChange(tab.id)}
-                className={`w-2 h-2 rounded-full transition-colors ${
-                  activeTab === tab.id ? 'bg-[#ff914d]' : 'bg-gray-300'
-                }`}
+                className={`w-2 h-2 rounded-full transition-colors ${activeTab === tab.id ? 'bg-[#ff914d]' : 'bg-gray-300'
+                  }`}
               />
             ))}
           </div>
-          
+
           <button
             onClick={() => {
               const currentIndex = tabs.findIndex((tab) => tab.id === activeTab);

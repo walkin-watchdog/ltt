@@ -1,23 +1,20 @@
 import { PlusCircle } from "lucide-react";
-import { LocationAutocomplete } from "../ui/LocationAutocomplete";
-import type { Key} from "react";
+import type { Key } from "react";
 import type { BasicInfoProps } from "@/types.ts";
+import Select from 'react-select';
 
-
-
-
-export const BasicInfo =({
-formData,
-updateFormData,
-destinations,
-experienceCategories,
-setIsCategoryModalOpen,
-isLoadingDestinations,
-isLoadingCategories,
-setIsDestinationModalOpen
+export const BasicInfo = ({
+  formData,
+  updateFormData,
+  destinations,
+  experienceCategories,
+  setIsCategoryModalOpen,
+  isLoadingDestinations,
+  isLoadingCategories,
+  setIsDestinationModalOpen
 }: BasicInfoProps) => {
 
-return (
+  return (
     <div className="space-y-4 md:space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         <div>
@@ -68,28 +65,41 @@ return (
             Location *
           </label>
           <div className="flex">
-            <LocationAutocomplete
-              value={formData.location || ''}
-              onChange={(location, lat, lng, placeId) => {
-                // Find matching destination by name or coordinates
-                const matchingDestination = destinations.find((d: { name: string; lat: number; lng: number; }) =>
-                  d.name === location ||
-                  (lat && lng && d.lat && d.lng &&
-                    Math.abs(d.lat - lat) < 0.001 &&
-                    Math.abs(d.lng - lng) < 0.001)
-                );
-
-                updateFormData({
-                  location: location,
-                  destinationId: matchingDestination?.id || null,
-                  locationLat: lat,
-                  locationLng: lng,
-                  locationPlaceId: placeId
-                });
-              }}
-              placeholder="Search for a location..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-            />
+            <div>
+              <Select
+                options={destinations.map((d: any) => ({
+                  value: d.id,
+                  label: d.name,
+                  lat: d.lat,
+                  lng: d.lng,
+                  placeId: d.placeId,
+                }))}
+                value={
+                  destinations
+                    .filter((d: any) => d.id === formData.destinationId)
+                    .map((d: any) => ({
+                      value: d.id,
+                      label: d.name,
+                      lat: d.lat,
+                      lng: d.lng,
+                      placeId: d.placeId,
+                    }))[0] || null
+                }
+                onChange={(selected: any) => {
+                  updateFormData({
+                    location: selected.label,
+                    destinationId: selected.value,
+                    locationLat: selected.lat,
+                    locationLng: selected.lng,
+                    locationPlaceId: selected.placeId,
+                  });
+                }}
+                placeholder="Select a destination..."
+                className="react-select-container"
+                classNamePrefix="react-select"
+                isClearable
+              />
+            </div>
             <button
               type="button"
               onClick={() => setIsDestinationModalOpen(true)}
@@ -100,11 +110,6 @@ return (
           </div>
           {isLoadingDestinations && (
             <p className="text-sm text-gray-500 mt-1">Loading destinations...</p>
-          )}
-          {formData.locationLat && formData.locationLng && (
-            <p className="text-xs text-gray-500 mt-1">
-              Coordinates: {formData.locationLat.toFixed(6)}, {formData.locationLng.toFixed(6)}
-            </p>
           )}
         </div>
 
@@ -119,15 +124,19 @@ return (
               value={
                 formData.duration === 'Full Day' || formData.duration === 'Half Day'
                   ? 1
-                  : formData.duration && formData.duration !== 'Full Day' && formData.duration !== 'Half Day'
-                    ? parseInt(formData.duration.split(' ')[0]) || ''
-                    : ''
+                  : formData.duration && formData.duration.endsWith('Hours')
+                    ? parseInt(formData.duration)
+                    : formData.duration && formData.duration.endsWith('Days')
+                      ? parseInt(formData.duration)
+                      : ''
               }
               onChange={e => {
                 const value = Number(e.target.value);
-                if (value === 1) {
+                if (formData.durationType === 'hours') {
+                  updateFormData({ duration: `${value} Hours` });
+                } else if (value === 1 && formData.durationType === 'days') {
                   updateFormData({ duration: 'Full Day' });
-                } else if (value > 1) {
+                } else if (value > 1 && formData.durationType === 'days') {
                   updateFormData({ duration: `${value} Days` });
                 }
               }}
@@ -142,20 +151,26 @@ return (
                   ? 'full'
                   : formData.duration === 'Half Day'
                     ? 'half'
-                    : 'days'
+                    : formData.duration && formData.duration.endsWith('Hours')
+                      ? 'hours'
+                      : 'days'
               }
               onChange={e => {
                 const currentValue =
-                  formData.duration && formData.duration !== 'Full Day' && formData.duration !== 'Half Day'
-                    ? parseInt(formData.duration.split(' ')[0]) || 1
-                    : 1;
+                  formData.duration && formData.duration.endsWith('Days')
+                    ? parseInt(formData.duration) || 1
+                    : formData.duration && formData.duration.endsWith('Hours')
+                      ? parseInt(formData.duration) || 1
+                      : 1;
 
                 if (e.target.value === 'full') {
-                  updateFormData({ duration: 'Full Day' });
+                  updateFormData({ duration: 'Full Day', durationType: 'days' });
                 } else if (e.target.value === 'half') {
-                  updateFormData({ duration: 'Half Day' });
+                  updateFormData({ duration: 'Half Day', durationType: 'days' });
+                } else if (e.target.value === 'hours') {
+                  updateFormData({ duration: `${currentValue > 1 ? currentValue : 1} Hours`, durationType: 'hours' });
                 } else {
-                  updateFormData({ duration: `${currentValue > 1 ? currentValue : 2} Days` });
+                  updateFormData({ duration: `${currentValue > 1 ? currentValue : 2} Days`, durationType: 'days' });
                 }
               }}
               className="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
@@ -167,6 +182,7 @@ return (
                 parseInt(formData.duration?.split(' ')[0]) > 1
               }>Half Day</option>
               <option value="days">Days</option>
+              <option value="hours">Hours</option>
             </select>
             {(formData.duration === 'Full Day' || formData.duration === 'Half Day') && (
               <span className="text-gray-500 text-sm">
@@ -178,8 +194,10 @@ return (
             {formData.duration === 'Full Day' && 'A single full day experience.'}
             {formData.duration === 'Half Day' && 'A single half day experience.'}
             {formData.duration && formData.duration.includes('Days') && 'Enter the number of days for this tour.'}
+            {formData.duration && formData.duration.includes('Hours') && 'Enter the number of hours for this experience.'}
           </div>
         </div>
+
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">

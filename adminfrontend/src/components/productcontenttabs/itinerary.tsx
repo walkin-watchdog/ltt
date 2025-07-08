@@ -97,24 +97,30 @@ export const ItineraryTab = ({
                                                                     Excludes: {activity.exclusions.join(', ')}
                                                                 </div>
                                                             )}
+                                                            {activity.images && activity.images.length > 0 && (
+                                                                <div className="flex space-x-2 mt-2">
+                                                                    {activity.images.slice(0, 3).map((img: string, imgIdx: number) => (
+                                                                        <img
+                                                                            key={imgIdx}
+                                                                            src={img}
+                                                                            alt={`Activity photo ${imgIdx + 1}`}
+                                                                            className="w-10 h-10 object-cover rounded"
+                                                                        />
+                                                                    ))}
+                                                                    {activity.images.length > 3 && (
+                                                                        <div className="w-10 h-10 bg-gray-200 rounded flex items-center justify-center text-xs text-gray-600">
+                                                                            +{activity.images.length - 3}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </li>
                                                 ))}
                                             </ul>
                                         </div>
                                     )}
-                                    {day.images.length > 0 && (
-                                        <div className="flex space-x-2 mt-2">
-                                            {day.images.slice(0, 3).map((img, idx) => (
-                                                <img key={idx} src={img} alt="" className="w-12 h-12 object-cover rounded" />
-                                            ))}
-                                            {day.images.length > 3 && (
-                                                <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center text-xs text-gray-600">
-                                                    +{day.images.length - 3}
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
+
                                 </div>
                             ))}
                         </div>
