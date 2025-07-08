@@ -226,7 +226,22 @@ export const ProductForm = () => {
     },
     details: _ => [],
     guides: _ => [],
-    schedule: f => !f.packages?.length ? ['At least one Package'] : [],
+    schedule: f => {
+      const errs: string[] = [];
+      if (!f.packages?.length) {
+        errs.push('At least one Package');
+      } else {
+        f.packages.forEach((pkg: any, i: number) => {
+          const cap = typeof f.capacity === 'number' ? f.capacity : 0;
+          if (pkg.maxPeople > cap) {
+            errs.push(
+              `Package ${pkg.name || i+1}: max travellers (${pkg.maxPeople}) exceed product capacity (${cap})`
+            );
+          }
+        });
+      }
+      return errs;
+    },
     'payment-options': _ => [],
     cancellation: f => {
       const m: string[] = [];

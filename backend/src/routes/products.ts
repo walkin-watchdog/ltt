@@ -460,6 +460,12 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
       ? productSchema.partial().parse(draft)
       : productSchema.parse(req.body);
     const { blockedDates = [], itineraries= [], packages = [], accessibilityFeatures = [], isDraft = false, ...rest } = data;
+    const cap = rest.capacity ?? 0;
+    if ((packages || []).some(pkg => pkg.maxPeople > cap)) {
+      return res.status(400).json({
+        error: `Package travellers exceed product capacity (${cap}).`
+      });
+    }
     if (rest.type === 'TOUR') {
       const dur = (rest.duration ?? '').toLowerCase();
       const allowedDays = dur.includes('hour') || dur === 'full day' || dur === 'half day'
@@ -755,6 +761,12 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
     }
 
     const { blockedDates, itineraries, packages, ...rest } = data;
+    const cap = rest.capacity ?? 0;
+    if ((packages || []).some(pkg => pkg.maxPeople > cap)) {
+      return res.status(400).json({
+        error: `Package travellers exceed product capacity (${cap}).`
+      });
+    }
 
     if (data.guides) {
       data.guides = data.guides.map(guide => ({
