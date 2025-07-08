@@ -33,7 +33,7 @@ export const EndPointMap = ({ endPoints = [], onEndPointsChange }: EndPointMapPr
     if (isLoaded && mapRef.current && showMap) {
       initializeMap();
     }
-  }, [isLoaded, showMap]);
+  }, [isLoaded, showMap, endPoints.length]);
 
   // Update map markers when endPoints change
   useEffect(() => {
