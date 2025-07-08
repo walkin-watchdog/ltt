@@ -460,7 +460,18 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
       ? productSchema.partial().parse(draft)
       : productSchema.parse(req.body);
     const { blockedDates = [], itineraries= [], packages = [], accessibilityFeatures = [], isDraft = false, ...rest } = data;
-
+    if (rest.type === 'TOUR') {
+      const dur = (rest.duration ?? '').toLowerCase();
+      const allowedDays = dur.includes('hour') || dur === 'full day' || dur === 'half day'
+        ? 1
+        : parseInt(rest.duration ?? '0', 10) || 0;
+      const actualDays = (itineraries || []).length;
+      if (actualDays !== allowedDays) {
+        return res.status(400).json({
+          error: `Itinerary days (${actualDays}) must exactly match the duration (${allowedDays}).`
+        });
+      }
+    }
     const baseSlug = generateSlug(rest.title ?? `draft-${Date.now()}`);
 
     let slug = baseSlug;
@@ -730,8 +741,17 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
     let data = productSchema.partial().parse(req.body);
     const existing = await prisma.product.findUnique({ where: { id: req.params.id } });
     const effectiveType = data.type ?? existing?.type;
-    if (effectiveType === 'TOUR' && (!data.itineraries || data.itineraries.length === 0)) {
-      return res.status(400).json({ error: 'Itinerary is required for this product' });
+    if (effectiveType === 'TOUR') {
+      const effectiveDuration = ((data.duration ?? existing?.duration) || '').toLowerCase();
+      const allowedDays = effectiveDuration.includes('hour') || effectiveDuration === 'full day' || effectiveDuration === 'half day'
+        ? 1
+        : parseInt(effectiveDuration, 10) || 0;
+      const actualDays = (data.itineraries || []).length;
+      if (actualDays !== allowedDays) {
+        return res.status(400).json({
+          error: `Itinerary days (${actualDays}) must exactly match the duration (${allowedDays}).`
+        });
+      }
     }
 
     const { blockedDates, itineraries, packages, ...rest } = data;

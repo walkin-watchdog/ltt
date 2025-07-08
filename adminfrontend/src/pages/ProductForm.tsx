@@ -216,9 +216,7 @@ export const ProductForm = () => {
     },
     content: f => {
       const m = [];
-      if (!f.highlights?.length) m.push('At least one Highlight');
       if (!f.inclusions?.length) m.push('At least one Inclusion');
-      if (!f.exclusions?.length) m.push('At least one Exclusion');
       return m;
     },
     details: _ => [],
