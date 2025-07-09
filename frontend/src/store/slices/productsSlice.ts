@@ -90,7 +90,7 @@ interface Product {
   lowestPackagePrice?: number;
   lowestDiscountedPackagePrice?: number;
   healthRestrictions?: string[];
-  reserveNowPayLater?: boolean; // Add this field
+  reserveNowPayLater?: boolean;
 }
 
 interface ProductsFilter {

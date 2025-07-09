@@ -2,6 +2,9 @@ import { Handshake, Users, Globe, TrendingUp, Mail, Phone } from 'lucide-react';
 import { useState } from 'react';
 import { SEOHead } from '../components/seo/SEOHead';
 import axios from 'axios';
+import PhoneInput from 'react-phone-input-2';
+import 'react-phone-input-2/lib/style.css';
+
 export const Partnership = () => {
   const [formData, setFormData] = useState({
     companyName: '',
@@ -355,15 +358,21 @@ const handleSubmit = async (e: React.FormEvent) => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Phone Number *
                     </label>
-                    <input
-                      type="tel"
-                      name="phone"
-                      value={formData.phone}
-                      onChange={handleChange}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                      placeholder="Enter phone number"
-                    />
+                    <div className="relative">
+                      <PhoneInput
+                        country={'ru'}
+                        value={formData.phone}
+                        onChange={value => setFormData(prev => ({ ...prev, phone: value || '' }))}
+                        inputProps={{
+                          required: true,
+                          className:
+                            'w-full pl-11 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent',
+                          placeholder: '912 345-67',
+                        }}
+                        buttonClass="absolute left-0 top-0 h-full rounded-l-md border border-r-0 border-gray-300 bg-white pl-3"
+                        dropdownClass="phone-dropdown z-50"
+                      />
+                    </div>
                   </div>
                 </div>
 

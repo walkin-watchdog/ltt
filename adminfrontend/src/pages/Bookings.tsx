@@ -18,13 +18,16 @@ export const Bookings = () => {
   const { token, user } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
+  const [manualFilter, setManualFilter] = useState<'all'|'manual'|'auto'>('all');
   // Filtered bookings must be declared before use in effects
   const filteredBookings = bookings.filter(booking => {
+    if (manualFilter === 'manual' && !booking.isManual) return false;
+    if (manualFilter === 'auto'   && booking.isManual) return false;
     const matchesSearch = 
       booking.bookingCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
       booking.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       booking.customerEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      booking.product.title.toLowerCase().includes(searchTerm.toLowerCase());
+      booking.product?.title.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = !statusFilter || booking.status === statusFilter;
     const matchesPayment = !paymentFilter || booking.paymentStatus === paymentFilter;
@@ -335,19 +338,13 @@ export const Bookings = () => {
             </Link>
           )}
           <div className="relative group">
-            <button className="flex items-center px-3 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
+            <button 
+            onClick={handleExportSelected}
+            disabled={selectedBookings.length === 0 || isExporting}
+            className="flex items-center px-3 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
               <Download className="h-5 w-5" />
-              <span className="ml-2 text-sm hidden sm:inline">{isExporting ? 'Exporting...' : 'Export'}</span>
+              <span className="ml-2 text-sm hidden sm:inline">{selectedBookings.length > 0 && `Export Selected (${selectedBookings.length})`}</span>
             </button>
-              <button 
-                onClick={handleExportSelected} 
-                className={`hidden sm:block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 ${
-                  selectedBookings.length === 0 ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
-                disabled={selectedBookings.length === 0 || isExporting}
-              >
-                {selectedBookings.length > 0 && `Export Selected (${selectedBookings.length})`}
-              </button>
           </div>
           <span className="w-full text-sm text-gray-500 text-center mt-2 sm:mt-0 sm:w-auto sm:text-left">
             {filteredBookings.length} total
@@ -368,6 +365,16 @@ export const Bookings = () => {
               className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
             />
           </div>
+
+          <select
+             value={manualFilter}
+             onChange={e => setManualFilter(e.target.value as any)}
+             className="px-3 py-2 border rounded-md"
+           >
+             <option value="all">All Sources</option>
+             <option value="manual">Manual</option>
+             <option value="auto">Automated</option>
+           </select>
           
           <select
             value={statusFilter}
@@ -453,9 +460,6 @@ export const Bookings = () => {
                   Product
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Participants
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Amount
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -486,9 +490,19 @@ export const Bookings = () => {
                         <Calendar className="h-3 w-3 mr-1" />
                         {new Date(booking.bookingDate).toLocaleDateString('en-IN')}
                       </div>
-                      <div className="text-xs text-gray-400">
+                      <div className="text-sm text-gray-900">
                         Created: {new Date(booking.createdAt).toLocaleDateString('en-IN')}
                       </div>
+                      <div className="text-sm text-gray-900">
+                        {booking.isManual
+                          ? <span>By: {booking.createdBy?.name}</span>
+                          : ''
+                        }
+                      </div>
+                      {booking.isManual
+                        ? <span className="text-xs font-semibold px-2 py-1 bg-yellow-100 text-yellow-800 rounded">Manual</span>
+                        : <span className="text-xs font-semibold px-2 py-1 bg-gray-100 text-gray-800 rounded">Auto</span>
+                      }
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -508,22 +522,32 @@ export const Bookings = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">
-                        {booking.product.title}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {booking.product.productCode}
-                      </div>
-                      {booking.package && (
-                        <div className="text-xs text-blue-600">
-                          Package: {booking.package.name}
+                    {booking.customDetails ? (
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {booking.customDetails.packageName}
                         </div>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    <div>
+                        <div className="text-sm text-gray-500">
+                          {booking.customDetails.location}
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {booking.product?.title}
+                        </div>
+
+                        <div className="text-sm text-gray-500">
+                          {booking.product?.productCode}
+                        </div>
+                        {booking.package && (
+                          <div className="text-xs text-blue-600">
+                            Package: {booking.package.name}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    <div className="text-sm text-gray-900">
                       <div>{booking.adults} Adults</div>
                       {booking.children > 0 && (
                         <div className="text-gray-500">{booking.children} Children</div>
@@ -531,9 +555,39 @@ export const Bookings = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">
-                      ₹{booking.totalAmount.toLocaleString()}
-                    </div>
+                    {booking.isManual ? (
+                    (() => {
+                      const { discountType, discountValue = 0 } = booking.customDetails || {};
+                      let original = booking.totalAmount + discountValue;
+                      if (discountType === 'percentage') {
+                        original = Math.round(booking.totalAmount / (1 - discountValue / 100));
+                      }
+                      return (
+                        <div>
+                          <div className="text-sm text-gray-500 line-through">
+                            ₹{original.toLocaleString()}
+                          </div>
+                          <div className="text-sm font-medium text-gray-900">
+                            ₹{booking.totalAmount.toLocaleString()}
+                          </div>
+                        </div>
+                      );
+                    })()
+                    ) : booking.discountAmount ? (
+                      <div>
+                        <div className="text-sm text-gray-500 line-through">
+                          ₹{(booking.totalAmount + booking.discountAmount).toLocaleString()}
+                        </div>
+                        <div className="text-sm font-medium text-gray-900">
+                          ₹{booking.totalAmount.toLocaleString()}
+                          <span className="ml-2 text-xs text-green-600">({booking.couponCode})</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-sm font-medium text-gray-900">
+                        ₹{booking.totalAmount.toLocaleString()}
+                      </div>
+                    )}
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPaymentStatusColor(booking.paymentStatus)}`}>
                       {booking.paymentStatus}
                     </span>
@@ -635,7 +689,7 @@ export const Bookings = () => {
 
             {/* Product & Package */}
             <div className="mb-2 text-sm text-gray-700">
-              <div>{booking.product.title} ({booking.product.productCode})</div>
+              <div>{booking.product?.title} ({booking.product?.productCode})</div>
               {booking.package && <div className="text-xs text-blue-600">Pkg: {booking.package.name}</div>}
             </div>
 

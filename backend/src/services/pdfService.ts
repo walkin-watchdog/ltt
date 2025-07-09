@@ -70,7 +70,15 @@ export class PDFService {
           yPos += 20;
         }
 
-        doc.text(`Total Amount: ₹${data.booking.totalAmount.toLocaleString()}`, 70, yPos);
+        if (['PAID','PARTIAL'].includes(data.booking.paymentStatus)) {
+          const label = data.booking.paymentStatus === 'PARTIAL'
+            ? 'Amount Paid'
+            : 'Total Amount';
+          const amount = data.booking.paymentStatus === 'PARTIAL'
+            ? data.booking.partialPaymentAmount
+            : data.booking.totalAmount;
+          doc.text(`${label}: ₹${amount.toLocaleString()}`, 70, yPos);
+        }
 
         // Product Details
         doc.moveDown(2)
@@ -193,56 +201,6 @@ export class PDFService {
       } catch (error) {
         logger.error('Error generating PDF voucher:', error);
         reject(new Error('Failed to generate booking voucher'));
-      }
-    });
-  }
-
-  static async generateBookingReport(bookings: any[]): Promise<Buffer> {
-    return new Promise((resolve, reject) => {
-      try {
-        const doc = new PDFDocument({ margin: 50 });
-        const buffers: Buffer[] = [];
-
-        doc.on('data', buffers.push.bind(buffers));
-        doc.on('end', () => {
-          const pdfBuffer = Buffer.concat(buffers);
-          resolve(pdfBuffer);
-        });
-
-        // Header
-        doc.fontSize(20)
-           .fillColor('#104c57')
-           .text('Booking Report', 50, 50);
-
-        doc.fontSize(12)
-           .fillColor('#666666')
-           .text(`Generated on: ${new Date().toLocaleDateString('en-IN')}`, 50, 80);
-
-        let yPosition = 120;
-
-        bookings.forEach((booking, index) => {
-          if (yPosition > 700) {
-            doc.addPage();
-            yPosition = 50;
-          }
-
-          doc.fontSize(12)
-             .fillColor('#104c57')
-             .text(`${index + 1}. ${booking.bookingCode}`, 50, yPosition)
-             .fontSize(10)
-             .fillColor('#333333')
-             .text(`Customer: ${booking.customerName}`, 70, yPosition + 20)
-             .text(`Product: ${booking.product?.title || 'N/A'}`, 70, yPosition + 35)
-             .text(`Amount: ₹${booking.totalAmount.toLocaleString()}`, 70, yPosition + 50)
-             .text(`Status: ${booking.status}`, 70, yPosition + 65);
-
-          yPosition += 100;
-        });
-
-        doc.end();
-      } catch (error) {
-        logger.error('Error generating booking report:', error);
-        reject(new Error('Failed to generate booking report'));
       }
     });
   }

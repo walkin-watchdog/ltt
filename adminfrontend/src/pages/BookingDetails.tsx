@@ -13,7 +13,10 @@ import {
   RefreshCw,
   ArrowLeft,
   DollarSign,
-  NotepadTextDashed
+  NotepadTextDashed,
+  MapPin,
+  Percent,
+  Tag
 } from 'lucide-react'
 
 export const BookingDetails = () => {
@@ -140,6 +143,42 @@ export const BookingDetails = () => {
             <User className="h-5 w-5 text-gray-500 mr-2 opacity-50" />
             {booking.children} Child{booking.children !== 1 && 'ren'}
           </div>
+          {booking.isManual ? (
+            (() => {
+              const { discountType, discountValue = 0 } = booking.customDetails || {};
+              let original = booking.totalAmount + discountValue;
+              if (discountType === 'percentage') {
+                original = Math.round(booking.totalAmount / (1 - discountValue / 100));
+              }
+              return (
+                <>
+                  <div className="flex items-center">
+                    <Tag className="h-5 w-5 text-gray-500 mr-2" />
+                    <span className="text-sm text-gray-500 line-through">
+                      ₹{original.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex items-center">
+                    <DollarSign className="h-5 w-5 text-gray-500 mr-2" />
+                    <span className="text-sm font-medium text-gray-900">
+                      ₹{booking.totalAmount.toLocaleString()}
+                    </span>
+                  </div>
+                </>
+              );
+            })()
+            ) : booking.couponCode && (
+              <>
+                <div className="flex items-center">
+                  <Percent className="h-5 w-5 text-gray-500 mr-2" />
+                  ₹{booking.discountAmount?.toLocaleString() || 0}
+                </div>
+                <div className="flex items-center">
+                  <Tag className="h-5 w-5 text-gray-500 mr-2" />
+                  {booking.couponCode}
+                </div>
+              </>
+          )}
         </div>
       </section>
 
@@ -159,7 +198,7 @@ export const BookingDetails = () => {
             <Phone className="h-5 w-5 text-gray-500 mr-2" />
             {booking.customerPhone}
           </div>
-          {booking.notes && (
+          {booking.notes && !booking.customDetails && (
             <div className="flex">
               <NotepadTextDashed className="h-5 w-5 text-gray-500 mr-2" />
               {booking.notes}
@@ -168,32 +207,68 @@ export const BookingDetails = () => {
         </div>
       </section>
 
-      {/* 3. Product */}
-      <section className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-xl font-medium text-gray-800 mb-4">Product</h2>
-        <div className="flex items-center text-gray-700 space-x-4">
-          <img
-            src={booking.product.images?.[0] || ''}
-            alt={booking.product.title}
-            className="h-16 w-16 object-cover rounded-md"
-          />
-          <div>
-            <p className="font-medium text-gray-900">
-              {booking.product.title}
-            </p>
-            <p className="text-sm text-gray-600">{booking.product.location}</p>
+      {/* 3. Product or Custom */}
+      {booking.customDetails ? (
+        <section className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-xl font-medium text-gray-800 mb-4">Custom Voucher Details</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-gray-700">
+            <div className="flex items-center">
+              <Package className="h-5 w-5 text-gray-500 mr-2" />
+              {booking.customDetails.packageName}
+            </div>
+            <div className="flex items-center">
+              <MapPin className="h-5 w-5 text-gray-500 mr-2" />
+              {booking.customDetails.location}
+            </div>
+            <div className="flex items-center">
+              <Clock className="h-5 w-5 text-gray-500 mr-2" />
+              {booking.customDetails.duration} {booking.customDetails.durationUnit}
+            </div>
+            <div className="flex items-center">
+              <CalendarIcon className="h-5 w-5 text-gray-500 mr-2" />
+              {booking.customDetails.selectedTimeSlot}
+            </div>
+            <div className="flex items-center">
+              <DollarSign className="h-5 w-5 text-gray-500 mr-2" />
+              ₹{booking.totalAmount.toLocaleString()}
+            </div>
           </div>
-        </div>
-        <div className="flex items-center pt-5 col-span-2">
-          <Package className="h-5 w-5 text-gray-500 mr-2" />
-          {booking.package?.name || '—'}
-        </div>
-      </section>
+        </section>
+      ) : (
+        <section className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-xl font-medium text-gray-800 mb-4">Product</h2>
+            <div className="flex items-center text-gray-700 space-x-4">
+            <img
+              src={booking.product.images?.[0] || ''}
+              alt={booking.product.title}
+              className="h-16 w-16 object-cover rounded-md"
+            />
+            <div>
+              <p className="font-medium text-gray-900">
+                {booking.product.title}
+              </p>
+              <p className="text-sm text-gray-600">{booking.product.location}</p>
+            </div>
+          </div>
+          <div className="flex items-center pt-5 col-span-2">
+            <Package className="h-5 w-5 text-gray-500 mr-2" />
+            {booking.package?.name || '—'}
+          </div>
+        </section>
+      )}
 
       {/* 4. Payment */}
       <section className="bg-white rounded-lg shadow p-6">
         <h2 className="text-xl font-medium text-gray-800 mb-4">Payment</h2>
-        {payment ? (
+        {booking.isManual && booking.paymentStatus === 'PARTIAL' || booking.paymentStatus === 'PAID' ? (
+          <div className="text-gray-700">
+            <div className="font-semibold">Manual Booking</div>
+            <div>Amount: ₹{(booking.paymentStatus === 'PARTIAL'
+                ? booking.partialPaymentAmount
+                : booking.totalAmount
+              ).toLocaleString()}</div>
+          </div>
+        ) : payment ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
             <div className="flex items-center">
               <CreditCard className="h-5 w-5 text-gray-500 mr-2" />
@@ -201,7 +276,11 @@ export const BookingDetails = () => {
             </div>
             <div className="flex items-center text-gray-700">
               <DollarSign className="h-5 w-5 text-gray-500 mr-2" />
-              ₹{booking.totalAmount.toLocaleString()}
+              ₹{(
+                booking.paymentStatus === 'PARTIAL'
+                  ? booking.partialPaymentAmount
+                  : booking.totalAmount
+              ).toLocaleString()}
             </div>
             <div className="col-span-2">
               <span
@@ -234,6 +313,7 @@ export const BookingDetails = () => {
           <RefreshCw className="h-5 w-5 mr-2" />
           {actionLoading ? 'Processing…' : 'Resend Voucher'}
         </button>
+
         {payment && booking.paymentStatus === 'PAID' && (
           <button
             onClick={processRefund}
@@ -245,7 +325,7 @@ export const BookingDetails = () => {
           </button>
         )}
 
-        {payment && (booking.paymentStatus === 'PENDING' || booking.paymentStatus === 'PARTIAL') && (
+        {payment && booking.paymentStatus === 'PARTIAL' && (
           <>
             <button
               onClick={sendReminder}
@@ -266,7 +346,41 @@ export const BookingDetails = () => {
           </>
         )}
 
-        {!payment && (
+        {!booking.isManual && (booking.paymentStatus === 'PARTIAL') && (
+          <>
+            <button
+              onClick={sendReminder}
+              disabled={reminderLoading}
+              className="flex-1 flex items-center justify-center px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition"
+            >
+              <Mail className="h-5 w-5 mr-2" />
+              {reminderLoading ? 'Sending…' : 'Payment Reminder'}
+            </button>
+            <button
+              onClick={processRefund}
+              disabled={refundLoading}
+              className="flex-1 flex items-center justify-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
+            >
+              <DollarSign className="h-5 w-5 mr-2" />
+              {refundLoading ? 'Processing…' : 'Refund Payment'}
+            </button>
+          </>
+        )}
+
+        {booking.isManual && (booking.paymentStatus === 'PARTIAL') && (
+          <>
+            <button
+              onClick={sendReminder}
+              disabled={reminderLoading}
+              className="flex-1 flex items-center justify-center px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition"
+            >
+              <Mail className="h-5 w-5 mr-2" />
+              {reminderLoading ? 'Sending…' : 'Payment Reminder'}
+            </button>
+          </>
+        )}
+
+        { booking && (booking.paymentStatus === 'PENDING') && (
           <button
             onClick={sendReminder}
             disabled={reminderLoading}

@@ -12,6 +12,7 @@ export const Navbar = () => {
   const [experienceCategories, setExperienceCategories] = useState<any[]>([]);
   const [destinationsLoading, setDestinationsLoading] = useState(false);
   const [categoriesLoading, setCategoriesLoading] = useState(false);
+  const [fontLoaded, setFontLoaded] = useState(false);
 
   // Format destinations and experiences path
   const getDestinationPath = (slug: string) => `/destinations/${slug}`;
@@ -46,9 +47,17 @@ export const Navbar = () => {
     fetchData();
   }, []);
 
-  // Get top 5 destinations and categories for dropdown
-  const destinationsToShow = destinationsLoading ? [] : destinations.slice(0, 5);
-  const categoriesToShow = categoriesLoading ? [] : experienceCategories.slice(0, 5);
+  useEffect(() => {
+    if (document.fonts && document.fonts.load) {
+      document.fonts.load('1em Steelfish').then(() => setFontLoaded(true));
+    } else {
+      setFontLoaded(true);
+    }
+  }, []);
+
+  // Get top 10 destinations and categories for dropdown
+  const destinationsToShow = destinationsLoading ? [] : destinations.slice(0, 10);
+  const categoriesToShow = categoriesLoading ? [] : experienceCategories.slice(0, 10);
 
   const adminUrl = import.meta.env.DEV
     ? 'http://localhost:5173/login'
@@ -63,10 +72,15 @@ export const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center min-h-[calc(100vh-80vh)]">
           {/* Logo */}
-          <Link to="/" className="flex items-center">
+          
+          <Link to="/" className="flex items-center" style={{ visibility: fontLoaded ? 'visible' : 'hidden' }}>
             <div className="text-2xl logo-text steelfish">
-              <span className="text-[#104c57] ml-18.5 notranslate" data-no-translate style={{ fontSize: '18pt' }}>Luxé<br /></span>
-              <span className="text-[#ff914d] notranslate" data-no-translate style={{ fontSize: '33pt' }}>TimeTravel</span>
+              <span className="text-[#104c57] ml-18.5 notranslate" data-no-translate style={{ fontSize: '18pt' }}>
+                Luxé<br />
+              </span>
+              <span className="text-[#ff914d] notranslate" data-no-translate style={{ fontSize: '33pt' }}>
+                TimeTravel
+              </span>
             </div>
           </Link>
 

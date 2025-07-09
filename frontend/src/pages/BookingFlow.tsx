@@ -12,6 +12,8 @@ import { formatDate, parse } from 'date-fns';
 import { CouponForm } from '../components/payment/CouponForm';
 import { toast } from 'react-hot-toast';
 import { isSlotBookable } from '../lib/utils';
+import PhoneInput from 'react-phone-input-2';
+import 'react-phone-input-2/lib/style.css';
 
 interface BookingFormData {
   selectedDate: string;
@@ -72,7 +74,9 @@ export const BookingFlow = () => {
         children: formData.children,
         bookingDate: formData.selectedDate,
         selectedTimeSlot: formData.selectedTimeSlot,
-        notes: formData.notes
+        notes: formData.notes,
+        couponCode,
+        discountAmount: appliedDiscount
       };
       try {
         await dispatch(rnpaylater(bookingData)).unwrap();
@@ -417,7 +421,9 @@ export const BookingFlow = () => {
         children: formData.children,
         bookingDate: formData.selectedDate,
         selectedTimeSlot: formData.selectedTimeSlot,
-        notes: formData.notes
+        notes: formData.notes,
+        couponCode,
+        discountAmount: appliedDiscount
       };
       try {
         const booking = await dispatch(createBooking(bookingData)).unwrap();
@@ -842,14 +848,23 @@ export const BookingFlow = () => {
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Phone Number *
                       </label>
-                      <input
-                        type="tel"
-                        value={formData.customerPhone}
-                        onChange={(e) => setFormData(prev => ({ ...prev, customerPhone: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                        placeholder="Enter your phone number"
-                        required
-                      />
+                      <div className="relative">
+                        <PhoneInput
+                          country={'in'}
+                          value={formData.customerPhone}
+                          onChange={(value) =>
+                            setFormData(prev => ({ ...prev, customerPhone: value || '' }))
+                          }
+                          inputProps={{
+                            required: true,
+                            className:
+                              'w-full pl-11 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent',
+                            placeholder: '912 345-67',
+                          }}
+                          buttonClass="absolute left-0 top-0 h-full rounded-l-md border border-r-0 border-gray-300 bg-white pl-3"
+                          dropdownClass="phone-dropdown z-50"
+                        />
+                      </div>
                     </div>
 
                     <div>

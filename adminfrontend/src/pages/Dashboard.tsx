@@ -105,13 +105,6 @@ export const Dashboard = () => {
       bgColor: 'bg-yellow-100',
     },
     {
-      title: 'Conversion Rate',
-      value: `${stats?.overview.conversionRate || 0}%`,
-      icon: Percent,
-      color: 'text-pink-600',
-      bgColor: 'bg-pink-100',
-    },
-    {
       title: 'Pending Requests',
       value: stats?.overview.pendingRequests || 0,
       icon: MessageSquare,
@@ -163,28 +156,8 @@ export const Dashboard = () => {
         ))}
       </div>
 
-      {/* Revenue by Category & Top Products */}
-      {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Revenue by Category</h3>
-          <div className="space-y-4">
-            {stats?.revenueByCategory.map((category: any, index: number) => (
-              <div key={category.category || index} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg">
-                <div className="flex items-center">
-                  <div className="bg-[#ff914d] text-white rounded-full h-8 w-8 flex items-center justify-center text-sm font-semibold mr-3">
-                    {index + 1}
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-900">{category.category}</p>
-                    <p className="text-sm text-gray-500">{category.bookings} bookings</p>
-                  </div>
-                </div>
-                <span className="font-semibold text-[#ff914d]">₹{category.revenue?.toLocaleString() || 0}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
+      {/* Revenue by Type & Top Products */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Performing Products</h3>
           <div className="space-y-4">
@@ -204,7 +177,26 @@ export const Dashboard = () => {
             ))}
           </div>
         </div>
-      </div> */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Revenue by Product Type</h3>
+          <div className="space-y-4">
+            {Array.isArray(stats?.revenueByType) && stats.revenueByType.map((type, index) => (
+             <div key={type.type || index} className="…">
+               <div className="flex items-center">
+                 <div className="bg-[#ff914d] text-white rounded-full h-8 w-8 flex items-center justify-center text-sm font-semibold mr-3">{index + 1}</div>
+                 <div>
+                   <p className="font-medium text-gray-900">{type.type}</p>
+                   <p className="text-sm text-gray-500">{type.bookings} bookings</p>
+                 </div>
+               </div>
+               <span className="font-semibold text-[#ff914d]">
+                 ₹{type.revenue?.toLocaleString() || 0}
+               </span>
+             </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

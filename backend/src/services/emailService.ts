@@ -2,6 +2,7 @@ import nodemailer from 'nodemailer';
 import handlebars from 'handlebars';
 import fs from 'fs';
 import path from 'path';
+import { PDFService } from '../services/pdfService';
 import { logger } from '../utils/logger';
 
 const transporter = nodemailer.createTransport({
@@ -85,8 +86,12 @@ export class EmailService {
         }),
         adults: booking.adults,
         children: booking.children,
-        totalAmount: booking.totalAmount.toLocaleString('en-IN'),
-        packageName: booking.package?.name || 'Standard Package',
+        amountPaid: (booking.paymentStatus === 'PAID'
+                     ? booking.totalAmount
+                     : booking.paymentStatus === 'PARTIAL'
+                       ? booking.partialPaymentAmount
+                       : null),
+        packageName: booking.package?.name || 'Custom Package',
         timeSlot: booking.selectedTimeSlot || 'As per confirmation',
         companyName: process.env.COMPANY_NAME,
         companyEmail: process.env.COMPANY_EMAIL,
@@ -94,6 +99,53 @@ export class EmailService {
       },
     };
 
+    return this.sendEmail(emailData);
+  }
+
+  static async sendBookingVoucher(booking: any) {
+    const voucherPDF = await PDFService.generateBookingVoucher({
+      booking,
+      product: booking.product,
+      customer: {
+        name: booking.customerName,
+        email: booking.customerEmail,
+        phone: booking.customerPhone,
+      },
+      packageDetails: booking.package,
+      timeSlot: booking.selectedTimeSlot
+    });
+    const emailData: EmailData = {
+      to: booking.customerEmail,
+      subject: `Booking Voucher - ${booking.bookingCode}`,
+      template: 'voucher',
+      context: {
+        customerName: booking.customerName,
+        bookingCode: booking.bookingCode,
+        productTitle: booking.product.title,
+        bookingDate: new Date(booking.bookingDate).toLocaleDateString('en-IN', {
+          weekday: 'long', 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric'
+        }),
+        adults: booking.adults,
+        children: booking.children,
+        packageName: booking.package?.name || 'Standard Package',
+        amountPaid: (booking.paymentStatus === 'PAID'
+                     ? booking.totalAmount
+                     : booking.paymentStatus === 'PARTIAL'
+                       ? booking.partialPaymentAmount
+                       : null),
+        timeSlot: booking.selectedTimeSlot || 'As per confirmation'
+      },
+      attachments: [
+        {
+          filename: `voucher-${booking.bookingCode}.pdf`,
+          content: voucherPDF,
+          contentType: 'application/pdf',
+        },
+      ],
+    };
     return this.sendEmail(emailData);
   }
 

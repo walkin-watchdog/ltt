@@ -25,6 +25,7 @@ model User {
   resetTokenExpiry DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  bookingsCreated Booking[] @relation("BookingCreatedBy")
 
   @@map("users")
 }
@@ -89,8 +90,8 @@ model Product {
   additionalRequirements String? // Custom additional requirements text
   customRequirementFields Json[] @default([]) // Array of custom requirement fields
   phonenumber String? @default("")
+  reserveNowPayLater Boolean @default(true)
   cutoffTime Int? @default(24) // Hours before tour start time when booking should be cut off
-  reserveNowPayLater Boolean @default(true) // Allow reserve now pay later option
   isActive    Boolean @default(true)
   isDraft     Boolean @default(false)
   availabilityStartDate DateTime?
@@ -237,8 +238,11 @@ model Availability {
 
 model Booking {
   id            String        @id @default(cuid())
+  isManual      Boolean       @default(false)
+  createdById   String?       
   bookingCode   String        @unique
-  productId     String
+  productId     String?
+  customDetails Json?
   packageId     String?
   slotId        String?
   customerName  String
@@ -247,6 +251,7 @@ model Booking {
   adults        Int
   children      Int           @default(0)
   totalAmount   Float
+  partialPaymentAmount Float?   @default(0)
   status        BookingStatus @default(PENDING)
   paymentStatus PaymentStatus @default(PENDING)
   bookingDate   DateTime
@@ -254,8 +259,11 @@ model Booking {
   notes         String?
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
+  couponCode       String?
+  discountAmount   Float?       
 
-  product Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdBy User?  @relation("BookingCreatedBy", fields: [createdById], references: [id])
+  product Product?  @relation(fields: [productId], references: [id], onDelete: Cascade)
   package Package? @relation(fields: [packageId], references: [id], onDelete: SetNull)
   slot PackageSlot?  @relation(fields: [slotId], references: [id], onDelete: SetNull)
 

@@ -2,16 +2,14 @@ import express from 'express';
 import { z } from 'zod';
 import { prisma } from '../utils/prisma'
 import { authenticate, authorize } from '../middleware/auth';
-import { sendBookingVoucher } from './payments';
 import { ExcelService } from '../services/excelService';
 import { EmailService } from '../services/emailService';
 
 const router = express.Router();
 
-
 const bookingSchema = z.object({
   slotId: z.string(),
-  productId: z.string(),
+  productId: z.string().optional(),
   packageId: z.string().optional(),
   customerName: z.string().min(1),
   customerEmail: z.string().email(),
@@ -20,7 +18,10 @@ const bookingSchema = z.object({
   children: z.number().min(0),
   bookingDate: z.string().transform(str => new Date(str)),
   selectedTimeSlot: z.string().min(1),
-  notes: z.string().optional()
+  notes: z.string().optional(),
+  partialPaymentAmount: z.number().min(0).optional(),
+  couponCode: z.string().optional(),
+  discountAmount: z.number().min(0).optional()
 });
 
 // Get all bookings (Admin/Editor only)
@@ -35,6 +36,9 @@ router.get('/', authenticate, authorize(['ADMIN', 'EDITOR', 'VIEWER']), async (r
     const bookings = await prisma.booking.findMany({
       where,
       include: {
+        createdBy: {
+          select: { id: true, name: true, email: true }
+        },
         product: {
           select: {
             id: true,
@@ -246,6 +250,9 @@ router.post('/', async (req, res, next) => {
 
     // Get pricing based on package and tiers
     let totalAmount = 0;
+    if (data.discountAmount) {
+      totalAmount = Math.max(0, totalAmount - data.discountAmount);
+    }
 
     if (data.packageId) {
       const pkg = product.packages.find(p => p.id === data.packageId);
@@ -256,7 +263,7 @@ router.post('/', async (req, res, next) => {
 
       // Calculate adult price from tiers if available
       let adultPrice = pkg.basePrice;
-      let childPrice = pkg.basePrice * 0.5; // Default child price is 50% of adult price
+      let childPrice = pkg.basePrice
       
       // Apply package-level discount if available
       if (pkg.discountType === 'percentage' && pkg.discountValue) {
@@ -289,8 +296,12 @@ router.post('/', async (req, res, next) => {
           childPrice = childTier.price;
         }
       }
-      
-      totalAmount = (adultPrice * data.adults) + (childPrice * data.children);
+      let adultTotal = adultPrice * data.adults;
+      let childTotal = childPrice * data.children;
+      let gross = adultTotal + childTotal;
+      const discount = data.discountAmount ?? 0;
+      const net = Math.max(0, gross - discount);
+      totalAmount = Math.round(net * 100) / 100;
     }
 
     // Generate booking code
@@ -299,9 +310,21 @@ router.post('/', async (req, res, next) => {
     // Create the booking
     const booking = await prisma.booking.create({
       data: {
-        ...data,
         bookingCode,
-        totalAmount
+        totalAmount,
+        slot:    { connect: { id: data.slotId } },
+        package: data.packageId ? { connect: { id: data.packageId } } : undefined,
+        product: data.productId ? { connect: { id: data.productId } } : undefined,
+        customerName:  data.customerName,
+        customerEmail: data.customerEmail,
+        customerPhone: data.customerPhone,
+        adults:        data.adults,
+        children:      data.children,
+        bookingDate:   data.bookingDate,
+        selectedTimeSlot: data.selectedTimeSlot,
+        notes:         data.notes,
+        couponCode:     data.couponCode,
+        discountAmount: data.discountAmount,
       },
       include: {
         product: {
@@ -320,6 +343,28 @@ router.post('/', async (req, res, next) => {
       }
     });
 
+    if (data.couponCode && data.discountAmount) {
+      const coupon = await prisma.coupon.findUnique({
+        where: { code: data.couponCode.toUpperCase() }
+      });
+      if (coupon) {
+        await prisma.couponUsage.create({
+          data: {
+            couponId: coupon.id,
+            bookingId: booking.id,
+            bookingCode: booking.bookingCode,
+            customerName: booking.customerName,
+            customerEmail: booking.customerEmail,
+            discountAmount: data.discountAmount
+          }
+        });
+        await prisma.coupon.update({
+          where: { id: coupon.id },
+          data: { usedCount: { increment: 1 } }
+        });
+      }
+    }
+
     await prisma.abandonedCart.deleteMany({
       where: { email: data.customerEmail }
     });
@@ -334,7 +379,18 @@ router.post('/', async (req, res, next) => {
 router.post('/admin', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, next) => {
   try {
     const adminBookingSchema = z.object({
-      productId: z.string(),
+      productId: z.string().optional(),
+      customDetails: z.object({
+        packageName:      z.string().min(1),
+        location:         z.string().min(1),
+        duration:         z.string().min(1),
+        durationUnit:     z.enum(['hours','days']),
+        code:             z.string().optional(),
+        pricePerPerson:   z.number().min(0),
+        discountType:     z.enum(['percentage','fixed']),
+        discountValue:    z.number().min(0),
+        selectedTimeSlot: z.string().min(1),
+      }).optional(),
       packageId: z.string().optional(),
       slotId: z.string().optional(),
       customerName: z.string().min(1),
@@ -346,10 +402,50 @@ router.post('/admin', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, 
       selectedTimeSlot: z.string().min(1),
       notes: z.string().optional(),
       status: z.enum(['PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED']).default('CONFIRMED'),
-      paymentStatus: z.enum(['PENDING', 'PAID', 'FAILED', 'REFUNDED']).default('PAID')
+      paymentStatus: z.enum(['PENDING', 'PARTIAL', 'PAID', 'FAILED', 'REFUNDED']).default('PAID'),
+      partialPaymentAmount: z.number().min(0).optional(),
+      additionalDiscount: z.number().min(0).optional(),
     });
 
     const data = adminBookingSchema.parse(req.body);
+
+    if (data.customDetails) {
+      const cd = data.customDetails;
+      const headCount = data.adults + (data.children||0);
+      const baseTotal = cd.pricePerPerson * headCount;
+      const totalAmount = cd.discountType === 'percentage'
+        ? baseTotal * (1 - cd.discountValue/100)
+        : Math.max(0, baseTotal - cd.discountValue);
+      const bookingCode = `LT${Date.now()}${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+      const booking = await prisma.booking.create({
+        data: {
+          bookingCode:       bookingCode,
+          isManual:          true,
+          createdById:       req.user.id,
+          productId:         null,
+          packageId:         null,
+          slotId:            null,
+          customerName:      data.customerName,
+          customerEmail:     data.customerEmail,
+          customerPhone:     data.customerPhone,
+          adults:            data.adults,
+          children:          data.children,
+          totalAmount,
+          partialPaymentAmount: data.partialPaymentAmount ?? 0,
+          status:            data.status,
+          paymentStatus:     data.paymentStatus,
+          bookingDate:       data.bookingDate,
+          selectedTimeSlot:  cd.selectedTimeSlot,
+          notes:             `Location: ${cd.location}, Duration: ${cd.duration}`,
+          customDetails:     cd
+        }
+      });
+      await EmailService.sendBookingConfirmation(
+        booking,
+        { title: data.customDetails.packageName }
+      );
+      return res.status(201).json(booking);
+    }
     
     // Generate booking code
     const bookingCode = `LT${Date.now()}${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
@@ -373,7 +469,7 @@ router.post('/admin', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, 
     
     if (selectedPackage) {
       let adultPrice = selectedPackage.basePrice;
-      let childPrice = selectedPackage.basePrice * 0.5; // Default child price is 50% of adult price
+      let childPrice = selectedPackage.basePrice
       
       // Apply package-level discount if available
       if (selectedPackage.discountType === 'percentage' && selectedPackage.discountValue) {
@@ -422,11 +518,17 @@ router.post('/admin', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, 
       // Calculate total amount
       totalAmount = (adultPrice * data.adults) + (childPrice * data.children);
     }
+
+    if (data.additionalDiscount) {
+      totalAmount = Math.max(0, totalAmount - data.additionalDiscount);
+    }
     
     // Create the booking
     const booking = await prisma.booking.create({
       data: {
         bookingCode,
+        isManual: true,
+        createdById: req.user.id,
         productId: data.productId,
         packageId: data.packageId,
         slotId: data.slotId,
@@ -440,7 +542,8 @@ router.post('/admin', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, 
         selectedTimeSlot: data.selectedTimeSlot,
         notes: data.notes,
         status: data.status,
-        paymentStatus: data.paymentStatus
+        paymentStatus: data.paymentStatus,
+        partialPaymentAmount: data.partialPaymentAmount ?? 0,
       },
       include: {
         product: true,
@@ -452,7 +555,7 @@ router.post('/admin', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, 
     await prisma.abandonedCart.deleteMany({
       where: { email: data.customerEmail }
     });
-
+    await EmailService.sendBookingConfirmation(booking, product);
     res.status(201).json(booking);
   } catch (error) {
     next(error);
@@ -476,15 +579,35 @@ router.post('/:id/send-voucher', authenticate, authorize(['ADMIN', 'EDITOR']), a
     if (!booking) {
       return res.status(404).json({ error: 'Booking not found' });
     }
+
+    let productForVoucher = booking.product as any;
+    if (!productForVoucher || !productForVoucher.title) {
+      const cd = (booking as any).customDetails;
+      productForVoucher = {
+        title: cd.packageName,
+        location: cd.location,
+        duration: `${cd.duration} ${cd.durationUnit}`
+      };
+    }
     
     // Send voucher using the shared function
-    const success = await sendBookingVoucher(booking);
-    
-    if (success) {
-      res.json({ message: 'Voucher sent successfully' });
-    } else {
-      res.status(500).json({ error: 'Failed to send voucher' });
+    let successInfo: any = false;
+    try {
+      successInfo = await EmailService.sendBookingVoucher({
+        ...booking,
+        product: productForVoucher
+      });
+    } catch (err) {
+      console.error('sendBookingVoucher error:', err);
     }
+    if (!successInfo) {
+      console.info('sendBookingVoucher failed');
+    }
+    
+    if (successInfo) {
+      return res.json({ message: 'Voucher sent successfully' });
+    }
+    res.status(500).json({ error: 'Failed to send voucher' });
   } catch (error) {
     next(error);
   }
@@ -588,6 +711,8 @@ router.post('/pay-later', async (req, res, next) => {
 
     // Get pricing based on package and tiers
     let totalAmount = 0;
+    if (data.discountAmount) totalAmount = Math.max(0, totalAmount - data.discountAmount);
+
 
     if (data.packageId) {
       const pkg = product.packages.find(p => p.id === data.packageId);
@@ -598,7 +723,7 @@ router.post('/pay-later', async (req, res, next) => {
 
       // Calculate adult price from tiers if available
       let adultPrice = pkg.basePrice;
-      let childPrice = pkg.basePrice * 0.5; // Default child price is 50% of adult price
+      let childPrice = pkg.basePrice
       
       // Apply package-level discount if available
       if (pkg.discountType === 'percentage' && pkg.discountValue) {
@@ -632,7 +757,12 @@ router.post('/pay-later', async (req, res, next) => {
         }
       }
       
-      totalAmount = (adultPrice * data.adults) + (childPrice * data.children);
+      let adultTotal = adultPrice * data.adults;
+      let childTotal = childPrice * data.children;
+      let gross = adultTotal + childTotal;
+      const discount = data.discountAmount ?? 0;
+      const net = Math.max(0, gross - discount);
+      totalAmount = Math.round(net * 100) / 100;
     }
 
     // Generate booking code
@@ -641,9 +771,21 @@ router.post('/pay-later', async (req, res, next) => {
     // Create the booking
     const booking = await prisma.booking.create({
       data: {
-        ...data,
         bookingCode,
-        totalAmount
+        totalAmount,
+        slot:    { connect: { id: data.slotId } },
+        package: data.packageId ? { connect: { id: data.packageId } } : undefined,
+        product: data.productId ? { connect: { id: data.productId } } : undefined,
+        customerName:  data.customerName,
+        customerEmail: data.customerEmail,
+        customerPhone: data.customerPhone,
+        adults:        data.adults,
+        children:      data.children,
+        bookingDate:   data.bookingDate,
+        selectedTimeSlot: data.selectedTimeSlot,
+        notes:         data.notes,
+        couponCode:     data.couponCode,
+        discountAmount: data.discountAmount,
       },
       include: {
         product: {
@@ -661,6 +803,28 @@ router.post('/pay-later', async (req, res, next) => {
         }
       }
     });
+
+    if (data.couponCode && data.discountAmount) {
+      const coupon = await prisma.coupon.findUnique({
+        where: { code: data.couponCode.toUpperCase() }
+      });
+      if (coupon) {
+        await prisma.couponUsage.create({
+          data: {
+            couponId: coupon.id,
+            bookingId: booking.id,
+            bookingCode: booking.bookingCode,
+            customerName: booking.customerName,
+            customerEmail: booking.customerEmail,
+            discountAmount: data.discountAmount
+          }
+        });
+        await prisma.coupon.update({
+          where: { id: coupon.id },
+          data: { usedCount: { increment: 1 } }
+        });
+      }
+    }
 
     await prisma.abandonedCart.deleteMany({
       where: { email: data.customerEmail }
@@ -687,7 +851,7 @@ router.post('/:id/payment-reminder', authenticate, authorize(['ADMIN', 'EDITOR']
     });
 
     const product = await prisma.product.findUnique({
-      where: { id: booking?.productId },
+      where: { id: booking?.productId ?? undefined },
     });
     
     if (!booking) {

@@ -14,7 +14,67 @@ import {
 import { toast } from 'react-hot-toast';
 import type { PricingTier, Product } from '@/types.ts';
 
+interface FormValues {
+  isCustom: boolean;
+  customDetails: {
+    packageName?: string;
+    location?: string;
+    duration?: string;
+    durationUnit?: 'hours' | 'days';
+    code?: string;
+    selectedTimeSlot?: string;
+    pricePerPerson?: number;
+    discountType?: 'percentage' | 'fixed';
+    discountValue?: number;
+  }
+  productId: string;
+  packageId: string;
+  slotId: string;
+  selectedTimeSlot: string;
+  bookingDate: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  adults: number;
+  children: number;
+  notes: string;
+  status: string;
+  paymentStatus: string;
+  additionalDiscount: number;
+  sendVoucher: boolean;
+  partialPaymentAmount?: number;
+}
 
+const defaultFormValues: FormValues = {
+   isCustom: false,
+   customDetails: {
+    packageName:       '',
+    location:          '',
+    duration:          '',
+    durationUnit:      'hours',
+    code:              '',
+    selectedTimeSlot:  '',
+    pricePerPerson:    0,
+    discountType:      'percentage',
+    discountValue:     0
+  },
+   productId: '',
+   packageId: '',
+   slotId: '',
+   selectedTimeSlot: '',
+   bookingDate: new Date().toISOString().split('T')[0],
+   customerName: '',
+   customerEmail: '',
+   customerPhone: '',
+   adults: 1,
+   children: 0,
+   notes: '',
+   status: 'CONFIRMED',
+   paymentStatus: 'PAID',
+   additionalDiscount: 0,
+   sendVoucher: true,
+   partialPaymentAmount: 0
+ };
 
 export const ManualBooking = () => {
   const navigate = useNavigate();
@@ -23,26 +83,24 @@ export const ManualBooking = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredPackages, setFilteredPackages] = useState<any[]>([]);
+
   const [filteredTimeSlots, setFilteredTimeSlots] = useState<any[]>([]);
-  const [formValues, setFormValues] = useState({
-    productId: '',
-    packageId: '',
-    slotId: '',
-    bookingDate: new Date().toISOString().split('T')[0],
-    customerName: '',
-    customerEmail: '',
-    customerPhone: '',
-    adults: 1,
-    children: 0,
-    notes: '',
-    status: 'CONFIRMED',
-    paymentStatus: 'PAID',
-    sendVoucher: true
-  });
+  const [formValues, setFormValues] = useState<FormValues>(defaultFormValues);
+  const selectedSlot = filteredTimeSlots.find(s => s.id === formValues.slotId);
+  
   
   const [totalAmount, setTotalAmount] = useState<number | null>(null);
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   const [success, setSuccess] = useState<string | null>(null);
+
+  const selectedPackage = filteredPackages.find(p => p.id === formValues.packageId);
+  const childrenEnabled = selectedPackage?.ageGroups?.child?.enabled ?? true;
+ 
+  useEffect(() => {
+    if (!childrenEnabled && formValues.children !== 0) {
+      setFormValues(prev => ({ ...prev, children: 0 }));
+    }
+  }, [childrenEnabled]);
 
   useEffect(() => {
     fetchProducts();
@@ -74,7 +132,18 @@ export const ManualBooking = () => {
 
   useEffect(() => {
     calculateTotalAmount();
-  }, [formValues.packageId, formValues.slotId, formValues.adults, formValues.children]);
+  }, [
+    formValues.isCustom,
+    formValues.bookingDate,
+    formValues.packageId,
+    formValues.slotId,
+    formValues.adults,
+    formValues.children,
+    formValues.customDetails.pricePerPerson,
+    formValues.customDetails.discountType,
+    formValues.customDetails.discountValue
+
+  ]);
 
   const fetchProducts = async () => {
     setIsLoading(true);
@@ -110,7 +179,11 @@ export const ManualBooking = () => {
       if (response.ok) {
         const data = await response.json();
         if (data.slots) {
-          setFilteredTimeSlots(data.slots);
+          const dayName = new Date(formValues.bookingDate)
+            .toLocaleDateString('en-US', { weekday: 'long' });
+          setFilteredTimeSlots(
+            data.slots.filter((slot: any) => slot.days.includes(dayName))
+          );
         } else {
           setFilteredTimeSlots([]);
         }
@@ -122,6 +195,20 @@ export const ManualBooking = () => {
   };
 
   const calculateTotalAmount = () => {
+    if (formValues.isCustom) {
+      const {
+        pricePerPerson = 0,
+        discountType = 'percentage',
+        discountValue = 0
+      } = formValues.customDetails;
+      const count = formValues.adults + formValues.children;
+      const baseTotal = pricePerPerson * count;
+      const finalTotal = discountType === 'percentage'
+        ? baseTotal * (1 - discountValue/100)
+        : Math.max(0, baseTotal - discountValue);
+      setTotalAmount(finalTotal);
+      return;
+    }
     if (!formValues.packageId) {
       setTotalAmount(null);
       return;
@@ -134,7 +221,7 @@ export const ManualBooking = () => {
     }
 
     let adultPrice = selectedPackage.basePrice;
-    let childPrice = selectedPackage.basePrice * 0.5; // Default child price at 50%
+    let childPrice = selectedPackage.basePrice
 
     // Apply package discount if available
     if (selectedPackage.discountType === 'percentage' && selectedPackage.discountValue) {
@@ -179,14 +266,26 @@ export const ManualBooking = () => {
   const validateForm = () => {
     const newErrors: {[key: string]: string} = {};
     
-    if (!formValues.productId) newErrors.productId = 'Product is required';
-    if (!formValues.packageId) newErrors.packageId = 'Package is required';
-    if (!formValues.slotId) newErrors.slotId = 'Time slot is required';
+    if (!formValues.isCustom) {
+      if (!formValues.productId) newErrors.productId = 'Product is required';
+      if (!formValues.packageId) newErrors.packageId = 'Package is required';
+      if (!formValues.slotId) newErrors.slotId = 'Time slot is required';
+    }
     if (!formValues.bookingDate) newErrors.bookingDate = 'Booking date is required';
     if (!formValues.customerName) newErrors.customerName = 'Customer name is required';
     if (!formValues.customerEmail) newErrors.customerEmail = 'Customer email is required';
     if (!formValues.customerPhone) newErrors.customerPhone = 'Customer phone is required';
     if (formValues.adults < 1) newErrors.adults = 'At least 1 adult is required';
+
+    if (formValues.isCustom) {
+      const cd = formValues.customDetails;
+      if (!cd.packageName) newErrors['customDetails.packageName'] = 'Package Name is required';
+      if (!cd.location)    newErrors['customDetails.location']    = 'Location is required';
+      if (!cd.duration)    newErrors['customDetails.duration']    = 'Duration is required';
+      if (!cd.selectedTimeSlot) newErrors['customDetails.selectedTimeSlot'] = 'Time Slot is required';
+      if (cd.pricePerPerson == null || cd.pricePerPerson < 0)
+        newErrors['customDetails.pricePerPerson'] = 'Price per person is required';
+    }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -205,10 +304,13 @@ export const ManualBooking = () => {
     
     try {
       // Create booking
-      const bookingData = {
-        productId: formValues.productId,
-        packageId: formValues.packageId,
-        slotId: formValues.slotId,
+      const bookingData: any = {
+        productId: formValues.isCustom ? undefined : formValues.productId,
+        packageId: formValues.isCustom ? undefined : formValues.packageId,
+        slotId:    formValues.slotId,
+        selectedTimeSlot: formValues.isCustom
+                        ? formValues.customDetails.selectedTimeSlot
+                        : formValues.selectedTimeSlot,
         customerName: formValues.customerName,
         customerEmail: formValues.customerEmail,
         customerPhone: formValues.customerPhone,
@@ -218,7 +320,12 @@ export const ManualBooking = () => {
         notes: formValues.notes,
         status: formValues.status,
         paymentStatus: formValues.paymentStatus,
+        partialPaymentAmount: formValues.partialPaymentAmount,
+        additionalDiscount: formValues.additionalDiscount,
       };
+      if (formValues.isCustom) {
+        bookingData.customDetails = formValues.customDetails;
+      }
 
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/bookings/admin`, {
         method: 'POST',
@@ -257,9 +364,12 @@ export const ManualBooking = () => {
       
       // Reset form
       setFormValues({
+        isCustom: false,
+        customDetails: {},
         productId: '',
         packageId: '',
         slotId: '',
+        selectedTimeSlot: '',
         bookingDate: new Date().toISOString().split('T')[0],
         customerName: '',
         customerEmail: '',
@@ -269,6 +379,7 @@ export const ManualBooking = () => {
         notes: '',
         status: 'CONFIRMED',
         paymentStatus: 'PAID',
+        additionalDiscount: 0,
         sendVoucher: true
       });
       
@@ -285,15 +396,27 @@ export const ManualBooking = () => {
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
-    setFormValues(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    if (name.startsWith('customDetails.')) {
+      const key = name.split('.')[1];
+      setFormValues(prev => ({
+        ...prev,
+        customDetails: { ...prev.customDetails, [key]: value }
+      }));
+    } else {
+      setFormValues(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
   };
 
-  const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleNumberChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
     setFormValues(prev => ({
       ...prev,
@@ -345,176 +468,441 @@ export const ManualBooking = () => {
         </div>
       )}
 
+      {/* Choose voucher type */}
+      <div className="flex space-x-6 mb-4">
+        {['Existing','Custom'].map(type => (
+          <label key={type} className="flex items-center space-x-2">
+            <input
+              type="radio"
+              checked={type==='Custom'? formValues.isCustom : !formValues.isCustom}
+              onChange={() => {
+                  setFormValues(prev => ({
+                    ...prev,
+                    isCustom: type === 'Custom',
+                    ...(type === 'Existing' && { customDetails: defaultFormValues.customDetails })
+                  }));
+                setTotalAmount(null);
+              }}
+            />
+            <span>{type} Product</span>
+          </label>
+        ))}
+      </div>
+
       <form onSubmit={handleSubmit} className="space-y-8">
-        <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-            <Package className="h-5 w-5 mr-2 text-[#ff914d]" />
-            Product & Package Details
-          </h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Product Selection */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Product *
-              </label>
-              <select
-                name="productId"
-                value={formValues.productId}
-                onChange={handleInputChange}
-                className={`w-full px-3 py-2 border rounded-md focus:ring-[#ff914d] ${
-                  errors.productId ? 'border-red-300' : 'border-gray-300'
-                }`}
-                required
-              >
-                <option value="">Select a product</option>
-                {products.map(product => (
-                  <option key={product.id} value={product.id}>
-                    {product.title} ({product.productCode})
-                  </option>
-                ))}
-              </select>
-              {errors.productId && <p className="text-red-500 text-xs mt-1">{errors.productId}</p>}
-            </div>
-
-            {/* Package Selection */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Package *
-              </label>
-              <select
-                name="packageId"
-                value={formValues.packageId}
-                onChange={handleInputChange}
-                className={`w-full px-3 py-2 border rounded-md focus:ring-[#ff914d] ${
-                  errors.packageId ? 'border-red-300' : 'border-gray-300'
-                }`}
-                disabled={!formValues.productId}
-                required
-              >
-                <option value="">Select a package</option>
-                {filteredPackages.map(pkg => (
-                  <option key={pkg.id} value={pkg.id}>
-                    {pkg.name} - ₹{pkg.basePrice.toLocaleString()}
-                  </option>
-                ))}
-              </select>
-              {errors.packageId && <p className="text-red-500 text-xs mt-1">{errors.packageId}</p>}
-              {filteredPackages.length === 0 && formValues.productId && (
-                <p className="text-amber-500 text-xs mt-1">No packages available for this product</p>
-              )}
-            </div>
-
-            {/* Booking Date */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Booking Date *
-              </label>
-              <input
-                type="date"
-                name="bookingDate"
-                value={formValues.bookingDate}
-                onChange={handleInputChange}
-                className={`w-full px-3 py-2 border rounded-md focus:ring-[#ff914d] ${
-                  errors.bookingDate ? 'border-red-300' : 'border-gray-300'
-                }`}
-                required
-              />
-              {errors.bookingDate && <p className="text-red-500 text-xs mt-1">{errors.bookingDate}</p>}
-            </div>
-
-            {/* Time Slot */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Time Slot *
-              </label>
-              <select
-                name="slotId"
-                value={formValues.slotId}
-                onChange={handleInputChange}
-                className={`w-full px-3 py-2 border rounded-md focus:ring-[#ff914d] ${
-                  errors.slotId ? 'border-red-300' : 'border-gray-300'
-                }`}
-                disabled={!formValues.packageId || !formValues.bookingDate}
-                required
-              >
-                <option value="">Select a time slot</option>
-                {filteredTimeSlots.map(slot => (
-                  <option key={slot.id} value={slot.id}>
-                    {Array.isArray(slot.Time) && slot.Time.length > 0 
-                      ? slot.Time[0] 
-                      : "No specific time"}
-                  </option>
-                ))}
-              </select>
-              {errors.slotId && <p className="text-red-500 text-xs mt-1">{errors.slotId}</p>}
-              {filteredTimeSlots.length === 0 && formValues.packageId && formValues.bookingDate && (
-                <p className="text-amber-500 text-xs mt-1">No time slots available for this date</p>
-              )}
-            </div>
-
-            {/* Number of Adults */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Number of Adults *
-              </label>
-              <input
-                type="number"
-                name="adults"
-                min="1"
-                value={formValues.adults}
-                onChange={handleNumberChange}
-                className={`w-full px-3 py-2 border rounded-md focus:ring-[#ff914d] ${
-                  errors.adults ? 'border-red-300' : 'border-gray-300'
-                }`}
-                required
-              />
-              {errors.adults && <p className="text-red-500 text-xs mt-1">{errors.adults}</p>}
-            </div>
-
-            {/* Number of Children */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Number of Children
-              </label>
-              <input
-                type="number"
-                name="children"
-                min="0"
-                value={formValues.children}
-                onChange={handleNumberChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-              />
-            </div>
-          </div>
-          
-          {/* Product Info Display */}
-          {formValues.productId && (
-            <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-              <h3 className="font-medium text-gray-900 mb-2">Product Information</h3>
-              {(() => {
-                const selectedProduct = products.find(p => p.id === formValues.productId);
-                return selectedProduct ? (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                    <div className="flex items-center">
-                      <MapPin className="h-4 w-4 text-gray-500 mr-2" />
-                      <span>{selectedProduct.location}</span>
-                    </div>
-                    <div className="flex items-center">
-                      <Clock className="h-4 w-4 text-gray-500 mr-2" />
-                      <span>{selectedProduct.duration}</span>
-                    </div>
-                    <div className="flex items-center">
-                      <Package className="h-4 w-4 text-gray-500 mr-2" />
-                      <span>{selectedProduct.productCode}</span>
-                    </div>
+        {formValues.isCustom
+          ? (
+            <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+              <h2 className="text-xl font-semibold mb-4">Custom Voucher Details</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Booking Date */}
+                  <div>
+                    <label className="block text-sm mb-1">Booking Date *</label>
+                    <input
+                      type="date"
+                      name="bookingDate"
+                      value={formValues.bookingDate}
+                      onChange={handleInputChange}
+                      min={new Date().toISOString().split('T')[0]}
+                      required
+                      className="w-full px-3 py-2 border rounded"
+                    />
                   </div>
-                ) : null;
-              })()}
-            </div>
-          )}
-        </div>
+                  <div>
+                  <label className="block text-sm mb-1">Number of Adults *</label>
+                  <input
+                    type="number"
+                    min="1"
+                    name="adults"
+                    value={formValues.adults}
+                    onChange={handleNumberChange}
+                    required
+                    className="w-full px-3 py-2 border rounded"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm mb-1">Number of Children</label>
+                  <input
+                    type="number"
+                    min="0"
+                    name="children"
+                    value={formValues.children}
+                    onChange={handleNumberChange}
+                    className="w-full px-3 py-2 border rounded"
+                  />
+                </div>
+                {(['packageName','location'] as (keyof FormValues['customDetails'])[]).map(k => {
+                   const label = k === 'packageName' ? 'Package Name' : 'Location';
+                   return (
+                     <div key={k}>
+                       <label className="block text-sm mb-1">{label} *</label>
+                       <input
+                         type="text"
+                         name={`customDetails.${k}`}
+                         value={formValues.customDetails[k] ?? ''}
+                         onChange={e => {
+                           const v = e.target.value;
+                           setFormValues(prev => ({
+                             ...prev,
+                             customDetails: {
+                               ...prev.customDetails,
+                               [k]: v
+                             }
+                           }));
+                         }}
+                         required
+                         className="w-full px-3 py-2 border rounded"
+                       />
+                     </div>
+                   )
+                 })}
 
+                {/* duration + unit */}
+                <div>
+                  <label className="block text-sm mb-1">Duration *</label>
+                  <div className="flex space-x-2">
+                    <input
+                      type="text"
+                      name="customDetails.duration"
+                      value={formValues.customDetails.duration||''}
+                      onChange={e=>{
+                        const v=e.target.value;
+                        setFormValues(prev=>({
+                          ...prev,
+                          customDetails:{...prev.customDetails,duration:v}
+                        }));
+                      }}
+                      required
+                      className="w-2/3 px-3 py-2 border rounded"
+                    />
+                    <select
+                      name="customDetails.durationUnit"
+                      value={formValues.customDetails.durationUnit}
+                      onChange={e => {
+                       const unit = e.target.value as 'hours' | 'days';
+                       setFormValues(prev => ({
+                         ...prev,
+                         customDetails: {
+                           ...prev.customDetails,
+                           durationUnit: unit
+                         }
+                       }));
+                     }}
+                      className="w-1/3 px-3 py-2 border rounded"
+                    >
+                      <option value="hours">Hours</option>
+                      <option value="days">Days</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* free-text Time Slot */}
+                <div>
+                  <label className="block text-sm mb-1">Time Slot *</label>
+                  <input
+                    type="text"
+                    name="customDetails.selectedTimeSlot"
+                    placeholder="09:30"
+                    value={formValues.customDetails.selectedTimeSlot||''}
+                    onChange={e=>{
+                      const v=e.target.value;
+                      setFormValues(prev=>({
+                        ...prev,
+                        customDetails:{...prev.customDetails,selectedTimeSlot:v}
+                      }));
+                    }}
+                    required
+                    className="w-full px-3 py-2 border rounded"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm mb-1">Price / person *</label>
+                  <input
+                    type="number"
+                    min="0"
+                    name="customDetails.pricePerPerson"
+                    value={formValues.customDetails.pricePerPerson||0}
+                    onChange={e=>{
+                      const v=parseFloat(e.target.value);
+                      setFormValues(prev=>({
+                        ...prev,
+                        customDetails:{...prev.customDetails, pricePerPerson: v}
+                      }));
+                    }}
+                    required
+                    className="w-full px-3 py-2 border rounded"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-sm mb-1">Discount Type</label>
+                  <select
+                    name="customDetails.discountType"
+                    value={formValues.customDetails.discountType}
+                    onChange={e => {
+                      const v = e.target.value as 'percentage' | 'fixed';
+                      setFormValues(prev => ({
+                        ...prev,
+                        customDetails: { ...prev.customDetails, discountType: v }
+                      }));
+                    }}
+                    className="w-full px-3 py-2 border rounded"
+                  >
+                    <option value="percentage">Percentage (%)</option>
+                    <option value="fixed">Fixed Amount</option>
+                  </select>
+                </div>
+        
+                {/* Discount Value */}
+                <div>
+                  <label className="block text-sm mb-1">
+                    {formValues.customDetails.discountType === 'percentage'
+                      ? 'Discount %'
+                      : 'Discount Amount'}
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    name="customDetails.discountValue"
+                    value={formValues.customDetails.discountValue||0}
+                    onChange={e => {
+                      const v = parseFloat(e.target.value);
+                      setFormValues(prev => ({
+                        ...prev,
+                        customDetails: { ...prev.customDetails, discountValue: v }
+                      }));
+                    }}
+                    className="w-full px-3 py-2 border rounded"
+                  />
+                </div>
+              </div>
+            </div>
+          )
+          : (
+          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+              <Package className="h-5 w-5 mr-2 text-[#ff914d]" />
+              Product & Package Details
+            </h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Product Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Product *
+                </label>
+                <select
+                  name="productId"
+                  value={formValues.productId}
+                  onChange={handleInputChange}
+                  className={`w-full px-3 py-2 border rounded-md focus:ring-[#ff914d] ${
+                    errors.productId ? 'border-red-300' : 'border-gray-300'
+                  }`}
+                  required
+                >
+                  <option value="">Select a product</option>
+                  {products.map(product => (
+                    <option key={product.id} value={product.id}>
+                      {product.title} ({product.productCode})
+                    </option>
+                  ))}
+                </select>
+                {errors.productId && <p className="text-red-500 text-xs mt-1">{errors.productId}</p>}
+              </div>
+
+              {/* Package Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Package *
+                </label>
+                <select
+                  name="packageId"
+                  value={formValues.packageId}
+                  onChange={handleInputChange}
+                  className={`w-full px-3 py-2 border rounded-md focus:ring-[#ff914d] ${
+                    errors.packageId ? 'border-red-300' : 'border-gray-300'
+                  }`}
+                  disabled={!formValues.productId}
+                  required
+                >
+                  <option value="">Select a package</option>
+                  {filteredPackages.map(pkg => (
+                    <option key={pkg.id} value={pkg.id}>
+                      {pkg.name}
+                    </option>
+                  ))}
+                </select>
+                {errors.packageId && <p className="text-red-500 text-xs mt-1">{errors.packageId}</p>}
+                {filteredPackages.length === 0 && formValues.productId && (
+                  <p className="text-amber-500 text-xs mt-1">No packages available for this product</p>
+                )}
+              </div>
+
+              {/* Booking Date */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Booking Date *
+                </label>
+                <input
+                  type="date"
+                  name="bookingDate"
+                  value={formValues.bookingDate}
+                  onChange={handleInputChange}
+                  min={new Date().toISOString().split('T')[0]}
+                  className={`w-full px-3 py-2 border rounded-md focus:ring-[#ff914d] ${
+                    errors.bookingDate ? 'border-red-300' : 'border-gray-300'
+                  }`}
+                  required
+                />
+                {errors.bookingDate && <p className="text-red-500 text-xs mt-1">{errors.bookingDate}</p>}
+              </div>
+
+              {/* Time Slot */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Time Slot *
+                </label>
+                <select
+                  name="slotTime"
+                  value={
+                    formValues.slotId && formValues.selectedTimeSlot
+                      ? JSON.stringify({ slotId: formValues.slotId, time: formValues.selectedTimeSlot })
+                      : ''
+                  }
+                  onChange={e=>{
+                    const { slotId, time } = JSON.parse(e.target.value);
+                    setFormValues(prev=>({
+                      ...prev,
+                      slotId, selectedTimeSlot: time
+                    }));
+                  }}
+                  className={`w-full px-3 py-2 border rounded-md focus:ring-[#ff914d] ${
+                    errors.slotId ? 'border-red-300' : 'border-gray-300'
+                  }`}
+                  disabled={!formValues.packageId || !formValues.bookingDate}
+                  required
+                >
+                  <option value="">Select a time slot</option>
+                  {filteredTimeSlots.flatMap(slot =>
+                    slot.Time.map((time: string) => (
+                      <option
+                        key={`${slot.id}_${time}`}
+                        value={JSON.stringify({ slotId: slot.id, time })}
+                      >
+                        {time}
+                      </option>
+                    ))
+                  )}
+                </select>
+                {errors.slotId && <p className="text-red-500 text-xs mt-1">{errors.slotId}</p>}
+                {filteredTimeSlots.length === 0 && formValues.packageId && formValues.bookingDate && (
+                  <p className="text-amber-500 text-xs mt-1">No time slots available for this date</p>
+                )}
+              </div>
+
+              {/* 5. Pricing Tiers */}
+              {selectedSlot && (selectedSlot.adultTiers?.length > 0 || selectedSlot.childTiers?.length > 0) && (
+                <div className="mt-4 p-4 col-span-2 bg-gray-50 rounded-lg border border-gray-200">
+                  <h3 className="font-medium text-gray-900 mb-2">Pricing</h3>
+                  <div className="text-sm text-gray-700">
+                    {selectedSlot.adultTiers?.length > 0 && (
+                      <>
+                        <div className="mb-1"><strong>Adult:</strong></div>
+                        {selectedSlot.adultTiers.map((tier: PricingTier, idx: number) => (
+                          <div key={`adult-tier-${idx}`} className="ml-2">
+                            {tier.min}–{tier.max} {tier.max === 1 ? 'person' : 'people'}: ₹{tier.price.toLocaleString()}
+                          </div>
+                        ))}
+                      </>
+                    )}
+
+                    {selectedSlot.childTiers?.length > 0 && (
+                      <>
+                        <div className="mt-3 mb-1"><strong>Child:</strong></div>
+                        {selectedSlot.childTiers.map((tier: PricingTier, idx: number) => (
+                          <div key={`child-tier-${idx}`} className="ml-2">
+                            {tier.min}-{tier.max} {tier.max === 1 ? 'child' : 'children'}: ₹{tier.price.toLocaleString()}
+                          </div>
+                        ))}
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Number of Adults */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Number of Adults *
+                </label>
+                <input
+                  type="number"
+                  name="adults"
+                  min="1"
+                  value={formValues.adults}
+                  onChange={handleNumberChange}
+                  className={`w-full px-3 py-2 border rounded-md focus:ring-[#ff914d] ${
+                    errors.adults ? 'border-red-300' : 'border-gray-300'
+                  }`}
+                  required
+                />
+                {errors.adults && <p className="text-red-500 text-xs mt-1">{errors.adults}</p>}
+              </div>
+
+              {/* Number of Children */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Number of Children
+                  {!childrenEnabled && (
+                    <span className="text-xs text-gray-400 ml-2">(not available)</span>
+                  )}
+                </label>
+                <input
+                  type="number"
+                  name="children"
+                  min="0"
+                  max={childrenEnabled ? undefined : 0}
+                  value={formValues.children}
+                  disabled={!childrenEnabled}
+                  onChange={handleNumberChange}
+                  className={
+                    `w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] ` +
+                    (childrenEnabled
+                      ? 'border-gray-300'
+                      : 'border-gray-200 bg-gray-100 cursor-not-allowed')
+                  }
+                />
+              </div>
+            </div>
+            
+            {/* Product Info Display */}
+            {formValues.productId && (
+              <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <h3 className="font-medium text-gray-900 mb-2">Product Information</h3>
+                {(() => {
+                  const selectedProduct = products.find(p => p.id === formValues.productId);
+                  return selectedProduct ? (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                      <div className="flex items-center">
+                        <MapPin className="h-4 w-4 text-gray-500 mr-2" />
+                        <span>{selectedProduct.location}</span>
+                      </div>
+                      <div className="flex items-center">
+                        <Clock className="h-4 w-4 text-gray-500 mr-2" />
+                        <span>{selectedProduct.duration}</span>
+                      </div>
+                      <div className="flex items-center">
+                        <Package className="h-4 w-4 text-gray-500 mr-2" />
+                        <span>{selectedProduct.productCode}</span>
+                      </div>
+                    </div>
+                  ) : null;
+                })()}
+              </div>
+            )}
+          </div>
+          )
+        }
+        
         <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
           <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
             <Users className="h-5 w-5 mr-2 text-[#ff914d]" />
@@ -629,10 +1017,27 @@ export const ManualBooking = () => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
               >
                 <option value="PENDING">Payment Pending</option>
+                <option value="PARTIAL">Partial</option>
                 <option value="PAID">Paid</option>
                 <option value="FAILED">Failed</option>
                 <option value="REFUNDED">Refunded</option>
               </select>
+              {formValues.paymentStatus === 'PARTIAL' && (
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Amount Paid *
+                  </label>
+                  <input
+                    type="number"
+                    name="partialPaymentAmount"
+                    min="0"
+                    value={formValues.partialPaymentAmount || 0}
+                    onChange={handleNumberChange}
+                    required
+                    className="w-full px-3 py-2 border rounded-md"
+                  />
+                </div>
+              )}
             </div>
 
             {/* Send Voucher */}
@@ -658,7 +1063,7 @@ export const ManualBooking = () => {
                 ₹{totalAmount.toLocaleString()}
               </div>
               <p className="text-sm text-gray-600">
-                {formValues.adults} Adults × {formValues.children > 0 ? `, ${formValues.children} Children` : ''}
+                {formValues.adults} Adults {formValues.children > 0 ? `, ${formValues.children} Children` : ''}
               </p>
             </div>
           )}

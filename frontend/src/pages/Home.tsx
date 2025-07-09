@@ -69,6 +69,8 @@ export const Home = () => {
   const dispatch = useDispatch<AppDispatch>();
   const [partners, setPartners] = useState<string[]>([]);
   const { products, isLoading } = useSelector((state: RootState) => state.products);
+  const [fontLoaded, setFontLoaded] = useState(false);
+
   useEffect(() => {
     fetch(`${import.meta.env.VITE_API_URL}/partners`)
       .then(res => {
@@ -83,7 +85,14 @@ export const Home = () => {
     dispatch(fetchProducts({ limit: '6' }));
   }, [dispatch]);
 
-  const featuredProducts = products.slice(0, 6);
+  useEffect(() => {
+    if (document.fonts && document.fonts.load) {
+      document.fonts.load('1em Steelfish').then(() => setFontLoaded(true));
+    } else {
+      setFontLoaded(true);
+    }
+  }, []);
+
   const featuredTours = products
     .filter(product => product.type === 'TOUR')
     .slice(0, 6);
@@ -109,7 +118,7 @@ export const Home = () => {
         ></div>
         <div className="relative z-10 flex items-center justify-center h-full">
           <div className="text-center max-w-4xl mx-auto px-4">
-            <h1 className="text-5xl steelfish mt-1.5 logo-text-big md:text-7xl mb-6">
+            <h1 className="text-5xl steelfish mt-1.5 logo-text-big md:text-7xl mb-6" style={{ visibility: fontLoaded ? 'visible' : 'hidden' }}>
               <span className="text-[#104c57] ml-51 notranslate" data-no-translate style={{ fontSize: '38.8pt' }}>Luxé<br /></span>
               <span className="text-[#ff914d] font-regular notranslate" data-no-translate style={{ fontSize: '90pt' }}>Time</span>
               <span className="text-[#ff914d] font-regular notranslate" data-no-translate style={{ fontSize: '90pt' }}>Travel</span>

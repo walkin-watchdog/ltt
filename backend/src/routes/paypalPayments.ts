@@ -43,7 +43,7 @@ router.post('/create-order', authenticate, rateLimitPayment, async (req, res, ne
     const order = await PayPalService.createOrder({
       amount,
       currency: currency || 'USD',
-      description: `Luxé TimeTravel - ${booking.product.title}`,
+      description: `Luxé TimeTravel - ${booking.product?.title}`,
       reference: booking.bookingCode,
     });
 

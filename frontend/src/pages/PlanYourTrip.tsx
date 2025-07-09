@@ -1,6 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { PriceDisplay } from '../components/common/PriceDisplay';
 import { MapPin, Users, DollarSign, Send, CheckCircle } from 'lucide-react';
 import { SEOHead } from '../components/seo/SEOHead';
+import PhoneInput from 'react-phone-input-2';
+import 'react-phone-input-2/lib/style.css';
 
 interface TripFormData {
   name: string;
@@ -60,6 +63,7 @@ export const PlanYourTrip = () => {
 
   const accommodationTypes = [
     'Heritage Hotels',
+    'Luxury Hotels',
     'Luxury Resorts',
     'Boutique Hotels',
     'Palace Hotels',
@@ -78,20 +82,36 @@ export const PlanYourTrip = () => {
     'Let us decide'
   ];
 
-  const popularDestinations = [
-    'Golden Triangle (Delhi, Agra, Jaipur)',
-    'Rajasthan Heritage Circuit',
-    'Kerala Backwaters',
-    'Himalayan Regions',
-    'Goa Beaches',
-    'Northeast India',
-    'South India Temple Circuit',
-    'Custom Itinerary'
-  ];
+  const [destinations, setDestinations] = useState<{ name: string; slug: string }[]>([]);
+  const [loadingDestinations, setLoadingDestinations] = useState(true);
+
+  useEffect(() => {
+    const fetchDestinations = async () => {
+      setLoadingDestinations(true);
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/destinations`);
+        if (res.ok) {
+          const data = await res.json();
+          setDestinations(data);
+        }
+      } catch (err) {
+        console.error('Destinations fetch failed:', err);
+      } finally {
+        setLoadingDestinations(false);
+      }
+    };
+    fetchDestinations();
+  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => ({
+      ...prev,
+      [name]: 
+        name === 'adults' || name === 'children'
+          ? Number(value)
+          : value
+    }));
   };
 
   const handleInterestToggle = (interest: string) => {
@@ -248,15 +268,21 @@ export const PlanYourTrip = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Phone Number *
                   </label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                    placeholder="Enter your phone number"
-                  />
+                  <div className="relative">
+                    <PhoneInput
+                      country={'ru'}
+                      value={formData.phone}
+                      onChange={value => setFormData(prev => ({ ...prev, phone: value || '' }))}
+                      inputProps={{
+                        required: true,
+                        className:
+                          'w-full pl-11 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent',
+                        placeholder: '912 345-67',
+                      }}
+                      buttonClass="absolute left-0 top-0 h-full rounded-l-md border border-r-0 border-gray-300 bg-white pl-3"
+                      dropdownClass="phone-dropdown z-50"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -280,16 +306,20 @@ export const PlanYourTrip = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
                   >
                     <option value="">Select a destination</option>
-                    {popularDestinations.map(dest => (
-                      <option key={dest} value={dest}>{dest}</option>
-                    ))}
+                    {loadingDestinations
+                      ? <option disabled>Loading…</option>
+                      : destinations.map(d => (
+                          <option key={d.slug} value={d.slug}>{d.name}</option>
+                        ))
+                    }
+                    <option value="custom">Custom Itinerary</option>
                   </select>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Start Date *
+                      Tentative Start Date *
                     </label>
                     <input
                       type="date"
@@ -303,7 +333,7 @@ export const PlanYourTrip = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      End Date *
+                      Tentative End Date *
                     </label>
                     <input
                       type="date"
@@ -359,19 +389,44 @@ export const PlanYourTrip = () => {
                 Budget Range
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {budgetRanges.map(range => (
-                  <label key={range} className="flex items-center">
-                    <input
-                      type="radio"
-                      name="budget"
-                      value={range}
-                      checked={formData.budget === range}
-                      onChange={handleInputChange}
-                      className="h-4 w-4 text-[#ff914d] focus:ring-[#ff914d] border-gray-300"
-                    />
-                    <span className="ml-2 text-sm text-gray-700">{range}</span>
-                  </label>
-                ))}
+                {budgetRanges.map(range => {
+                  const { min, max } = ({
+                    'Under ₹50,000':        { min: 0,      max: 50_000 },
+                    '₹50,000 - ₹1,00,000':  { min: 50_000, max: 100_000 },
+                    '₹1,00,000 - ₹2,00,000':{ min:100_000, max: 200_000 },
+                    '₹2,00,000 - ₹5,00,000':{ min:200_000, max: 500_000 },
+                    'Above ₹5,00,000':      { min:500_000, max: Infinity },
+                  }[range]!);
+
+                  let label;
+                  if (max === Infinity) {
+                    label = <>Above <PriceDisplay amount={min} currency="INR" /></>;
+                  } else if (min === 0) {
+                    label = <>Under <PriceDisplay amount={max} currency="INR" /></>;
+                  } else {
+                    label = (
+                      <>
+                        <div className="flex">
+                          <PriceDisplay amount={min} currency="INR" /> – <PriceDisplay amount={max} currency="INR" />
+                        </div>
+                      </>
+                    );
+                  }
+
+                  return (
+                    <label key={range} className="flex items-center">
+                      <input
+                        type="radio"
+                        name="budget"
+                        value={range}
+                        checked={formData.budget === range}
+                        onChange={handleInputChange}
+                        className="h-4 w-4 text-[#ff914d] focus:ring-[#ff914d] border-gray-300"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">{label}</span>
+                    </label>
+                  );
+                })}
               </div>
             </div>
 

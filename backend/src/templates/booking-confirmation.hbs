@@ -33,7 +33,9 @@
                 {{#if timeSlot}}<p><strong>Time Slot:</strong> {{timeSlot}}</p>{{/if}}
                 <p><strong>Date:</strong> {{bookingDate}}</p>
                 <p><strong>Participants:</strong> {{adults}} Adults{{#if children}}, {{children}} Children{{/if}}</p>
-                <p><strong>Total Amount:</strong> ₹{{totalAmount}}</p>
+                {{#if amountPaid}}
+                  <p><strong>Amount Paid:</strong> ₹{{amountPaid}}</p>
+                {{/if}}
             </div>
             
             <p>We will send you a detailed voucher once your payment is confirmed. Please keep this booking code for your records.</p>

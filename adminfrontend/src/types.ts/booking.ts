@@ -1,6 +1,21 @@
 // Booking related types
+
+export interface CustomDetails {
+  packageName: string;
+  location: string;
+  duration: string;
+  durationUnit: 'hours' | 'days';
+  code: string;
+  selectedTimeSlot: string;
+  pricePerPerson: number;
+  discountType: 'percentage' | 'fixed';
+  discountValue: number;
+}
+
 export interface BookingProp {
   id: string;
+  isManual: boolean;
+  createdBy?: { id: string; name: string; email: string; };
   bookingCode: string;
   customerName: string;
   customerEmail: string;
@@ -8,11 +23,14 @@ export interface BookingProp {
   adults: number;
   children: number;
   totalAmount: number;
+  discountAmount?: number;
+  couponCode?: string;
   status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED';
-  paymentStatus: 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED';
+  paymentStatus: 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED' | 'PARTIAL';
   bookingDate: string;
   createdAt: string;
-  product: {
+  partialPaymentAmount: number;
+  product?: {
     id: string;
     title: string;
     productCode: string;
@@ -21,6 +39,7 @@ export interface BookingProp {
     id: string;
     name: string;
   };
+  customDetails?: CustomDetails;
 }
 
 export interface AbandonedCartProp {

@@ -21,6 +21,6 @@ export interface DashboardStats {
     };
   };
   bookingTrends: any[];
-  revenueByCategory: any[];
+  revenueByType: any[];
   topProducts: any[];
 }

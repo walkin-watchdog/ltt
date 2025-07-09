@@ -109,4 +109,16 @@ router.get('/export', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, 
   }
 });
 
+router.delete('/:id', authenticate, authorize(['ADMIN']), async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const request = await prisma.tripRequest.delete({
+      where: { id }
+    });
+    res.json(request);
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;

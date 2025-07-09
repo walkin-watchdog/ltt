@@ -107,7 +107,7 @@ export const BookingProcessTab = ({ formData, updateFormData }:
         </div>
 
         {/* Reserve Now Pay Later */}
-        <div className="md:col-span-2">
+        <div className="md:col-span-2 mt-2">
           <div className="flex items-center space-x-3">
             <input
               type="checkbox"
@@ -117,11 +117,11 @@ export const BookingProcessTab = ({ formData, updateFormData }:
               className="h-4 w-4 text-[#ff914d] focus:ring-[#ff914d] border-gray-300 rounded"
             />
             <label htmlFor="reserveNowPayLater" className="text-sm font-medium text-gray-700">
-              Allow "Reserve Now Pay Later" option
+              Enable "Reserve Now Pay Later"
             </label>
           </div>
           <p className="text-xs text-gray-500 mt-1">
-            When enabled, customers can reserve this experience and pay later. A "Pay Later" button will appear in the booking flow.
+            When enabled, customers can reserve this product and pay later. A "Pay Later" button will appear while booking.
           </p>
         </div>
       </div>

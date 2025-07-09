@@ -101,53 +101,99 @@ router.get('/dashboard', authenticate, authorize(['ADMIN', 'EDITOR', 'VIEWER']),
       revenue: trend._sum.totalAmount || 0
     }));
 
-    // Revenue by category
-    const revenueByCategory = await prisma.booking.groupBy({
+    // Revenue by type
+    const revenueByTypeRaw = await prisma.booking.groupBy({
       by: ['productId'],
       _count: { id: true },
       _sum: { totalAmount: true },
       where: {
         createdAt: { gte: last30Days },
-        status: 'CONFIRMED'
+        status: 'CONFIRMED',
+        productId: { not: null }
       },
       orderBy: { _sum: { totalAmount: 'desc' } }
     });
 
-    // Get product details for categories
-    const productIds = revenueByCategory.map(item => item.productId);
+    const revenueByType = revenueByTypeRaw as Array<{
+      productId: string;
+      _count:    { id: number };
+      _sum:      { totalAmount: number | null };
+    }>;
+
+    const typeProductIds = revenueByType.map(item => item.productId);
     const products = await prisma.product.findMany({
-      where: { id: { in: productIds } },
-      select: { id: true }
+      where: { id: { in: typeProductIds } },
+      select: { id: true, type: true }
     });
 
-    // Group revenue by category
-    // const categoryRevenue = revenueByCategory.reduce((acc: any, booking) => {
-    //   const product = products.find(p => p.id === booking.productId);
-    //   const category = product?.category || 'Unknown';
-      
-    //   if (!acc[category]) {
-    //     acc[category] = { category, bookings: 0, revenue: 0 };
-    //   }
-      
-    //   acc[category].bookings += booking._count.id;
-    //   acc[category].revenue += booking._sum.totalAmount || 0;
-      
-    //   return acc;
-    // }, {});
 
-    // const formattedRevenueByCategory = Object.values(categoryRevenue);
+    // 2) Aggregate manual bookings into one “Custom” bucket
+    const manualAgg = await prisma.booking.aggregate({
+      _count: { id: true },
+      _sum:   { totalAmount: true },
+      where: {
+        isManual: true,
+        status:   'CONFIRMED',
+        createdAt:{ gte: last30Days }
+      }
+    });
+
+    // 3) Merge:
+    const formattedrevenueByType = revenueByType.map(item => ({
+      key:     item.productId,
+      bookings:item._count.id,
+      revenue: item._sum.totalAmount || 0
+    }));
+
+    if (manualAgg._count.id > 0) {
+      formattedrevenueByType.unshift({
+        key:      'custom',
+        bookings: manualAgg._count.id,
+        revenue:  manualAgg._sum.totalAmount || 0
+      });
+    }
+
+    // Group revenue by type
+    const typeRevenue = revenueByType.reduce((acc: any, booking) => {
+      const prod = products.find(p => p.id === booking.productId);
+      const type = prod?.type || 'Unknown';
+      
+      if (!acc[type]) {
+        acc[type] = { type, bookings: 0, revenue: 0 };
+      }
+      
+      acc[type].bookings += booking._count.id;
+      acc[type].revenue += booking._sum.totalAmount || 0;
+      
+      return acc;
+    }, {});
+
+    if (manualAgg._count.id > 0) {
+          typeRevenue['Custom'] = {
+            type:     'Custom',
+            bookings: manualAgg._count.id,
+            revenue:  manualAgg._sum.totalAmount || 0,
+          };
+        }
+
+    const formattedRevenueByType = Object.values(typeRevenue);
 
     // Top performing products
     const topProductsData = await prisma.booking.groupBy({
       by: ['productId'],
       _count: { id: true },
       _sum: { totalAmount: true },
-      where: { status: 'CONFIRMED' },
+      where: {
+        status:    'CONFIRMED',
+        productId: { not: null }
+      },
       orderBy: { _sum: { totalAmount: 'desc' } },
       take: 10
     });
 
-    const topProductIds = topProductsData.map(item => item.productId);
+    const topProductIds = topProductsData
+      .map(item => item.productId)
+      .filter((id): id is string => id !== null);
     const topProductDetails = await prisma.product.findMany({
       where: { 
         id: { in: topProductIds },
@@ -204,7 +250,7 @@ router.get('/dashboard', authenticate, authorize(['ADMIN', 'EDITOR', 'VIEWER']),
         }
       },
       bookingTrends: formattedBookingTrends,
-      // revenueByCategory: formattedRevenueByCategory,
+      revenueByType: formattedRevenueByType,
       topProducts
     });
   } catch (error) {
@@ -215,7 +261,7 @@ router.get('/dashboard', authenticate, authorize(['ADMIN', 'EDITOR', 'VIEWER']),
 // Get detailed analytics
 router.get('/detailed', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, next) => {
   try {
-    const { startDate, endDate, productId, category } = req.query;
+    const { startDate, endDate, productId, type } = req.query;
     
     const whereClause: any = { status: 'CONFIRMED' };
     if (startDate && endDate) {

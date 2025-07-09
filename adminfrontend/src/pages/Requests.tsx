@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Filter, Calendar, MapPin, Users, DollarSign, Download, Eye } from 'lucide-react';
+import { Search, Filter, Calendar, MapPin, Users, DollarSign, Download, Trash2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import type { TripRequest } from '../types.ts';
 
@@ -15,6 +15,22 @@ export const Requests = () => {
   useEffect(() => {
     fetchRequests();
   }, [token]);
+
+  const deleteRequest = async (requestId: string) => {
+    if (!window.confirm('Are you sure you want to delete this request?')) return;
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/trip-requests/${requestId}`,
+        {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        }
+      );
+      if (response.ok) fetchRequests();
+    } catch (error) {
+      console.error('Error deleting request:', error);
+    }
+  };
 
   const fetchRequests = async () => {
     try {
@@ -66,9 +82,19 @@ export const Requests = () => {
         const data = await response.json();
         
         // Convert to CSV
+        const escapeCSV = (val: any) => {
+          const str = String(val);
+          if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+            return `"${str.replace(/"/g, '""')}"`;
+          }
+          return str;
+        };
+        const headers = Object.keys(data[0]).filter(key => key !== 'ID');
         const csv = [
-          Object.keys(data[0]).join(','),
-          ...data.map((row: any) => Object.values(row).join(','))
+          headers.join(','),
+          ...data.map((row: any) =>
+            headers.map(key => escapeCSV(row[key])).join(',')
+          )
         ].join('\n');
         
         // Download file
@@ -206,6 +232,7 @@ export const Requests = () => {
                 </div>
               </div>
               {(user?.role === 'ADMIN' || user?.role === 'EDITOR') ? (
+              <div className="flex items-center space-x-2">
                 <select
                   value={request.status}
                   onChange={(e) => updateRequestStatus(request.id, e.target.value)}
@@ -216,11 +243,20 @@ export const Requests = () => {
                   <option value="COMPLETED">Completed</option>
                   <option value="CANCELLED">Cancelled</option>
                 </select>
-              ) : (
-                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(request.status)}`}>
-                  {request.status}
-                </span>
-              )}
+                {user?.role === 'ADMIN' && (
+                  <button
+                    onClick={() => deleteRequest(request.id)}
+                    className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            ) : (
+              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(request.status)}`}>
+                {request.status}
+              </span>
+            )}
             </div>
 
             <div className="space-y-3">
@@ -291,9 +327,6 @@ export const Requests = () => {
                   {new Date(request.createdAt).toLocaleDateString('en-IN')}
                 </span>
                 <div className="flex items-center space-x-2">
-                  <button className="p-1 text-gray-400 hover:text-[#ff914d] transition-colors">
-                    <Eye className="h-4 w-4" />
-                  </button>
                   <a
                     href={`tel:${request.phone}`}
                     className="p-1 text-gray-400 hover:text-green-600 transition-colors"

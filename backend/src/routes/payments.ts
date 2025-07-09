@@ -308,7 +308,11 @@ export const sendBookingVoucher = async (booking: any) => {
         adults: booking.adults,
         children: booking.children,
         packageName: booking.package?.name || 'Standard Package',
-        totalAmount: booking.totalAmount.toLocaleString('en-IN'),
+        amountPaid: (booking.paymentStatus === 'PAID'
+                     ? booking.totalAmount
+                     : booking.paymentStatus === 'PARTIAL'
+                       ? booking.partialPaymentAmount
+                       : null),
         timeSlot: booking.selectedTimeSlot || 'As per confirmation'
       },
       attachments: [
