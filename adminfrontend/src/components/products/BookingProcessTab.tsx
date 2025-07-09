@@ -105,6 +105,25 @@ export const BookingProcessTab = ({ formData, updateFormData }:
             </div>
           )}
         </div>
+
+        {/* Reserve Now Pay Later */}
+        <div className="md:col-span-2">
+          <div className="flex items-center space-x-3">
+            <input
+              type="checkbox"
+              id="reserveNowPayLater"
+              checked={formData.reserveNowPayLater !== false} // Default to true
+              onChange={(e) => updateFormData({ reserveNowPayLater: e.target.checked })}
+              className="h-4 w-4 text-[#ff914d] focus:ring-[#ff914d] border-gray-300 rounded"
+            />
+            <label htmlFor="reserveNowPayLater" className="text-sm font-medium text-gray-700">
+              Allow "Reserve Now Pay Later" option
+            </label>
+          </div>
+          <p className="text-xs text-gray-500 mt-1">
+            When enabled, customers can reserve this experience and pay later. A "Pay Later" button will appear in the booking flow.
+          </p>
+        </div>
       </div>
     </div>
   );

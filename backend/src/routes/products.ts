@@ -179,6 +179,7 @@ const productSchema = z.object({
   tourType: z.string().default('public').optional(),
   cutoffTime: z.number().min(0).optional().default(24), 
   passportDetailsOption: z.string().optional(),
+  reserveNowPayLater: z.boolean().optional().default(true),
 });
 
 // Get all products (public)

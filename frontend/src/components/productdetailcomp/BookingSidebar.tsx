@@ -2,8 +2,9 @@ import { formatDate, parse } from "date-fns";
 import { AvailabilityBar } from "../common/AvailabilityBar";
 import { PriceDisplay } from "../common/PriceDisplay";
 import { Link } from "react-router-dom";
-import { Calendar, Share2 } from "lucide-react";
+import { Share2, X,} from "lucide-react";
 import toast from "react-hot-toast";
+import { useState, useEffect } from "react";
 
 interface BookingSidebarProps {
     cheapestPackage: any;
@@ -62,6 +63,37 @@ export const BookingSidebar = ({
     setSelectedSlot,
     isSlotBookable,
 }: BookingSidebarProps) => {
+    const [showAvailabilityPopup, setShowAvailabilityPopup] = useState(false);
+    const [showAllTimeSlots, setShowAllTimeSlots] = useState(false);
+
+    // Auto-select first available time slot when slots are loaded
+    useEffect(() => {
+        if (selectedPackage && slotsForPackage.length > 0 && !selectedSlotId && !slotsLoading) {
+            const firstAvailableSlot = slotsForPackage
+                .flatMap(slot =>
+                    Array.isArray(slot.Time)
+                        ? slot.Time.map((time: string) => ({ slotId: slot.id, time, slot }))
+                        : []
+                )
+                .find(({ slot, time }) => {
+                    const availableSeats = slot.available - (slot.booked || 0);
+                    const cutoffTime = slot.cutoffTime || 24;
+                    const { isBookable } = isSlotBookable(
+                        formatDate(parse(selectedDateStr, 'MM/dd/yyyy', new Date()), 'yyyy-MM-dd'),
+                        time,
+                        cutoffTime
+                    );
+                    return availableSeats >= (adultsCount + childrenCount) && isBookable;
+                });
+
+            if (firstAvailableSlot) {
+                setSelectedSlotId(firstAvailableSlot.slotId);
+                setSelectedTimeSlot(firstAvailableSlot.time);
+                setSelectedSlot(firstAvailableSlot.slot);
+            }
+        }
+    }, [selectedPackage, slotsForPackage, selectedSlotId, slotsLoading, adultsCount, childrenCount, selectedDateStr, isSlotBookable, setSelectedSlotId, setSelectedTimeSlot, setSelectedSlot]);
+
     return (
 
         <div className="order-first mt-8 lg:order-none lg:mt-0 lg:col-span-1 relative">
@@ -156,6 +188,14 @@ export const BookingSidebar = ({
                                     // If product is available, show all packages regardless of capacity
                                     setIsDateOk(true);
                                     setAvailablePackages(currentProduct.packages ?? []);
+                                    
+                                    // Auto-select the first available package
+                                    const firstPackage = currentProduct.packages?.[0];
+                                    if (firstPackage) {
+                                        handlePackageSelect(firstPackage.id);
+                                    }
+                                    
+                                    setShowAvailabilityPopup(true);
                                 }
                             } catch (error) {
                                 console.error('Error checking availability:', error);
@@ -182,319 +222,314 @@ export const BookingSidebar = ({
                     </p>
                 )}
 
-                {/* Package Selection */}
-                {!isMobile && isDateOk && availablePackages.length > 0 && (
-                    <div className="mb-6">
-                        <h3 className="text-lg font-medium text-gray-900 mb-3">Select Package</h3>
-                        <div className="space-y-3">
-                            {availablePackages.map(pkg => (
-                                <div
-                                    key={pkg.id}
-                                    onClick={() => handlePackageSelect(pkg.id)}
-                                    className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${selectedPackage?.id === pkg.id
-                                        ? 'border-[#ff914d] bg-orange-50'
-                                        : 'border-gray-200 hover:border-[#ff914d]'
-                                        }`}
-                                >
-                                    <div className="flex justify-between items-start mb-2">
-                                        <h4 className="font-semibold text-gray-900">{pkg.name}</h4>
-                                        {selectedPackage?.id === pkg.id && (
-                                            <div className="bg-[#ff914d] text-white rounded-full h-5 w-5 flex items-center justify-center">
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
-                                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                                </svg>
-                                            </div>
-                                        )}
-                                    </div>
-                                    <p className="text-sm text-gray-600">{pkg.description}</p>
+           
 
-                                    <div className="mt-2 flex flex-wrap gap-1">
-                                        {pkg.inclusions?.slice(0, 3).map((inc: string, idx: number) => (
-                                            <span key={idx} className="inline-block bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded">
-                                                {inc}
-                                            </span>
-                                        ))}
-                                        {pkg.inclusions?.length > 3 && (
-                                            <span className="inline-block bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded">
-                                                +{pkg.inclusions.length - 3} more
-                                            </span>
-                                        )}
-                                    </div>
-
-                                    <div className="mt-3 flex justify-between items-center">
-                                        <div className="font-bold text-[#ff914d]">
-                                            <PriceDisplay
-                                                amount={calculateEffectivePrice(
-                                                    pkg.basePrice,
-                                                    pkg.discountType,
-                                                    pkg.discountValue
-                                                )}
-                                                currency={pkg.currency}
-                                            />
-                                            <span className="text-sm text-gray-500 font-normal"> per person</span>
-                                        </div>
-                                        <button
-                                            className="text-[#104c57] font-medium text-sm hover:text-[#ff914d]"
-                                            onClick={() => handlePackageSelect(pkg.id)}
-                                        >
-                                            Select
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* Time Slot Selection */}
-                {!isMobile && isDateOk && availablePackages.length > 0 && selectedPackage && (
-                    <div className="mb-6">
-                        <h3 className="text-lg font-medium text-gray-900 mb-3">Select Time</h3>
-                        {slotsLoading ? (
-                            <div className="flex justify-center py-4">
-                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#ff914d]"></div>
-                            </div>
-                        ) : slotsForPackage.length === 0 ? (
-                            <p className="text-center text-red-600 py-2">
-                                No time slots available for the selected date.
-                            </p>
-                        ) : (
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                {slotsForPackage
-                                    .flatMap(slot =>
-                                        Array.isArray(slot.Time)
-                                            ? slot.Time.map((time: string) => ({ slotId: slot.id, time, slot }))
-                                            : []
-                                    )
-                                    .map(({ slotId, time, slot }) => {
-                                        const availableSeats = slot.available - (slot.booked || 0);
-                                        const cutoffTime = slot.cutoffTime || 24;
-                                        const { isBookable, reason } = isSlotBookable(
-                                            formatDate(parse(selectedDateStr, 'MM/dd/yyyy', new Date()), 'yyyy-MM-dd'),
-                                            time,
-                                            cutoffTime
-                                        );
-
-                                        const isDisabled = availableSeats < (adultsCount + childrenCount) || !isBookable;
-                                        const isSelected = selectedSlotId === slotId && selectedTimeSlot === time;
-
-                                        return (
-                                            <div key={`${slotId}-${time}`} className="relative">
-                                                <button
-                                                    onClick={() => {
-                                                        if (!isDisabled) {
-                                                            setSelectedSlotId(slotId);
-                                                            setSelectedTimeSlot(time);
-                                                            setSelectedSlot(slot);
-                                                        }
-                                                    }}
-                                                    disabled={isDisabled}
-                                                    className={`border rounded-lg p-3 text-center cursor-pointer transition-colors ${isSelected
-                                                        ? 'border-[#ff914d] bg-orange-50'
-                                                        : 'border-gray-200 hover:border-[#ff914d]'
-                                                        } ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                                >
-                                                    {time}
-                                                </button>
-
-                                                {!isBookable && reason && (
-                                                    <div className="mt-1 text-xs text-red-600 px-1">
-                                                        {reason}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {/* Pricing info for selected package/slot */}
-                {!isMobile && selectedPackage && selectedSlot && selectedTimeSlot && (
-                    <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm text-gray-700">Adults:</span>
-                            <div className="text-sm font-medium">
-                                {adultsCount} ×
-                                {selectedSlot.adultTiers && selectedSlot.adultTiers.length > 0 ? (
-                                    <span>
-                                        {/* Show original price with strikethrough if discount exists */}
-                                        {selectedPackage.discountType !== 'none' && selectedPackage.discountValue > 0 && (
-                                            <span className="line-through text-gray-400 mr-2">
-                                                <PriceDisplay amount={selectedSlot.adultTiers[0].price} currency={selectedPackage.currency} />
-                                            </span>
-                                        )}
-                                        <span className={selectedPackage.discountType !== 'none' && selectedPackage.discountValue > 0 ? "text-[#ff914d] font-bold" : ""}>
-                                            <PriceDisplay
-                                                amount={calculateEffectivePrice(
-                                                    selectedSlot.adultTiers[0].price,
-                                                    selectedPackage.discountType,
-                                                    selectedPackage.discountValue
-                                                )}
-                                                currency={selectedPackage.currency}
-                                            />
-                                        </span>
-                                    </span>) : (
-                                    <PriceDisplay
-                                        amount={calculateEffectivePrice(
-                                            selectedPackage.basePrice,
-                                            selectedPackage.discountType,
-                                            selectedPackage.discountValue
-                                        )}
-                                        currency={selectedPackage.currency}
-                                    />
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Children Pricing or Not Allowed Message */}
-                        {selectedPackage.ageGroups?.child?.enabled !== false ? (
-                            childrenCount > 0 && (
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm text-gray-700">Children:</span>
-                                    <div className="text-sm font-medium">
-                                        {childrenCount} ×
-                                        {selectedSlot.childTiers && selectedSlot.childTiers.length > 0 ? (
-                                            <span>
-                                                {/* Show original price with strikethrough if discount exists */}
-                                                {selectedPackage.discountType !== 'none' && selectedPackage.discountValue > 0 && (
-                                                    <span className="line-through text-gray-400 mr-2">
-                                                        <PriceDisplay amount={selectedSlot.childTiers[0].price} currency={selectedPackage.currency} />
-                                                    </span>
-                                                )}
-                                                <span className={selectedPackage.discountType !== 'none' && selectedPackage.discountValue > 0 ? "text-[#ff914d] font-bold" : ""}>
-                                                    <PriceDisplay
-                                                        amount={calculateEffectivePrice(
-                                                            selectedSlot.childTiers[0].price,
-                                                            selectedPackage.discountType,
-                                                            selectedPackage.discountValue
-                                                        )}
-                                                        currency={selectedPackage.currency}
-                                                    />
-                                                </span>
-                                            </span>
-                                        ) : (
-                                            <PriceDisplay
-                                                amount={calculateEffectivePrice(
-                                                    selectedPackage.basePrice,
-                                                    selectedPackage.discountType,
-                                                    selectedPackage.discountValue
-                                                ) * 0.5}
-                                                currency={selectedPackage.currency}
-                                            />
-                                        )}
-                                    </div>
-                                </div>
-                            )
-                        ) : (
-                            <div className="flex items-center justify-between">
-                                <span className="text-sm text-gray-700">Children:</span>
-                                <span className="text-sm font-medium text-red-500">
-                                    Children are not allowed in this tour
-                                </span>
-                            </div>
-                        )}
-
-                        <div className="mt-3 pt-2 border-t border-gray-200 flex justify-between items-center">
-                            <span className="font-medium">Total:</span>
-                            <span className="font-bold text-[#ff914d]">
-                                <PriceDisplay
-                                    amount={adultsCount * (selectedSlot.adultTiers?.[0]?.price
-                                        ? calculateEffectivePrice(
-                                            selectedSlot.adultTiers[0].price,
-                                            selectedPackage.discountType,
-                                            selectedPackage.discountValue
-                                        )
-                                        : calculateEffectivePrice(
-                                            selectedPackage.basePrice,
-                                            selectedPackage.discountType,
-                                            selectedPackage.discountValue
-                                        )) +
-                                        (selectedPackage.ageGroups?.child?.enabled !== false
-                                            ? childrenCount * (selectedSlot.childTiers?.[0]?.price
-                                                ? calculateEffectivePrice(
-                                                    selectedSlot.childTiers[0].price,
-                                                    selectedPackage.discountType,
-                                                    selectedPackage.discountValue
-                                                )
-                                                : (calculateEffectivePrice(
-                                                    selectedPackage.basePrice,
-                                                    selectedPackage.discountType,
-                                                    selectedPackage.discountValue
-                                                ) * 0.5))
-                                            : 0
-                                        )}
-                                    currency={selectedPackage.currency}
-                                />
-                            </span>
-                        </div>
-
-                        {selectedPackage.isPerGroup && (
-                            <div className="mt-2 text-xs text-gray-500 text-center">
-                                This is a group package (up to {selectedPackage.maxPeople || currentProduct.capacity} people)
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {/* Book Now Button */}
-                {selectedPackage && isDateOk && selectedSlot && (
-                    <Link
-                        to={
-                            `/book/${currentProduct.id}` +
-                            `?package=${selectedPackage.id}` +
-                            `&slot=${selectedSlot.id}` +
-                            `&time=${encodeURIComponent(selectedTimeSlot ?? '')}` +
-                            `&date=${encodeURIComponent(selectedDateStr)}` +
-                            `&adults=${adultsCount}` +
-                            `&children=${childrenCount}`
-                        }
-                        className="w-full py-4 px-4 rounded-lg font-semibold transition-colors text-center block bg-[#ff914d] text-white hover:bg-[#e8823d] mb-4"
-                    >
-                        <span className="flex items-center justify-center">
-                            <Calendar className="h-5 w-5 mr-2" />
-                            Reserve Now
-                        </span>
-                    </Link>
-                )}
-
-                {/* share dropdown */}
-                <div className="relative mt-4">
+                {/* Share Button */}
+                <div className="mt-6 pt-6 border-t border-gray-200">
                     <button
                         onClick={() => {
-                            navigator.clipboard
-                                .writeText(window.location.href)
-                                .then(() => toast.success('Link copied!'));
+                            const url = window.location.href;
+                            navigator.clipboard.writeText(url);
+                            toast.success('Link copied to clipboard!');
                         }}
-                        className="w-full py-2 border border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-50"
+                        className="w-full flex items-center justify-center gap-2 py-2 text-gray-600 hover:text-[#ff914d] transition-colors"
                     >
-                        <Share2 className="h-4 w-4 mr-2" />
-                        Copy Link
+                        <Share2 className="h-4 w-4" />
+                        Share this experience
                     </button>
                 </div>
 
-                <div className="mt-4 text-center">
-                    <p className="text-sm text-gray-600">
-                        Free cancellation up to 24 hours before
-                    </p>
-                </div>
-
-                {/* Contact */}
-                <div className="mt-6 pt-6 border-t border-gray-200">
-                    <h3 className="font-semibold text-gray-900 mb-3">Need Help?</h3>
-                    <div className="space-y-2 text-sm">
-                        <p className="text-gray-600">Call us at:</p>
-                        <a href="tel:+919876543210" className="text-[#ff914d] font-medium">
-                            +91 98765 43210
-                        </a>
-                        <p className="text-gray-600">Email us at:</p>
-                        <a href="mailto:info@luxetimetravel.com" className="text-[#ff914d] font-medium">
-                            info@luxetimetravel.com
-                        </a>
-                    </div>
+                {/* Contact Info */}
+                <div className="mt-6 pt-6 border-t border-gray-200 text-center">
+                    <p className="text-gray-600 mb-2">Need help? Contact us:</p>
+                    <a href="tel:+1234567890" className="text-[#ff914d] font-medium block mb-1">
+                        +1 (234) 567-890
+                    </a>
+                    <a href="mailto:info@luxetimetravel.com" className="text-[#ff914d] font-medium">
+                        info@luxetimetravel.com
+                    </a>
                 </div>
             </div>
+
+            {/* Availability Popup Modal */}
+            {showAvailabilityPopup && availablePackages.length > 0 && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                    <div className={`bg-white rounded-lg w-full max-h-[90vh] overflow-hidden flex flex-col ${showAllTimeSlots ? 'max-w-6xl' : 'max-w-4xl'} transition-all duration-300`}>
+                        <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
+                            <div className="text-right">
+                                <button
+                                    onClick={() => setShowAvailabilityPopup(false)}
+                                    className="text-gray-400 hover:text-gray-600 transition-colors p-1"
+                                >
+                                    <X className="h-6 w-6" />
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="p-6 overflow-y-auto flex-1">
+                            {/* Package Options */}
+                            <div className="mb-6">
+                                <div className="space-y-4">
+                                    {availablePackages.map(pkg => (
+                                        <div
+                                            key={pkg.id}
+                                            onClick={() => handlePackageSelect(pkg.id)}
+                                            className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${selectedPackage?.id === pkg.id
+                                                ? 'border-[#ff914d] bg-orange-50'
+                                                : 'border-gray-200 hover:border-gray-300'
+                                                }`}
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex-1">
+                                                    <h4 className="font-semibold text-gray-900 mb-2">{pkg.name}</h4>
+                                                    <p className="text-sm text-gray-600 mb-3">{pkg.description}</p>
+                                                    {currentProduct?.reserveNowPayLater !== false && (
+                                                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mb-2">
+                                                            Reserve Now, Pay Later eligible
+                                                        </span>
+                                                    )}
+                                                    
+                                                    {/* Time Slots for this package */}
+                                                    {selectedPackage?.id === pkg.id && (
+                                                        <div className="mt-4 pt-4 border-t border-gray-200">
+                                                            <h5 className="text-sm font-medium text-gray-900 mb-3">Available Time Slots</h5>
+                                                            {slotsLoading ? (
+                                                                <div className="flex justify-center py-4">
+                                                                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#ff914d]"></div>
+                                                                </div>
+                                                            ) : slotsForPackage.length === 0 ? (
+                                                                <div className="text-center text-red-600 py-2 text-sm">
+                                                                    No time slots available for the selected date.
+                                                                </div>
+                                                            ) : (
+                                                                <>
+                                                                    <div className={`grid grid-cols-4 gap-2 ${showAllTimeSlots ? 'max-h-40 overflow-y-auto pr-2' : ''}`}>
+                                                                        {slotsForPackage
+                                                                            .flatMap(slot =>
+                                                                                Array.isArray(slot.Time)
+                                                                                    ? slot.Time.map((time: string) => ({ slotId: slot.id, time, slot }))
+                                                                                    : []
+                                                                            )
+                                                                            .slice(0, showAllTimeSlots ? undefined : 4)
+                                                                            .map(({ slotId, time, slot }, index) => {
+                                                                                const availableSeats = slot.available - (slot.booked || 0);
+                                                                                const cutoffTime = slot.cutoffTime || 24;
+                                                                                const { isBookable } = isSlotBookable(
+                                                                                    formatDate(parse(selectedDateStr, 'MM/dd/yyyy', new Date()), 'yyyy-MM-dd'),
+                                                                                    time,
+                                                                                    cutoffTime
+                                                                                );
+
+                                                                                const isDisabled = availableSeats < (adultsCount + childrenCount) || !isBookable;
+                                                                                const isSelected = selectedSlotId === slotId && selectedTimeSlot === time;
+
+                                                                                return (
+                                                                                    <button
+                                                                                        key={`${slotId}-${time}`}
+                                                                                        onClick={(e) => {
+                                                                                            e.stopPropagation();
+                                                                                            if (!isDisabled) {
+                                                                                                setSelectedSlotId(slotId);
+                                                                                                setSelectedTimeSlot(time);
+                                                                                                setSelectedSlot(slot);
+                                                                                            }
+                                                                                        }}
+                                                                                        disabled={isDisabled}
+                                                                                        className={`border rounded-lg px-2 py-1 text-xs font-medium transition-all ${isSelected
+                                                                                            ? 'border-[#ff914d] bg-[#ff914d] text-white'
+                                                                                            : 'border-gray-300 hover:border-[#ff914d] hover:text-[#ff914d]'
+                                                                                            } ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                                                                                    >
+                                                                                        {time}
+                                                                                    </button>
+                                                                                );
+                                                                            })}
+                                                                    </div>
+
+                                                                    {/* Show "See more" / "Show less" button */}
+                                                                    {slotsForPackage.flatMap(slot =>
+                                                                        Array.isArray(slot.Time) ? slot.Time : []
+                                                                    ).length > 4 && (
+                                                                            <button
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    setShowAllTimeSlots(!showAllTimeSlots);
+                                                                                }}
+                                                                                className="mt-2 text-[#ff914d] hover:text-[#e8823d] text-sm font-medium"
+                                                                            >
+                                                                                {showAllTimeSlots ? 'Show less' : 'See more'}
+                                                                            </button>
+                                                                        )}
+                                                                </>
+                                                            )}
+                                                            
+                                                            {/* Tiered Pricing breakdown - only show when slot is selected */}
+                                                            {selectedSlot && selectedPackage?.id === pkg.id && (
+                                                                <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                                                                    <div className="flex items-center justify-between mb-2">
+                                                                        <span className="text-sm text-gray-700">Adults:</span>
+                                                                        <div className="text-sm font-medium">
+                                                                            {adultsCount} ×
+                                                                            {selectedSlot?.adultTiers && selectedSlot.adultTiers.length > 0 ? (
+                                                                                <span>
+                                                                                    {/* Show original price with strikethrough if discount exists */}
+                                                                                    {pkg.discountType !== 'none' && pkg.discountValue > 0 && (
+                                                                                        <span className="line-through text-gray-400 mr-2">
+                                                                                            <PriceDisplay amount={selectedSlot.adultTiers[0].price} currency={pkg.currency} />
+                                                                                        </span>
+                                                                                    )}
+                                                                                    <span className={pkg.discountType !== 'none' && pkg.discountValue > 0 ? "text-[#ff914d] font-bold" : ""}>
+                                                                                        <PriceDisplay
+                                                                                            amount={calculateEffectivePrice(
+                                                                                                selectedSlot.adultTiers[0].price,
+                                                                                                pkg.discountType,
+                                                                                                pkg.discountValue
+                                                                                            )}
+                                                                                            currency={pkg.currency}
+                                                                                        />
+                                                                                    </span>
+                                                                                </span>
+                                                                            ) : (
+                                                                                <PriceDisplay
+                                                                                    amount={calculateEffectivePrice(
+                                                                                        pkg.basePrice,
+                                                                                        pkg.discountType,
+                                                                                        pkg.discountValue
+                                                                                    )}
+                                                                                    currency={pkg.currency}
+                                                                                />
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+
+                                                                    {/* Children Pricing or Not Allowed Message */}
+                                                                    {pkg.ageGroups?.child?.enabled !== false ? (
+                                                                        childrenCount > 0 && (
+                                                                            <div className="flex items-center justify-between">
+                                                                                <span className="text-sm text-gray-700">Children:</span>
+                                                                                <div className="text-sm font-medium">
+                                                                                    {childrenCount} ×
+                                                                                    {selectedSlot?.childTiers && selectedSlot.childTiers.length > 0 ? (
+                                                                                        <span>
+                                                                                            {/* Show original price with strikethrough if discount exists */}
+                                                                                            {pkg.discountType !== 'none' && pkg.discountValue > 0 && (
+                                                                                                <span className="line-through text-gray-400 mr-2">
+                                                                                                    <PriceDisplay amount={selectedSlot.childTiers[0].price} currency={pkg.currency} />
+                                                                                                </span>
+                                                                                            )}
+                                                                                            <span className={pkg.discountType !== 'none' && pkg.discountValue > 0 ? "text-[#ff914d] font-bold" : ""}>
+                                                                                                <PriceDisplay
+                                                                                                    amount={calculateEffectivePrice(
+                                                                                                        selectedSlot.childTiers[0].price,
+                                                                                                        pkg.discountType,
+                                                                                                        pkg.discountValue
+                                                                                                    )}
+                                                                                                    currency={pkg.currency}
+                                                                                                />
+                                                                                            </span>
+                                                                                        </span>
+                                                                                    ) : (
+                                                                                        <PriceDisplay
+                                                                                            amount={calculateEffectivePrice(
+                                                                                                pkg.basePrice,
+                                                                                                pkg.discountType,
+                                                                                                pkg.discountValue
+                                                                                            ) * 0.5}
+                                                                                            currency={pkg.currency}
+                                                                                        />
+                                                                                    )}
+                                                                                </div>
+                                                                            </div>
+                                                                        )
+                                                                    ) : (
+                                                                        <div className="flex items-center justify-between">
+                                                                            <span className="text-sm text-gray-700">Children:</span>
+                                                                            <span className="text-sm font-medium text-red-500">
+                                                                                Children are not allowed in this tour
+                                                                            </span>
+                                                                        </div>
+                                                                    )}
+
+                                                                    <div className="mt-3 pt-2 border-t border-gray-200 flex justify-between items-center">
+                                                                        <span className="font-medium">Total:</span>
+                                                                        <span className="font-bold text-[#ff914d]">
+                                                                            <PriceDisplay
+                                                                                amount={adultsCount * (selectedSlot?.adultTiers?.[0]?.price
+                                                                                    ? calculateEffectivePrice(
+                                                                                        selectedSlot.adultTiers[0].price,
+                                                                                        pkg.discountType,
+                                                                                        pkg.discountValue
+                                                                                    )
+                                                                                    : calculateEffectivePrice(
+                                                                                        pkg.basePrice,
+                                                                                        pkg.discountType,
+                                                                                        pkg.discountValue
+                                                                                    )) +
+                                                                                    (pkg.ageGroups?.child?.enabled !== false
+                                                                                        ? childrenCount * (selectedSlot?.childTiers?.[0]?.price
+                                                                                            ? calculateEffectivePrice(
+                                                                                                selectedSlot.childTiers[0].price,
+                                                                                                pkg.discountType,
+                                                                                                pkg.discountValue
+                                                                                            )
+                                                                                            : (calculateEffectivePrice(
+                                                                                                pkg.basePrice,
+                                                                                                pkg.discountType,
+                                                                                                pkg.discountValue
+                                                                                            ) * 0.5))
+                                                                                        : 0
+                                                                                    )}
+                                                                                currency={pkg.currency}
+                                                                            />
+                                                                        </span>
+                                                                    </div>
+
+                                                                    {pkg.isPerGroup && (
+                                                                        <div className="mt-2 text-xs text-gray-500 text-center">
+                                                                            This is a group package (up to {pkg.maxPeople || currentProduct.capacity} people)
+                                                                        </div>
+                                                                    )}
+                                                                    
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="ml-4">
+                                                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${selectedPackage?.id === pkg.id
+                                                        ? 'border-[#ff914d] bg-[#ff914d]'
+                                                        : 'border-gray-300'
+                                                        }`}>
+                                                        {selectedPackage?.id === pkg.id && (
+                                                            <div className="w-2 h-2 bg-white rounded-full"></div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                        </div>
+
+                        {/* Action Buttons - Fixed at bottom */}
+                        <div className="flex gap-3 items-center p-6 border-t border-gray-200 flex-shrink-0">
+
+                            <div className="flex-1"></div>
+                            {!isMobile && selectedPackage && selectedSlot && selectedTimeSlot && (
+                                <Link
+                                    to={`/book/${currentProduct.id}?date=${selectedDateStr}&adults=${adultsCount}&children=${childrenCount}&package=${selectedPackage.id}&slot=${selectedSlotId}&time=${selectedTimeSlot}`}
+                                    className="bg-[#22c55e] text-white px-6 py-2 rounded-lg font-medium hover:bg-[#16a34a] transition-colors"
+                                    onClick={() => setShowAvailabilityPopup(false)}
+                                >
+                                    Reserve Now
+                                </Link>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

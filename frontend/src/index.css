@@ -180,3 +180,117 @@
 .scrollbar-hide::-webkit-scrollbar {
   display: none; /* Chrome, Safari, Opera */
 }
+
+/* Selected Package & Time Slot Display Styles */
+.selected-booking-display {
+  background: linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%);
+  border: 2px solid #ff914d;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.selected-booking-display h3 {
+  display: flex;
+  align-items: center;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 12px;
+}
+
+.selected-booking-display .checkmark {
+  background: #ff914d;
+  color: white;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
+}
+
+.selected-booking-item {
+  background: white;
+  border-radius: 8px;
+  padding: 12px;
+  border: 1px solid #fed7aa;
+  margin-bottom: 12px;
+}
+
+.selected-booking-item:last-child {
+  margin-bottom: 0;
+}
+
+.selected-booking-item .item-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  margin-bottom: 4px;
+}
+
+.selected-booking-item .item-title {
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 4px;
+}
+
+.selected-booking-item .item-description {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+.selected-booking-item .item-price {
+  font-weight: 700;
+  color: #ff914d;
+}
+
+.selected-booking-item .item-details {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .selected-booking-display {
+    padding: 12px;
+    margin-bottom: 16px;
+  }
+  
+  .selected-booking-display h3 {
+    font-size: 1rem;
+  }
+  
+  .selected-booking-item {
+    padding: 10px;
+  }
+  
+  .selected-booking-item .item-title {
+    font-size: 0.875rem;
+  }
+  
+  .selected-booking-item .item-description {
+    font-size: 0.8125rem;
+  }
+}
+
+/* Modal responsive styles */
+@media (max-width: 640px) {
+  .modal-content {
+    margin: 16px;
+    max-height: calc(100vh - 32px);
+  }
+  
+  .modal-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .time-slot-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+}

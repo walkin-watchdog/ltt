@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import type { RootState } from "../../store/store";
 import { useSelector } from "react-redux";
 import { Clock, ChevronDown, ChevronUp, MapPin, Navigation } from 'lucide-react';
+
 // Google Maps types
 declare global {
   interface Window {
@@ -45,10 +46,11 @@ interface ExpandedActivities {
 
 export const Itinerary = ({ itineraryRef }: { itineraryRef: React.RefObject<HTMLDivElement | null> }) => {
   const { currentProduct } = useSelector((state: RootState) => state.products);
-  const [selectedDay, setSelectedDay] = useState<number>(1);
+  const [selectedDay, setSelectedDay] = useState<number | 'overview'>(1);
   const [expandedActivities, setExpandedActivities] = useState<ExpandedActivities>({});
   const [showPickupInfo, setShowPickupInfo] = useState(false);
   const mapRef = useRef<HTMLDivElement>(null);
+  const overviewMapRef = useRef<HTMLDivElement>(null);
 
   // Initialize Google Maps when component mounts
   useEffect(() => {
@@ -57,11 +59,14 @@ export const Itinerary = ({ itineraryRef }: { itineraryRef: React.RefObject<HTML
       loadGoogleMapsIfNeeded();
     }
   }, [currentProduct]);
+
   console.log('current product', currentProduct)
+
   // Load Google Maps script if needed
   const loadGoogleMapsIfNeeded = () => {
     if (window.google && window.google.maps) {
       initializeMap();
+      initializeOverviewMap();
       return;
     }
 
@@ -76,13 +81,123 @@ export const Itinerary = ({ itineraryRef }: { itineraryRef: React.RefObject<HTML
     script.defer = true;
     script.onload = () => {
       initializeMap();
+      initializeOverviewMap();
     };
     document.head.appendChild(script);
   };
 
+  // Initialize overview map with all locations from all days
+  const initializeOverviewMap = () => {
+    if (!overviewMapRef.current || !currentProduct?.itineraries || selectedDay !== 'overview') return;
+
+    const allActivities: (Activity & { dayNumber: number })[] = [];
+    
+    // Collect all activities from all days
+    currentProduct.itineraries.forEach((day: any) => {
+      if (day.activities && day.activities.length > 0) {
+        day.activities.forEach((activity: Activity) => {
+          if ((activity.locationLat && activity.locationLng) || (activity.lat && activity.lng)) {
+            allActivities.push({
+              ...activity,
+              dayNumber: day.day
+            });
+          }
+        });
+      }
+    });
+
+    if (allActivities.length === 0) return;
+
+    const bounds = new window.google.maps.LatLngBounds();
+    const center = {
+      lat: allActivities[0].locationLat || allActivities[0].lat || 28.6139,
+      lng: allActivities[0].locationLng || allActivities[0].lng || 77.2090
+    };
+
+    const map = new window.google.maps.Map(overviewMapRef.current, {
+      zoom: 10,
+      center: center,
+      mapTypeId: window.google.maps.MapTypeId.ROADMAP,
+      styles: [
+        {
+          featureType: "poi",
+          elementType: "labels",
+          stylers: [{ visibility: "off" }]
+        }
+      ]
+    });
+
+    // Add markers for each activity with day-based numbering
+    allActivities.forEach((activity) => {
+      const position = {
+        lat: activity.locationLat || activity.lat || 0,
+        lng: activity.locationLng || activity.lng || 0
+      };
+
+      const marker = new window.google.maps.Marker({
+        position: position,
+        map: map,
+        title: `${activity.location}`,
+        label: {
+          text: activity.dayNumber.toString(),
+          color: 'white',
+          fontWeight: 'bold'
+        },
+        icon: {
+          path: window.google.maps.SymbolPath.CIRCLE,
+          scale: 20,
+          fillColor: '#ff914d',
+          fillOpacity: 1,
+          strokeColor: '#ffffff',
+          strokeWeight: 2
+        }
+      });
+
+      const infoWindow = new window.google.maps.InfoWindow({
+        content: `
+          <div style="max-width: 250px; padding: 8px;">
+            <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: bold; color: #1f2937;">
+              ${activity.location}
+            </h3>
+            <p style="margin: 0 0 4px 0; font-size: 12px; color: #6b7280;">
+              <strong>Day ${activity.dayNumber}</strong>
+            </p>
+            ${activity.isStop ? `
+              <p style="margin: 0 0 4px 0; font-size: 12px; color: #6b7280;">
+                <strong>Stop:</strong> ${activity.stopDuration || 0} ${activity.durationUnit || 'minutes'}
+              </p>
+            ` : ''}
+            <p style="margin: 0 0 4px 0; font-size: 12px; color: ${activity.isAdmissionIncluded ? '#10b981' : '#ef4444'};">
+              <strong>Admission:</strong> ${activity.isAdmissionIncluded ? 'Included' : 'Not included'}
+            </p>
+            ${activity.description ? `
+              <p style="margin: 0; font-size: 11px; color: #6b7280;">
+                ${activity.description}
+              </p>
+            ` : ''}
+          </div>
+        `
+      });
+
+      marker.addListener('click', () => {
+        infoWindow.open(map, marker);
+      });
+
+      bounds.extend(position);
+    });
+
+    // Fit map to show all markers
+    if (allActivities.length === 1) {
+      map.setCenter(bounds.getCenter());
+      map.setZoom(15);
+    } else if (allActivities.length > 1) {
+      map.fitBounds(bounds);
+    }
+  };
+
   // Initialize map with markers
   const initializeMap = () => {
-    if (!mapRef.current || !currentProduct?.itineraries) return;
+    if (!mapRef.current || !currentProduct?.itineraries || selectedDay === 'overview') return;
 
     const selectedDayData = getCurrentDayData();
     if (!selectedDayData || !selectedDayData.activities.length) return;
@@ -180,12 +295,16 @@ export const Itinerary = ({ itineraryRef }: { itineraryRef: React.RefObject<HTML
   // Update map when selected day changes
   useEffect(() => {
     if (window.google && window.google.maps) {
-      initializeMap();
+      if (selectedDay === 'overview') {
+        initializeOverviewMap();
+      } else {
+        initializeMap();
+      }
     }
   }, [selectedDay]);
 
   const getCurrentDayData = (): ItineraryDay | undefined => {
-    if (!currentProduct?.itineraries) return undefined;
+    if (!currentProduct?.itineraries || selectedDay === 'overview') return undefined;
 
     // Handle both numbered days and array index access
     const dayData = currentProduct.itineraries.find((day: any) => day.day === selectedDay);
@@ -251,6 +370,7 @@ export const Itinerary = ({ itineraryRef }: { itineraryRef: React.RefObject<HTML
 
   const itineraryDays = currentProduct.itineraries || [];
   const currentDayData = getCurrentDayData();
+  const showOverviewTab = itineraryDays.length > 1;
 
   return (
     <div ref={itineraryRef} className="bg-white rounded-lg shadow-sm p-6 mb-8 scroll-mt-20">
@@ -260,6 +380,21 @@ export const Itinerary = ({ itineraryRef }: { itineraryRef: React.RefObject<HTML
       {itineraryDays.length > 1 && (
         <div className="mb-6">
           <div className="flex space-x-2 overflow-x-auto pb-2 scrollbar-hide">
+            {/* Overview Tab - only show if more than 2 days */}
+            {showOverviewTab && (
+              <button
+                onClick={() => setSelectedDay('overview')}
+                className={`flex-shrink-0 px-4 py-3 rounded-lg border-2 transition-all duration-200 ${selectedDay === 'overview'
+                  ? 'bg-[#ff914d] text-white border-[#ff914d]'
+                  : 'bg-white text-gray-700 border-gray-200 hover:border-[#ff914d] hover:text-[#ff914d]'
+                  }`}
+              >
+                <div className="text-sm font-medium">Overview</div>
+                <div className="text-xs opacity-90">All locations</div>
+              </button>
+            )}
+            
+            {/* Individual Day Tabs */}
             {itineraryDays.map((day: any) => (
               <button
                 key={day.day}
@@ -279,8 +414,32 @@ export const Itinerary = ({ itineraryRef }: { itineraryRef: React.RefObject<HTML
         </div>
       )}
 
-      {/* Main Content */}
-      {currentDayData && (
+      {/* Overview Content */}
+      {selectedDay === 'overview' && showOverviewTab && (
+        <div className="w-full">
+          <div className="bg-white rounded-lg overflow-hidden shadow-sm">
+            <div
+              ref={overviewMapRef}
+              className="w-full h-96 bg-gray-100 flex items-center justify-center"
+            >
+              {!window.google ? (
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ff914d] mx-auto mb-2"></div>
+                  <p className="text-gray-500 text-sm">Loading map...</p>
+                </div>
+              ) : (
+                <div className="text-center">
+                  <MapPin className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                  <p className="text-gray-500 text-sm">Map will appear here</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Individual Day Content */}
+      {selectedDay !== 'overview' && currentDayData && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left Column - Timeline */}
           <div className="space-y-6">

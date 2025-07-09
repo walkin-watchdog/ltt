@@ -90,6 +90,7 @@ model Product {
   customRequirementFields Json[] @default([]) // Array of custom requirement fields
   phonenumber String? @default("")
   cutoffTime Int? @default(24) // Hours before tour start time when booking should be cut off
+  reserveNowPayLater Boolean @default(true) // Allow reserve now pay later option
   isActive    Boolean @default(true)
   isDraft     Boolean @default(false)
   availabilityStartDate DateTime?

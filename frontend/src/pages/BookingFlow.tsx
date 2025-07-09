@@ -949,14 +949,16 @@ export const BookingFlow = () => {
                     {currentStep === 1 ? 'Back to Product' : 'Previous'}
                   </button>
                   {/* Reserve Now, Pay Later */}
-                  <button
-                    onClick={payLater}
-                    disabled={bookingLoading || !agreeTerms}
-                    hidden={currentStep !== 3}
-                    className="px-6 py-2 bg-[#104c57] text-white rounded-lg hover:bg-[#104c57] transition-colors disabled:opacity-50"
-                  >
-                    Pay Later 
-                  </button>
+                  {currentProduct?.reserveNowPayLater !== false && (
+                    <button
+                      onClick={payLater}
+                      disabled={bookingLoading || !agreeTerms}
+                      hidden={currentStep !== 3}
+                      className="px-6 py-2 bg-[#104c57] text-white rounded-lg hover:bg-[#104c57] transition-colors disabled:opacity-50"
+                    >
+                      Pay Later 
+                    </button>
+                  )}
                   <button
                     onClick={handleStepSubmit}
                     disabled={bookingLoading || !agreeTerms && currentStep === 3}
