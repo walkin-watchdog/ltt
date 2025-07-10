@@ -12,7 +12,7 @@ import {
   Check
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import type { PricingTier, Product } from '@/types.ts';
+import type { PricingTier, Product } from '@/types';
 
 interface FormValues {
   isCustom: boolean;

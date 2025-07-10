@@ -579,7 +579,7 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
                   exclusions: act.exclusions ?? [],
                   order: act.order ?? 0,
                   description: act.description || '', // New description field
-                                images: act.images,
+                  images: act.images,
                 }))
               }
             }))
@@ -869,6 +869,7 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
                     exclusions: act.exclusions ?? [],
                     order: act.order ?? 0,
                     images: act.images,
+                    description: act.description || '', 
                   }))
                 }
               }

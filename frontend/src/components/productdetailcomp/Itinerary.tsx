@@ -44,7 +44,15 @@ interface ExpandedActivities {
   [key: string]: boolean;
 }
 
-export const Itinerary = ({ itineraryRef }: { itineraryRef: React.RefObject<HTMLDivElement | null> }) => {
+export const Itinerary = ({ 
+  itineraryRef, 
+  detailsRef,
+  onNavigateToDeparture 
+}: { 
+  itineraryRef: React.RefObject<HTMLDivElement | null>;
+  detailsRef?: React.RefObject<HTMLDivElement | null>;
+  onNavigateToDeparture?: () => void;
+}) => {
   const { currentProduct } = useSelector((state: RootState) => state.products);
   const [selectedDay, setSelectedDay] = useState<number | 'overview'>(1);
   const [expandedActivities, setExpandedActivities] = useState<ExpandedActivities>({});
@@ -367,6 +375,7 @@ export const Itinerary = ({ itineraryRef }: { itineraryRef: React.RefObject<HTML
     currentProduct.itineraries.length === 0) {
     return null;
   }
+  console.log(currentProduct.itineraries)
 
   const itineraryDays = currentProduct.itineraries || [];
   const currentDayData = getCurrentDayData();
@@ -465,10 +474,24 @@ export const Itinerary = ({ itineraryRef }: { itineraryRef: React.RefObject<HTML
                 <div>
                   <h4 className="font-medium text-gray-900">You'll get picked up</h4>
                   <button
-                    onClick={() => setShowPickupInfo(!showPickupInfo)}
+                    onClick={() => {
+                      if (detailsRef?.current && onNavigateToDeparture) {
+                        // Scroll to details section
+                        detailsRef.current.scrollIntoView({
+                          behavior: 'smooth',
+                          block: 'start',
+                        });
+                        // Call the callback to open the dropdown
+                        setTimeout(() => {
+                          onNavigateToDeparture();
+                        }, 500);
+                      } else {
+                        setShowPickupInfo(!showPickupInfo);
+                      }
+                    }}
                     className="text-sm text-[#ff914d] hover:underline"
                   >
-                    See pickup and meeting information
+                    {detailsRef ? 'See departure and return details' : 'See pickup and meeting information'}
                   </button>
                 </div>
               </div>
@@ -625,6 +648,22 @@ export const Itinerary = ({ itineraryRef }: { itineraryRef: React.RefObject<HTML
                 </div>
                 <div>
                   <h4 className="font-medium text-gray-900">{getEndingInfo()}</h4>
+                  {detailsRef && onNavigateToDeparture && (
+                    <button
+                      onClick={() => {
+                        detailsRef.current?.scrollIntoView({
+                          behavior: 'smooth',
+                          block: 'start',
+                        });
+                        setTimeout(() => {
+                          onNavigateToDeparture();
+                        }, 500);
+                      }}
+                      className="text-sm text-[#ff914d] hover:underline"
+                    >
+                      See departure and return details
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

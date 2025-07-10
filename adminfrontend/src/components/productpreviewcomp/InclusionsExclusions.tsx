@@ -1,5 +1,5 @@
 import { CheckCircle, XCircle } from 'lucide-react';
-import type { Product } from '../../types.ts';
+import type { Product } from '../../types/index.ts';
 
 
 export const InclusionsExclusions = ({ product }: {product: Product}) => {

@@ -1,7 +1,7 @@
 import { Plus, X } from "lucide-react";
 import { useState } from "react";
 import { predefinedCategories } from "./predefinedcategories";
-import type { ContentElementsProps } from "@/types.ts";
+import type { ContentElementsProps } from "@/types";
 
 
 export const ContentElements = ({

@@ -4,7 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../ui/toaster';
 import axios from 'axios';
 import { ImageBrowser } from './ImageBrowser';
-import type { ImageUploaderProps } from '@/types.ts';
+import type { ImageUploaderProps } from '@/types';
 
 const extractPublicId = (url: string): string => {
   try {

@@ -16,7 +16,7 @@ import {
   Eye
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import type { User } from '@/types.ts';
+import type { User } from '@/types';
 
 
 export const UserManagement = () => {

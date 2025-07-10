@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Plus, Trash2, GripVertical } from 'lucide-react';
-import type { CancellationPolicyTabProps, CancellationTerm } from '@/types.ts';
+import type { CancellationPolicyTabProps, CancellationTerm } from '@/types';
 import { predefinedPolicies } from '../productcontenttabs/predefinedcategories';
 
 export const CancellationPolicyTab = ({ formData, updateFormData }: CancellationPolicyTabProps) => {

@@ -1,4 +1,4 @@
-import type { BookingInfoCardProps } from "../../types.ts";
+import type { BookingInfoCardProps } from "../../types/index.ts";
 import { Clock, MapPin, Users } from "lucide-react";
 import { AdminAvailabilityBar } from "../common/AdminAvailabilityBar";
 

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, Plus, Save } from 'lucide-react';
 import { useToast } from '../ui/toaster';
 import { getDescription } from '../productcontenttabs/predefinedcategories';
-import type { Package, SchedulePriceTabProps, SlotFormData, SlotPickerState } from '../../types.ts';
+import type { Package, SchedulePriceTabProps, SlotFormData, SlotPickerState } from '../../types/index.ts';
 import { daysOfWeek, getManualTimes } from '../schedulepricecomp/schedulepricefunc';
 import { PackageAndSlotConfig } from '../schedulepricecomp/packagendslotconf';
 import { EditPackage } from '../schedulepricecomp/editpackage';

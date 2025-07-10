@@ -1,4 +1,4 @@
-import type { AvailabilityTabProps } from '@/types.ts';
+import type { AvailabilityTabProps } from '@/types';
 import React, { useState, useEffect } from 'react';
 
 export const AvailabilityTab: React.FC<AvailabilityTabProps> = ({

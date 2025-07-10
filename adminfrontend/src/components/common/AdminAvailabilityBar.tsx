@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from 'react';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { Sheet } from 'react-modal-sheet';
 import clsx from 'clsx';
-import type { AdminAvailabilityBarProps } from '@/types.ts';
+import type { AdminAvailabilityBarProps } from '@/types';
 
 
 

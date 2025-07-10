@@ -2,9 +2,11 @@ import { formatDate, parse } from "date-fns";
 import { AvailabilityBar } from "../common/AvailabilityBar";
 import { PriceDisplay } from "../common/PriceDisplay";
 import { Link } from "react-router-dom";
-import { Share2, X,} from "lucide-react";
+import { Share2, X, Calendar as CalendarIcon, Users, Plus, Minus} from "lucide-react";
 import toast from "react-hot-toast";
 import { useState, useEffect } from "react";
+import { DayPicker } from 'react-day-picker';
+import 'react-calendar/dist/Calendar.css';
 
 interface BookingSidebarProps {
     cheapestPackage: any;
@@ -63,6 +65,8 @@ export const BookingSidebar = ({
 }: BookingSidebarProps) => {
     const [showAvailabilityPopup, setShowAvailabilityPopup] = useState(false);
     const [showAllTimeSlots, setShowAllTimeSlots] = useState(false);
+    const [showDatepicker, setShowDatepicker] = useState(false);
+    const [showTravellers, setShowTravellers] = useState(false);
 
     // Auto-select first available time slot when slots are loaded
     useEffect(() => {
@@ -91,6 +95,24 @@ export const BookingSidebar = ({
             }
         }
     }, [selectedPackage, slotsForPackage, selectedSlotId, slotsLoading, adultsCount, childrenCount, selectedDateStr, isSlotBookable, setSelectedSlotId, setSelectedTimeSlot, setSelectedSlot]);
+
+    // Close dropdowns when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            const target = event.target as HTMLElement;
+            if (!target.closest('.date-picker-container') && !target.closest('.travellers-container')) {
+                setShowDatepicker(false);
+                setShowTravellers(false);
+            }
+        };
+
+        if (showDatepicker || showTravellers) {
+            document.addEventListener('mousedown', handleClickOutside);
+            return () => {
+                document.removeEventListener('mousedown', handleClickOutside);
+            };
+        }
+    }, [showDatepicker, showTravellers]);
 
     return (
 
@@ -256,24 +278,135 @@ export const BookingSidebar = ({
                                 <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Select Your Experience</h2>
                                 <p className="text-sm text-gray-600 mt-1">Choose your preferred date, party size, and package</p>
                             </div>
-                            <button
-                                onClick={() => setShowAvailabilityPopup(false)}
-                                className="text-gray-400 hover:text-gray-600 transition-colors p-2 ml-4 -mr-2"
-                            >
-                                <X className="h-6 w-6" />
-                            </button>
-                        </div>
+                            <div className="flex items-center gap-3">
+                                {/* Compact Date Selection */}
+                                <div className="relative date-picker-container">
+                                    <button 
+                                        onClick={() => setShowDatepicker(!showDatepicker)}
+                                        className="flex items-center space-x-2 px-3 py-2 border border-gray-200 rounded-lg hover:border-gray-300"
+                                    >
+                                        <CalendarIcon className="h-4 w-4 text-gray-700" />
+                                        <span className="text-sm font-medium text-gray-900">
+                                            {selectedDateStr ? new Date(selectedDateStr).toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' }) : 'Choose date'}
+                                        </span>
+                                    </button>
 
-                        <div className="p-4 sm:p-6 overflow-y-auto flex-1 bg-gray-50">
-                            {/* Date and People Selection */}
-                            <div className="mb-6 bg-white rounded-lg p-4 shadow-sm">
-                                <h3 className="text-base font-medium text-gray-900 mb-4">When & Who</h3>
-                                <AvailabilityBar
-                                    selectedDate={selectedDateStr}
-                                    adults={adultsCount}
-                                    children={childrenCount}
-                                    onChange={handleBarChange}
-                                    onCheck={() => {
+                                    {showDatepicker && (
+                                        <div className="absolute top-full left-0 mt-2 bg-white rounded-xl shadow-lg p-4 z-20 border">
+                                            <DayPicker
+                                                mode="single"
+                                                selected={selectedDateStr ? parse(selectedDateStr, 'MM/dd/yyyy', new Date()) : undefined}
+                                                fromDate={new Date()}
+                                                onSelect={(date) => {
+                                                    if (date) {
+                                                        const newDateStr = formatDate(date, 'MM/dd/yyyy');
+                                                        handleBarChange({ 
+                                                            date: newDateStr, 
+                                                            adults: adultsCount, 
+                                                            children: childrenCount 
+                                                        });
+                                                        setShowDatepicker(false);
+                                                    }
+                                                }}
+                                                className="flex"
+                                                classNames={{
+                                                    caption: 'text-center font-semibold mb-4',
+                                                    table: 'border-collapse',
+                                                    head_row: 'text-gray-400',
+                                                    day: 'w-10 h-10 flex items-center justify-center rounded-full hover:ring-2 hover:ring-[#104c57] hover:ring-opacity-50',
+                                                    day_selected: 'bg-[#ff914d] text-white font-semibold ring-2 ring-[#104c57] ring-opacity-50',
+                                                    day_today: 'border border-[#ff914d]',
+                                                }}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Compact People Selection */}
+                                <div className="relative travellers-container">
+                                    <button 
+                                        onClick={() => setShowTravellers(!showTravellers)}
+                                        className="flex items-center space-x-2 px-3 py-2 border border-gray-200 rounded-lg hover:border-gray-300"
+                                    >
+                                        <Users className="h-4 w-4 text-gray-700" />
+                                        <span className="text-sm font-medium text-gray-900">
+                                            {adultsCount}A{childrenCount > 0 ? `/${childrenCount}C` : ''}
+                                        </span>
+                                    </button>
+
+                                    {showTravellers && (
+                                        <div className="absolute top-full right-0 mt-2 bg-white border border-gray-200 rounded-xl p-4 shadow-lg z-20 w-60">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <p className="font-semibold">Adults</p>
+                                                <div className="flex items-center space-x-4">
+                                                    <button
+                                                        disabled={adultsCount === 1}
+                                                        onClick={() => handleBarChange({ 
+                                                            date: selectedDateStr, 
+                                                            adults: adultsCount - 1, 
+                                                            children: childrenCount 
+                                                        })}
+                                                        className={`h-8 w-8 rounded-full flex items-center justify-center ${
+                                                            adultsCount === 1 ? 'bg-gray-200 text-gray-400' : 'bg-black text-white hover:bg-gray-800'
+                                                        }`}
+                                                    >
+                                                        <Minus className="h-4 w-4"/>
+                                                    </button>
+                                                    <span className="w-4 text-center">{adultsCount}</span>
+                                                    <button
+                                                        onClick={() => handleBarChange({ 
+                                                            date: selectedDateStr, 
+                                                            adults: adultsCount + 1, 
+                                                            children: childrenCount 
+                                                        })}
+                                                        className="h-8 w-8 rounded-full flex items-center justify-center bg-black text-white hover:bg-gray-800"
+                                                    >
+                                                        <Plus className="h-4 w-4"/>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center justify-between mb-4">
+                                                <p className="font-semibold">Children</p>
+                                                <div className="flex items-center space-x-4">
+                                                    <button
+                                                        disabled={childrenCount === 0}
+                                                        onClick={() => handleBarChange({ 
+                                                            date: selectedDateStr, 
+                                                            adults: adultsCount, 
+                                                            children: childrenCount - 1 
+                                                        })}
+                                                        className={`h-8 w-8 rounded-full flex items-center justify-center ${
+                                                            childrenCount === 0 ? 'bg-gray-200 text-gray-400' : 'bg-black text-white hover:bg-gray-800'
+                                                        }`}
+                                                    >
+                                                        <Minus className="h-4 w-4"/>
+                                                    </button>
+                                                    <span className="w-4 text-center">{childrenCount}</span>
+                                                    <button
+                                                        onClick={() => handleBarChange({ 
+                                                            date: selectedDateStr, 
+                                                            adults: adultsCount, 
+                                                            children: childrenCount + 1 
+                                                        })}
+                                                        className="h-8 w-8 rounded-full flex items-center justify-center bg-black text-white hover:bg-gray-800"
+                                                    >
+                                                        <Plus className="h-4 w-4"/>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => setShowTravellers(false)}
+                                                className="w-full mt-2 bg-[#ff914d] text-white font-semibold rounded-lg px-4 py-2"
+                                            >
+                                                Done
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Submit Button */}
+                                <button
+                                    onClick={() => {
                                         // Re-fetch availability with new parameters but keep popup open
                                         const iso = formatDate(parse(selectedDateStr, 'MM/dd/yyyy', new Date()), 'yyyy-MM-dd');
                                         (async () => {
@@ -330,9 +463,21 @@ export const BookingSidebar = ({
                                             }
                                         })();
                                     }}
-                                    selectedPackage={selectedPackage}
-                                />
+                                    className="bg-[#ff914d] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#e8823d] transition-colors"
+                                >
+                                    Check
+                                </button>
+
+                                <button
+                                    onClick={() => setShowAvailabilityPopup(false)}
+                                    className="text-gray-400 hover:text-gray-600 transition-colors p-2"
+                                >
+                                    <X className="h-6 w-6" />
+                                </button>
                             </div>
+                        </div>
+
+                        <div className="p-4 sm:p-6 overflow-y-auto flex-1 bg-gray-50">
 
                             {/* Package Options */}
                             {checkingAvail ? (

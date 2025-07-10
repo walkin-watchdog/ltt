@@ -4,7 +4,7 @@ import { X, Save, Plus } from 'lucide-react';
 import { useToast } from '../ui/toaster';
 import { ImageUploader } from '../gallery/ImageUploader';
 import { LocationAutocomplete } from '../ui/LocationAutocomplete';
-import type { Destination, DestinationModalProps } from '@/types.ts';
+import type { Destination, DestinationModalProps } from '@/types';
 
 
 

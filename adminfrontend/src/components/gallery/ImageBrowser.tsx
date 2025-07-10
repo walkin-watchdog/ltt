@@ -3,7 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Search, X, FolderOpen, Loader, Check, Trash } from 'lucide-react';
 import { useToast } from '../ui/toaster';
 import { formatBytes } from '../../lib/utils';
-import type { ImageBrowserProps } from '@/types.ts';
+import type { ImageBrowserProps } from '@/types';
 
 
 

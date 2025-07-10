@@ -1,6 +1,6 @@
 import { Plus, Trash2 } from "lucide-react";
 import React from "react";
-import type { AdultAndChildTiersProps } from "../../types.ts";
+import type { AdultAndChildTiersProps } from "../../types/index.ts";
 
 
 export const AdultAndChildTiers: React.FC<AdultAndChildTiersProps> = ({

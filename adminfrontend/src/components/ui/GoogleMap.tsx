@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { AlertCircle } from 'lucide-react';
-import type { GoogleMapProps } from '../../types.ts';
+import type { GoogleMapProps } from '../../types/index.ts';
 
 
 

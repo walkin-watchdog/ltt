@@ -1,4 +1,4 @@
-import type { MobileMenuContextType } from '@/types.ts';
+import type { MobileMenuContextType } from '@/types';
 import { createContext, useState } from 'react';
 
 export const MobileMenuContext = createContext<MobileMenuContextType>({

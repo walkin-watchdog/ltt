@@ -8,7 +8,7 @@ import { BookingProcessTab } from '../components/products/BookingProcessTab';
 import { CancellationPolicyTab } from '../components/products/CancellationPolicyTab';
 import { TravelerRequirementsTab } from '../components/products/TravelerRequirementsTab';
 import { AvailabilityTab } from '../components/products/AvailabilityTab';
-import type { ProductFormData } from '../types.ts';
+import type { ProductFormData } from '../types/index.ts';
 import {
   Info, Image, Route, MapPin, Star, Settings, Users,
   CalendarClock, ClipboardCheck, Ban, UserCheck, CalendarRange,

@@ -1,4 +1,4 @@
-import type { Toast } from "@/types.ts";
+import type { Toast } from "@/types";
 
 export const validateTab = (tabId: string, formData: any) => {
   switch (tabId) {

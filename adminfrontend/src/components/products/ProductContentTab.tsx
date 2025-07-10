@@ -5,7 +5,7 @@ import { ExperienceCategoryModal } from './ExperienceCategoryModal';
 import { useToast } from '../ui/toaster';
 import { BasicInfo } from '../productcontenttabs/Basicinfo';
 import { ProductImagesTab } from '../productcontenttabs/images';
-import type { ItineraryActivity, ItineraryDay, newItem, ProductContentTabProps } from '../../types.ts';
+import type { ItineraryActivity, ItineraryDay, newItem, ProductContentTabProps } from '../../types/index.ts';
 import { ItineraryTab } from '../productcontenttabs/itinerary';
 import { PickupOptionsTab } from '../productcontenttabs/PickupOptions';
 import { getDescription } from '../productcontenttabs/predefinedcategories';

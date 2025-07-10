@@ -1,5 +1,5 @@
 import { CheckCircle } from 'lucide-react';
-import type { Product } from '../../types.ts';
+import type { Product } from '../../types/index.ts';
 
 export const ProductItinerary = ({ product }: {product: Product;}) => {
   return (

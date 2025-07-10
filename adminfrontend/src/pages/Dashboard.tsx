@@ -12,7 +12,7 @@ import {
   Percent
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import type { DashboardStats } from '../types.ts';
+import type { DashboardStats } from '../types/index.ts';
 
 
 export const Dashboard = () => {

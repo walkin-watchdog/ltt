@@ -1,4 +1,4 @@
-import type { Toast } from '../../types.ts';
+import type { Toast } from '../../types/index.ts';
 import { Toaster, toast } from 'react-hot-toast';
 
 

@@ -1,11 +1,11 @@
 import type { RootState } from "../../store/store";
-import { Star } from "lucide-react";
+import { Star, RotateCcw } from "lucide-react";
 import { useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 
-export const ProductPolicies = ({ policiesRef }: { policiesRef: React.RefObject<HTMLDivElement | null> }) => {
+export const ProductPolicies = () => {
     const { currentProduct } = useSelector((state: RootState) => state.products);
-      if (!currentProduct) {
+    if (!currentProduct) {
         return (
             <div className="min-h-screen flex items-center justify-center">
                 <div className="text-center">
@@ -18,107 +18,73 @@ export const ProductPolicies = ({ policiesRef }: { policiesRef: React.RefObject<
         );
     }
     return (
-        <div>
-            <div ref={policiesRef} className="bg-white rounded-lg shadow-sm p-6 mb-8 scroll-mt-20">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Cancellation Policy</h2>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                    <p className="text-gray-600">
-                        {currentProduct.cancellationPolicy || 'No specific policy provided.'}
-                    </p>
+        <div className="p-6">
+            <div className="space-y-6">
+                {/* Cancellation Policy */}
+                <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl shadow-lg border border-amber-200 overflow-hidden">
+                    <div className="bg-gradient-to-r from-amber-500 to-orange-600 p-4">
+                        <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                                <RotateCcw className="h-5 w-5 text-white" />
+                            </div>
+                            <h2 className="text-xl font-bold text-white">Cancellation Policy</h2>
+                        </div>
+                    </div>
+                    <div className="p-6">
+                        <div className="bg-white rounded-xl p-6 shadow-sm border border-amber-100">
+                            <p className="text-gray-700 leading-relaxed">
+                                {currentProduct.cancellationPolicy || 'No specific policy provided. Please contact our customer service for details about cancellations and refunds.'}
+                            </p>
+                        </div>
+                    </div>
                 </div>
-            </div>
 
-            {(currentProduct.requirePhone || currentProduct.requireId || currentProduct.requireAge ||
-                currentProduct.requireMedical || currentProduct.requireDietary ||
-                currentProduct.requireEmergencyContact || currentProduct.requirePassportDetails ||
-                (Array.isArray(currentProduct.customRequirementFields) && currentProduct.customRequirementFields.length > 0) ||
-                currentProduct.additionalRequirements) && (
-                    <div className="mt-6 pt-4 border-t border-gray-200">
-                        <h4 className="font-medium text-gray-800 mb-3">Required Information from Travelers:</h4>
-                        <div className="space-y-2">
-                            {currentProduct.requirePhone && (
-                                <div className="flex items-center text-sm text-gray-600">
-                                    <span className="w-2 h-2 bg-[#ff914d] rounded-full mr-2"></span>
-                                    Valid phone number
+                {/* Reviews Section */}
+                {currentProduct.reviews && currentProduct.reviews.length > 0 && (
+                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl shadow-lg border border-blue-200 overflow-hidden">
+                        <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-4">
+                            <div className="flex items-center space-x-3">
+                                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                                    <Star className="h-5 w-5 text-white" />
                                 </div>
-                            )}
-                            {currentProduct.requireId && (
-                                <div className="flex items-center text-sm text-gray-600">
-                                    <span className="w-2 h-2 bg-[#ff914d] rounded-full mr-2"></span>
-                                    Government-issued photo ID
-                                </div>
-                            )}
-                            {currentProduct.requireAge && (
-                                <div className="flex items-center text-sm text-gray-600">
-                                    <span className="w-2 h-2 bg-[#ff914d] rounded-full mr-2"></span>
-                                    Age verification for all travelers
-                                </div>
-                            )}
-                            {currentProduct.requireMedical && (
-                                <div className="flex items-center text-sm text-gray-600">
-                                    <span className="w-2 h-2 bg-[#ff914d] rounded-full mr-2"></span>
-                                    Medical information and restrictions
-                                </div>
-                            )}
-                            {currentProduct.requireDietary && (
-                                <div className="flex items-center text-sm text-gray-600">
-                                    <span className="w-2 h-2 bg-[#ff914d] rounded-full mr-2"></span>
-                                    Dietary restrictions and preferences
-                                </div>
-                            )}
-                            {currentProduct.requireEmergencyContact && (
-                                <div className="flex items-center text-sm text-gray-600">
-                                    <span className="w-2 h-2 bg-[#ff914d] rounded-full mr-2"></span>
-                                    Emergency contact information
-                                </div>
-                            )}
-                            {currentProduct.requirePassportDetails && (
-                                <div className="flex items-center text-sm text-gray-600">
-                                    <span className="w-2 h-2 bg-[#ff914d] rounded-full mr-2"></span>
-                                    Passport details for international travelers
-                                </div>
-                            )}
-
-                            {Array.isArray(currentProduct.customRequirementFields) && currentProduct.customRequirementFields.map((field: any, index: number) => (
-                                <div key={index} className="flex items-center text-sm text-gray-600">
-                                    <span className="w-2 h-2 bg-[#ff914d] rounded-full mr-2"></span>
-                                    {field.label} {field.required && <span className="text-red-500">*</span>}
-                                </div>
-                            ))}
-
-                            {currentProduct.additionalRequirements && (
-                                <div className="flex items-start text-sm text-gray-600 mt-3 p-3 bg-blue-50 rounded-md">
-                                    <span className="w-2 h-2 bg-blue-500 rounded-full mr-2 mt-1.5 flex-shrink-0"></span>
-                                    <span>{currentProduct.additionalRequirements}</span>
+                                <h2 className="text-xl font-bold text-white">Customer Reviews</h2>
+                            </div>
+                        </div>
+                        <div className="p-6">
+                            <div className="space-y-4">
+                                {currentProduct.reviews.slice(0, 3).map((review: any) => (
+                                    <div key={review.id} className="group bg-white rounded-xl p-5 shadow-sm border border-gray-200 hover:shadow-md hover:border-blue-200 transition-all duration-200">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors duration-200">{review.name}</h3>
+                                            <div className="flex items-center space-x-1">
+                                                {[...Array(5)].map((_, i) => (
+                                                    <Star
+                                                        key={i}
+                                                        className={`h-4 w-4 transition-colors duration-200 ${
+                                                            i < review.rating 
+                                                                ? 'text-yellow-400 fill-yellow-400' 
+                                                                : 'text-gray-300'
+                                                        }`}
+                                                    />
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <p className="text-gray-700 leading-relaxed">{review.comment}</p>
+                                    </div>
+                                ))}
+                            </div>
+                            
+                            {currentProduct.reviews.length > 3 && (
+                                <div className="mt-6 text-center">
+                                    <div className="inline-flex items-center px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                                        <Star className="h-4 w-4 mr-2" />
+                                        +{currentProduct.reviews.length - 3} more reviews available
+                                    </div>
                                 </div>
                             )}
                         </div>
                     </div>
                 )}
-                 {currentProduct.reviews && currentProduct.reviews.length > 0 && (
-                                            <div className="bg-white rounded-lg shadow-sm p-6">
-                                                <h2 className="text-xl font-bold text-gray-900 mb-4">Reviews</h2>
-                                                <div className="space-y-4">
-                                                    {currentProduct.reviews.slice(0, 3).map((review: any) => (
-                                                        <div key={review.id} className="border-b border-gray-200 pb-4 last:border-b-0">
-                                                            <div className="flex items-center justify-between mb-2">
-                                                                <h3 className="font-medium text-gray-900">{review.name}</h3>
-                                                                <div className="flex items-center">
-                                                                    {[...Array(5)].map((_, i) => (
-                                                                        <Star
-                                                                            key={i}
-                                                                            className={`h-4 w-4 ${i < review.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
-                                                                                }`}
-                                                                        />
-                                                                    ))}
-                                                                </div>
-                                                            </div>
-                                                            <p className="text-gray-700">{review.comment}</p>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
-
+            </div>
         </div>)
 }

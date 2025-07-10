@@ -3,7 +3,7 @@ import { useState } from "react";
 import { LocationAutocomplete } from "../ui/LocationAutocomplete";
 import { getDescription, predefinedCategories } from "./predefinedcategories";
 import { ImageUploader } from "../gallery/ImageUploader";
-import type { EditItineraryModelProps } from "@/types.ts";
+import type { EditItineraryModelProps } from "@/types";
 
 
 export const EditItineraryModel = ({

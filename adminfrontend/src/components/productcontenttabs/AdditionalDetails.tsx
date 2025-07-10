@@ -1,4 +1,4 @@
-import type { AdditionalDetailsTabProps } from "../../types.ts";
+import type { AdditionalDetailsTabProps } from "../../types/index.ts";
 import { Plus, X } from "lucide-react";
 import { useState } from "react";
 

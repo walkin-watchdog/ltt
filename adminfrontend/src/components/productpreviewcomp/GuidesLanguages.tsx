@@ -1,5 +1,5 @@
 import { Users } from 'lucide-react';
-import type { Product } from '../../types.ts';
+import type { Product } from '../../types/index.ts';
 
 
 export const GuidesLanguages = ({ product }: {product: Product}) => {

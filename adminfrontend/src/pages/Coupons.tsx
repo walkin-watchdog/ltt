@@ -15,7 +15,7 @@ import {
   X
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import type { CouponData, Product } from '@/types.ts';
+import type { CouponData, Product } from '@/types';
 
 export const Coupons = () => {
   const { token, user } = useAuth();

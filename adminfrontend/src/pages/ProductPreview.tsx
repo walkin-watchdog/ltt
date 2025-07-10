@@ -4,7 +4,7 @@ import { ArrowLeft } from 'lucide-react';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useAuth } from '../contexts/AuthContext';
 import { AdminAvailabilityModal } from '../components/common/AdminAvailabilityModal';
-import type { Product, PackageOption } from '../types.ts';
+import type { Product, PackageOption } from '../types/index.ts';
 import { formatDate, parse } from 'date-fns';
 
 // Import the new refactored components

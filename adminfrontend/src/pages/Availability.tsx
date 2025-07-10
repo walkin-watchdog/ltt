@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Calendar, Search, Edit, Trash2, Ban, Eye} from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import type { AvailabilityProp, BlockedDate, Product } from '../types.ts';
+import type { AvailabilityProp, BlockedDate, Product } from '../types/index.ts';
 import { BlockDates } from '../components/availability/BlockDates';
 import { formatDateRange, getStatusColor, getStatusIcon } from '../components/availability/BasicFunctions';
 import { EditModel } from '../components/availability/EditModel';

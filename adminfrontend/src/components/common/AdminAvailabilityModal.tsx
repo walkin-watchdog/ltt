@@ -9,7 +9,7 @@ import clsx from 'clsx';
 import { CheckCircle } from 'lucide-react';
 import { formatDate } from 'date-fns';
 import { isSlotBookable } from '../../lib/utils';
-import type { AdminAvailabilityModalProps } from '@/types.ts';
+import type { AdminAvailabilityModalProps } from '@/types';
 
 
 export const AdminAvailabilityModal = ({

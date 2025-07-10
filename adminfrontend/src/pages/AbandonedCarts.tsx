@@ -14,7 +14,7 @@ import {
   Filter
 } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
-import type { AbandonedCartProp } from '../types.ts';
+import type { AbandonedCartProp } from '../types/index.ts';
 import { useToast } from '../components/ui/toaster.tsx';
 
 

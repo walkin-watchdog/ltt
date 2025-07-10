@@ -1,4 +1,4 @@
-import type { ProductImagesTabProps } from "@/types.ts";
+import type { ProductImagesTabProps } from "@/types";
 import { ImageUploader } from "../gallery/ImageUploader";
 
 

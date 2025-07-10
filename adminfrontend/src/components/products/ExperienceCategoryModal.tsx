@@ -3,7 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { X, Save, Plus } from 'lucide-react';
 import { useToast } from '../ui/toaster';
 import { ImageUploader } from '../gallery/ImageUploader';
-import type { ExperienceCategory, ExperienceCategoryModalProps } from '@/types.ts';
+import type { ExperienceCategory, ExperienceCategoryModalProps } from '@/types';
 
 
 export const ExperienceCategoryModal = ({ isOpen, onClose, onSelect, onCreated}: ExperienceCategoryModalProps) => {

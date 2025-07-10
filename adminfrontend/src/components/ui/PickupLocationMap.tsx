@@ -3,7 +3,7 @@ import { GoogleMap } from './GoogleMap';
 import { MapPin, X, Edit2, Map, AlertCircle, Plus } from 'lucide-react';
 import { useGoogleMaps } from '../../hooks/useGoogleMaps';
 import { useToast } from './toaster';
-import type { LocationDetail, PickupLocationMapProps } from '@/types.ts';
+import type { LocationDetail, PickupLocationMapProps } from '@/types';
 
 
 export const PickupLocationMap: React.FC<PickupLocationMapProps> = ({

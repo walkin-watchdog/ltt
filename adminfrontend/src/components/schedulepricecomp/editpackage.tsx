@@ -1,7 +1,7 @@
 import { Plus, Save, X } from "lucide-react";
 import { getDescription, predefinedCategories } from "../productcontenttabs/predefinedcategories";
 import { calculateEffectivePrice } from "./schedulepricefunc";
-import type { EditPackageProps } from "@/types.ts";
+import type { EditPackageProps } from "@/types";
 
 export const EditPackage = ({
 isAddingPackage,

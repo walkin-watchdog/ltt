@@ -1,4 +1,4 @@
-import type { Product } from '../../types.ts';
+import type { Product } from '../../types/index.ts';
 
 export const AccessibilityFeatures = ({ product }: {product:Product}) => {
   return (

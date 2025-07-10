@@ -1,4 +1,4 @@
-import type { UseGoogleMapsReturn } from '@/types.ts';
+import type { UseGoogleMapsReturn } from '@/types';
 import { useState, useEffect } from 'react';
 
 

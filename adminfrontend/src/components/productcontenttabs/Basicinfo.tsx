@@ -1,6 +1,6 @@
 import { PlusCircle } from "lucide-react";
 import type { Key } from "react";
-import type { BasicInfoProps } from "@/types.ts";
+import type { BasicInfoProps } from "@/types";
 import Select from 'react-select';
 
 export const BasicInfo = ({

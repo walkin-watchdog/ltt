@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '../components/ui/toaster';
 import { ImageUploader } from '../components/gallery/ImageUploader';
-import type { ExperienceCategory } from '@/types.ts';
+import type { ExperienceCategory } from '@/types';
 
 
 

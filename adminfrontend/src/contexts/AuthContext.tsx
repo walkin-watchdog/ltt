@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { isTokenExpired, isTokenNearExpiry } from '../utils/auth';
 import { useCallback, type ReactNode, } from 'react';
-import type { AuthContextType, User } from '@/types.ts';
+import type { AuthContextType, User } from '@/types';
 
 
 

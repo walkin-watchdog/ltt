@@ -1,4 +1,4 @@
-import type { GuidesAndLangProps } from "@/types.ts";
+import type { GuidesAndLangProps } from "@/types";
 import { Users, X } from "lucide-react";
 
 

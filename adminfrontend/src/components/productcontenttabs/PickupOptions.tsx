@@ -1,4 +1,4 @@
-import type { PickupOptionsTabProps } from "@/types.ts";
+import type { PickupOptionsTabProps } from "@/types";
 import { EndPointMap } from "../ui/EndPointMap";
 import { MeetingPointMap } from "../ui/MeetingPointMap";
 import { PickupLocationMap } from "../ui/PickupLocationMap";

@@ -11,7 +11,7 @@ import {
   Filter,
 } from 'lucide-react';
 import { useToast } from '../components/ui/toaster';
-import type { Subscriber } from '../types.ts/newsletter';
+import type { Subscriber } from '../types/newsletter';
 
 
 export const NewsletterAdmin = () => {

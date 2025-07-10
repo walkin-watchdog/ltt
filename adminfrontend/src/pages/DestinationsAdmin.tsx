@@ -13,7 +13,7 @@ import {
 import { useToast } from '../components/ui/toaster';
 import { ImageUploader } from '../components/gallery/ImageUploader';
 import { LocationAutocomplete } from '../components/ui/LocationAutocomplete';
-import type { Destination } from '@/types.ts';
+import type { Destination } from '@/types';
 
 
 

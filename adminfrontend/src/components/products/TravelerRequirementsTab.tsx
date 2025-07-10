@@ -1,4 +1,4 @@
-import type { CustomRequirementField, TravelerRequirementsTabProps } from '@/types.ts';
+import type { CustomRequirementField, TravelerRequirementsTabProps } from '@/types';
 import { Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 

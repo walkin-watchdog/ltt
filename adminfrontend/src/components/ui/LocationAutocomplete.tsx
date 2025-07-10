@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MapPin, AlertCircle } from 'lucide-react';
 import { useGoogleMaps } from '../../hooks/useGoogleMaps';
-import type { LocationAutocompleteProps } from '@/types.ts';
+import type { LocationAutocompleteProps } from '@/types';
 
 
 
