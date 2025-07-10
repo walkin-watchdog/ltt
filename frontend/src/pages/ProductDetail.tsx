@@ -2,14 +2,12 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { trackProductView } from '../components/analytics/GoogleAnalytics';
-import { AvailabilityModal } from '../components/common/AvailabilityModal';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import type { RootState, AppDispatch } from '../store/store';
 import { fetchProduct, fetchProductBySlug } from '../store/slices/productsSlice';
 import { SEOHead } from '../components/seo/SEOHead';
 import { ReviewsWidget } from '../components/reviews/ReviewsWidget';
 import { formatDate, parse } from 'date-fns';
-import { setStep } from '../store/slices/bookingSlice';
 import { isSlotBookable } from '../lib/utils';
 import { BookingSidebar } from '../components/productdetailcomp/BookingSidebar';
 import { Itinerary } from '../components/productdetailcomp/Itinerary';
@@ -35,7 +33,6 @@ export const ProductDetail = () => {
     const [selectedPackage, setSelectedPackage] = useState<any>(null);
     const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
     const [selectedSlot, setSelectedSlot] = useState<any>(null);
-    const [showAvail, setShowAvail] = useState(false);
     const [checkingAvail, setCheckingAvail] = useState(false);
     const [isDateOk, setIsDateOk] = useState<boolean | null>(null);
     const [availablePackages, setAvailablePackages] = useState<any[]>([]);
@@ -83,12 +80,6 @@ export const ProductDetail = () => {
         setSelectedSlotId(null);
         setSelectedSlot(null);
         setSelectedTimeSlot(null);
-
-        if (isMobile) {
-            // For mobile, change to slot selection step
-            setStep('slot');
-            setIsDateOk(true);
-        }
     };
 
     const navigate = useNavigate();
@@ -451,7 +442,6 @@ export const ProductDetail = () => {
                     adultsCount={adultsCount}
                     childrenCount={childrenCount}
                     isMobile={isMobile}
-                    setShowAvail={setShowAvail}
                     setCheckingAvail={setCheckingAvail}
                     setIsDateOk={setIsDateOk}
                     setAvailablePackages={setAvailablePackages}
@@ -473,23 +463,6 @@ export const ProductDetail = () => {
                     isSlotBookable={isSlotBookable}
                 />
             </div>
-            {showAvail && isMobile && (
-                <AvailabilityModal
-                    open={showAvail}
-                    onClose={() => {
-                        setShowAvail(false);
-                        setSelectedPackage(null);
-                        setSelectedSlotId(null);
-                    }}
-                    productId={currentProduct.id}
-                    packages={currentProduct.packages ?? []}
-                    selectedPackageFromProp={selectedPackage}
-                    initialDate={selectedDateStr}
-                    initialAdults={adultsCount}
-                    initialChildren={childrenCount}
-                    onPackageSelect={handlePackageSelect}
-                />
-            )}
         </div>
     );
 };
