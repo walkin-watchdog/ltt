@@ -39,7 +39,7 @@ return (
                                                         </div>
                                                         <div>
                                                             <div className="font-bold text-lg text-gray-900 group-hover:text-indigo-600 transition-colors duration-200">{guide.language}</div>
-                                                            <div className="text-sm text-gray-500">Language Guide</div>
+                                                            <div className="text-sm text-gray-500">Guide Language </div>
                                                         </div>
                                                     </div>
                                                     <div className="flex flex-wrap gap-2">

@@ -96,6 +96,25 @@ export const Bookings = () => {
       console.error('Error updating booking status:', error);
     }
   };
+
+  const updatePaymentStatus = async (bookingId: string, paymentStatus: string) => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/bookings/${bookingId}/payment-status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ paymentStatus }),
+      });
+
+      if (response.ok) {
+        fetchBookings();
+      }
+    } catch (error) {
+      console.error('Error updating payment status:', error);
+    }
+  };
   
   const handleSelectBooking = (bookingId: string) => {
     setSelectedBookings(prev => 
@@ -395,6 +414,7 @@ export const Bookings = () => {
           >
             <option value="">All Payments</option>
             <option value="PENDING">Payment Pending</option>
+            <option value="PARTIAL">Partial Payment</option>
             <option value="PAID">Paid</option>
             <option value="FAILED">Failed</option>
             <option value="REFUNDED">Refunded</option>
@@ -555,6 +575,23 @@ export const Bookings = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
+                    {(user?.role === 'ADMIN' || user?.role === 'EDITOR') ? (
+                      <select
+                        value={booking.paymentStatus}
+                        onChange={(e) => updatePaymentStatus(booking.id, e.target.value)}
+                        className={`text-xs px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-[#ff914d] ${getStatusColor(booking.status)}`}
+                      >
+                        <option value="PENDING">Pending</option>
+                        <option value="PARTIAL">Partial</option>
+                        <option value="PAID">Paid</option>
+                        <option value="FAILED">Failed</option>
+                        <option value="REDUNDED">Refunded</option>
+                      </select>
+                    ) : (
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(booking.paymentStatus)}`}>
+                        {booking.paymentStatus}
+                      </span>
+                    )}
                     {booking.isManual ? (
                     (() => {
                       const { discountType, discountValue = 0 } = booking.customDetails || {};
@@ -588,9 +625,6 @@ export const Bookings = () => {
                         ₹{booking.totalAmount.toLocaleString()}
                       </div>
                     )}
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPaymentStatusColor(booking.paymentStatus)}`}>
-                      {booking.paymentStatus}
-                    </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     {(user?.role === 'ADMIN' || user?.role === 'EDITOR') ? (
@@ -689,8 +723,12 @@ export const Bookings = () => {
 
             {/* Product & Package */}
             <div className="mb-2 text-sm text-gray-700">
-              <div>{booking.product?.title} ({booking.product?.productCode})</div>
-              {booking.package && <div className="text-xs text-blue-600">Pkg: {booking.package.name}</div>}
+              {booking.product && (
+                <>
+                  <div>{booking.product?.title} ({booking.product?.productCode})</div>
+                  <div className="text-xs text-blue-600">Package: {booking.package?.name}</div>
+                </>
+              )}
             </div>
 
             {/* People, Amount, Status */}
@@ -700,9 +738,25 @@ export const Bookings = () => {
               </div>
               <div>
                 ₹{booking.totalAmount.toLocaleString()}
-                <span className={`ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPaymentStatusColor(booking.paymentStatus)}`}>
-                  {booking.paymentStatus}
-                </span>
+              </div>
+              <div>
+                {(user?.role === 'ADMIN' || user?.role === 'EDITOR') ? (
+                  <select
+                    value={booking.paymentStatus}
+                    onChange={(e) => updatePaymentStatus(booking.id, e.target.value)}
+                    className={`text-xs px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-[#ff914d] ${getStatusColor(booking.status)}`}
+                  >
+                    <option value="PENDING">Pending</option>
+                    <option value="PARTIAL">Partial</option>
+                    <option value="PAID">Paid</option>
+                    <option value="FAILED">Failed</option>
+                    <option value="REDUNDED">Refunded</option>
+                  </select>
+                ) : (
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(booking.paymentStatus)}`}>
+                    {booking.paymentStatus}
+                  </span>
+                )}
               </div>
               <div>
                 {(user?.role === 'ADMIN' || user?.role === 'EDITOR')

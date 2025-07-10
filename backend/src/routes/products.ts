@@ -63,6 +63,7 @@ const productSchema = z.object({
   exclusions: z.array(z.string()).optional().default([]),
   itineraries: z.array(itinerarySchema).optional(),
   packages: z.array(z.object({
+    id: z.string().optional(),
     name: z.string().min(1),
     description: z.string().min(1),
     basePrice: z.union([z.number().min(0), z.string().transform(val => Number(val))]),
@@ -88,6 +89,7 @@ const productSchema = z.object({
       }).optional(),
     }).optional().nullable().default({}),
     slotConfigs: z.array(z.object({
+      id: z.string().optional(),
       times: z.array(z.string()),
       days: z.array(z.string()),
       adultTiers: z.array(z.object({
@@ -232,11 +234,7 @@ router.get('/', async (req, res, next) => {
           }
         },
         availabilities: {
-          where: {
-            startDate: {
-              gte: new Date(new Date().setHours(0, 0, 0, 0))
-            }
-          },
+          take: 1
         },
         itineraries: {
           orderBy: { day: 'asc' },
@@ -251,10 +249,6 @@ router.get('/', async (req, res, next) => {
     });
 
     let productsWithAvailability = products.map(product => {
-      const availabilities = product.availabilities;
-      let availabilityStatus = 'AVAILABLE';
-      let nextAvailableDate = null;
-      let availableDates: Date[] = [];
 
       let lowestPrice: number | null = null;
       let lowestDiscountedPrice: number | null = null;
@@ -280,28 +274,19 @@ router.get('/', async (req, res, next) => {
         }
       }
 
-      if (availabilities.length > 0) {
-        const availableDays = availabilities.filter(a => a.status === 'AVAILABLE');
-        const soldOutDays = availabilities.filter(a => a.status === 'SOLD_OUT');
-        const notOperating = availabilities.filter(a => a.status === 'NOT_OPERATING');
+      const row = product.availabilities[0];
 
-        if (availableDays.length === 0 && soldOutDays.length > 0) {
-          availabilityStatus = 'SOLD_OUT';
-        } else if (availableDays.length === 0 && notOperating.length > 0) {
-          availabilityStatus = 'NOT_OPERATING';
-        }
+      const availabilityStatus: 'AVAILABLE' | 'SOLD_OUT' | 'NOT_OPERATING' =
+        row ? row.status : 'NOT_OPERATING';
 
-        if (availableDays.length > 0) {
-          nextAvailableDate = availableDays[0].startDate;
-          availableDates = availableDays.map(a => a.startDate);
-        }
-      }
+      const nextAvailableDate = row && row.status === 'AVAILABLE'
+        ? new Date()
+        : null;
 
       return {
         ...product,
         availabilityStatus,
         nextAvailableDate,
-        availableDates,
         lowestPackagePrice: lowestPrice,
         lowestDiscountedPackagePrice: lowestDiscountedPrice !== lowestPrice ? lowestDiscountedPrice : null
       };
@@ -352,12 +337,7 @@ router.get('/:id', async (req, res, next) => {
           }
         },
         availabilities: {
-          where: {
-            startDate: {
-              gte: new Date(new Date().setHours(0, 0, 0, 0))
-            }
-          },
-          orderBy: { startDate: 'asc' }
+          take: 1
         },
         blockedDates: true,
         itineraries: {
@@ -392,11 +372,6 @@ router.get('/:id', async (req, res, next) => {
       parsedProduct.endPoints = [];
     }
 
-    const availabilities = product.availabilities || [];
-    let availabilityStatus = 'AVAILABLE';
-    let nextAvailableDate = null;
-    let availableDates: Date[] = [];
-
     if (product.packages && product.packages.length > 0) {
       for (const pkg of product.packages) {
         const basePrice = pkg.basePrice;
@@ -414,28 +389,19 @@ router.get('/:id', async (req, res, next) => {
       }
     }
 
-    if (availabilities.length > 0) {
-      const availableDays = availabilities.filter(a => a.status === 'AVAILABLE');
-      const soldOutDays = availabilities.filter(a => a.status === 'SOLD_OUT' || a.booked >= (product.capacity || 0));
-      const notOperating = availabilities.filter(a => a.status === 'NOT_OPERATING');
+    const row = product.availabilities[0];
 
-      if (availableDays.length === 0 && soldOutDays.length > 0) {
-        availabilityStatus = 'SOLD_OUT';
-      } else if (availableDays.length === 0 && notOperating.length > 0) {
-        availabilityStatus = 'NOT_OPERATING';
-      }
+    const availabilityStatus: 'AVAILABLE' | 'SOLD_OUT' | 'NOT_OPERATING' =
+      row ? row.status : 'NOT_OPERATING';
 
-      if (availableDays.length > 0) {
-        nextAvailableDate = availableDays[0].startDate;
-        availableDates = availableDays.map(a => a.startDate);
-      }
-    }
+    const nextAvailableDate = row && row.status === 'AVAILABLE'
+      ? new Date()
+      : null;
 
     const productWithAvailability = {
       ...parsedProduct,
       availabilityStatus,
       nextAvailableDate,
-      availableDates
     };
 
     res.json(productWithAvailability);
@@ -641,7 +607,7 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
 
           if (pkg.slotConfigs && pkg.slotConfigs.length > 0) {
             for (const slotConfig of pkg.slotConfigs) {
-              const createdSlot = await tx.packageSlot.create({
+              const newSlot = await tx.packageSlot.create({
                 data: {
                   packageId: createdPackage.id,
                   Time: slotConfig.times,
@@ -649,24 +615,23 @@ router.post('/', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, 
                 }
               });
 
-              if (slotConfig.adultTiers && slotConfig.adultTiers.length > 0) {
+              if (slotConfig.adultTiers?.length) {
                 await tx.slotAdultTier.createMany({
                   data: slotConfig.adultTiers.map(tier => ({
-                    slotId: createdSlot.id,
-                    min: tier.min,
-                    max: tier.max,
-                    price: tier.price,
+                    slotId:   newSlot.id,
+                    min:      tier.min,
+                    max:      tier.max,
+                    price:    tier.price
                   }))
                 });
               }
-
-              if (slotConfig.childTiers && slotConfig.childTiers.length > 0) {
+              if (slotConfig.childTiers?.length) {
                 await tx.slotChildTier.createMany({
                   data: slotConfig.childTiers.map(tier => ({
-                    slotId: createdSlot.id,
-                    min: tier.min,
-                    max: tier.max,
-                    price: tier.price,
+                    slotId:   newSlot.id,
+                    min:      tier.min,
+                    max:      tier.max,
+                    price:    tier.price
                   }))
                 });
               }
@@ -879,33 +844,46 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
       }
 
       if (packages && Array.isArray(packages)) {
-        await tx.package.deleteMany({ where: { productId: req.params.id } });
-
-        for (const pkg of packages) {
-          const createdPackage = await tx.package.create({
-            data: {
+        const keptIds = packages.filter(p => p.id).map(p => p.id!);
+        if (keptIds.length) {
+          await tx.package.deleteMany({
+            where: {
               productId: req.params.id,
-              name: pkg.name,
-              description: pkg.description,
-              basePrice: pkg.basePrice,
-              discountValue: pkg.discountValue,
-              discountType: pkg.discountType,
-              currency: pkg.currency ?? 'INR',
-              inclusions: pkg.inclusions,
-              maxPeople: pkg.maxPeople,
-              isActive: pkg.isActive ?? true,
-              startDate: new Date(pkg.startDate),
-              endDate: pkg.endDate ? new Date(pkg.endDate) : null,
-              ageGroups: pkg.ageGroups === null ? undefined : pkg.ageGroups,
-              pricingType: pkg.pricingType
+              id: { notIn: keptIds }
             }
           });
+        }
+        for (const pkg of packages) {
+          const pkgData = {
+            name: pkg.name,
+            description: pkg.description,
+            basePrice: pkg.basePrice,
+            discountType: pkg.discountType,
+            discountValue: pkg.discountValue,
+            currency: pkg.currency ?? 'INR',
+            inclusions: pkg.inclusions,
+            maxPeople: pkg.maxPeople,
+            isActive: pkg.isActive ?? true,
+            startDate: new Date(pkg.startDate),
+            endDate: pkg.endDate ? new Date(pkg.endDate) : null,
+            ageGroups: pkg.ageGroups === null ? undefined : pkg.ageGroups,
+            pricingType: pkg.pricingType
+          };
+
+          const createdOrUpdatedPkg = pkg.id
+            ? await tx.package.update({
+                where: { id: pkg.id },
+                data: pkgData
+              })
+            : await tx.package.create({
+                data: { ...pkgData, productId: req.params.id }
+              });
 
           if (pkg.slotConfigs && pkg.slotConfigs.length > 0) {
             for (const slotConfig of pkg.slotConfigs) {
               const createdSlot = await tx.packageSlot.create({
                 data: {
-                  packageId: createdPackage.id,
+                  packageId: createdOrUpdatedPkg.id,
                   Time: slotConfig.times,
                   days: slotConfig.days,
                 }
@@ -1054,12 +1032,7 @@ router.get('/by-slug/:slug', async (req, res, next) => {
           }
         },
         availabilities: {
-          where: {
-            startDate: {
-              gte: new Date(new Date().setHours(0, 0, 0, 0))
-            }
-          },
-          orderBy: { startDate: 'asc' }
+          take: 1
         },
         blockedDates: true,
         itineraries: {
@@ -1094,11 +1067,6 @@ router.get('/by-slug/:slug', async (req, res, next) => {
       parsedProduct.endPoints = [];
     }
 
-    const availabilities = product.availabilities || [];
-    let availabilityStatus = 'AVAILABLE';
-    let nextAvailableDate = null;
-    let availableDates: Date[] = [];
-
     if (product.packages && product.packages.length > 0) {
       for (const pkg of product.packages) {
         const basePrice = pkg.basePrice;
@@ -1116,28 +1084,19 @@ router.get('/by-slug/:slug', async (req, res, next) => {
       }
     }
 
-    if (availabilities.length > 0) {
-      const availableDays = availabilities.filter(a => a.status === 'AVAILABLE');
-      const soldOutDays = availabilities.filter(a => a.status === 'SOLD_OUT' || a.booked >= (product.capacity || 0));
-      const notOperating = availabilities.filter(a => a.status === 'NOT_OPERATING');
+    const row = product.availabilities[0];
 
-      if (availableDays.length === 0 && soldOutDays.length > 0) {
-        availabilityStatus = 'SOLD_OUT';
-      } else if (availableDays.length === 0 && notOperating.length > 0) {
-        availabilityStatus = 'NOT_OPERATING';
-      }
+      const availabilityStatus: 'AVAILABLE' | 'SOLD_OUT' | 'NOT_OPERATING' =
+        row ? row.status : 'NOT_OPERATING';
 
-      if (availableDays.length > 0) {
-        nextAvailableDate = availableDays[0].startDate;
-        availableDates = availableDays.map(a => a.startDate);
-      }
-    }
+      const nextAvailableDate = row && row.status === 'AVAILABLE'
+        ? new Date()
+        : null;
 
     const productWithAvailability = {
       ...parsedProduct,
       availabilityStatus,
       nextAvailableDate,
-      availableDates
     };
 
     res.json(productWithAvailability);

@@ -56,6 +56,8 @@ export const Itinerary = ({
   const { currentProduct } = useSelector((state: RootState) => state.products);
   const [selectedDay, setSelectedDay] = useState<number | 'overview'>(1);
   const [expandedActivities, setExpandedActivities] = useState<ExpandedActivities>({});
+  const [expandedActivityDesc, setExpandedActivityDesc] = useState<Record<string, boolean>>({});
+  const DESC_LIMIT = 200;
   const [showPickupInfo, setShowPickupInfo] = useState(false);
   const mapRef = useRef<HTMLDivElement>(null);
   const overviewMapRef = useRef<HTMLDivElement>(null);
@@ -540,7 +542,7 @@ export const Itinerary = ({
                       </div>
 
                       <div className="flex-1">
-                        <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                        <div className="bg-white border border-gray-200 p-4">
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
                               <h4 className="font-semibold text-gray-900 mb-2">
@@ -578,7 +580,27 @@ export const Itinerary = ({
                           {isExpanded && (
                             <div className="mt-4 pt-4 border-t border-gray-100 space-y-3">
                               {activity.description && (
-                                <p className="text-sm text-gray-700">{activity.description}</p>
+                                <>
+                                  <p className="text-sm text-gray-700">
+                                    {expandedActivityDesc[activityId] ||
+                                    activity.description.length <= DESC_LIMIT
+                                      ? activity.description
+                                      : activity.description.slice(0, DESC_LIMIT) + "…"}
+                                  </p>
+                                  {activity.description.length > DESC_LIMIT && (
+                                    <button
+                                      onClick={() =>
+                                        setExpandedActivityDesc(prev => ({
+                                          ...prev,
+                                          [activityId]: !prev[activityId],
+                                        }))
+                                      }
+                                      className="mt-1 text-xs font-medium text-[#ff914d] hover:underline"
+                                    >
+                                      {expandedActivityDesc[activityId] ? "Read less" : "Read more"}
+                                    </button>
+                                  )}
+                                </>
                               )}
 
                               {activity.inclusions.length > 0 && (
@@ -703,11 +725,7 @@ export const Itinerary = ({
                 <div className="flex items-center space-x-4">
                   <div className="flex items-center">
                     <div className="w-4 h-4 bg-[#ff914d] rounded-full mr-2"></div>
-                    <span>Activity locations</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-4 h-4 bg-green-500 rounded-full mr-2"></div>
-                    <span>Pickup point</span>
+                    <span>Stops</span>
                   </div>
                 </div>
               </div>

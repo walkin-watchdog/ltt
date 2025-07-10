@@ -14,7 +14,7 @@ export interface RefreshPayload {
 }
 
 export function signAccess(payload: JwtPayload) {
-  const { exp, iat, nbf, aud, iss, sub, ...claims } = payload;
+  const { exp, iat, nbf, aud, iss, sub, jti, ...claims } = payload;
   return jwt.sign(claims, process.env.JWT_SECRET!, {
     expiresIn : ACCESS_TTL,
     issuer    : ISSUER,

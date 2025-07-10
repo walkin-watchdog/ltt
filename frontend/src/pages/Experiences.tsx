@@ -177,10 +177,17 @@ export const Experiences = () => {
                         </div>
                       )}
                     </div>
+                    <div className="flex ml-2">
+                      {product.reserveNowPayLater !== false && (
+                        <span className="border-1 border-[#104c57] px-2 py-1 text-sm font-medium text-[#104c57] mt-2 mb-2">
+                            Reserve Now & Pay Later Eligible
+                        </span>
+                      )}
+                    </div>
                     <div className="p-6">
                       <div className="flex items-center justify-between mb-2">
                         <span className="bg-[#104c57] text-white px-3 py-1 rounded-full text-sm font-medium">
-                          {product.category}
+                          {product.category || 'Other'}
                         </span>
                         <div className="flex items-center">
                           <Star className="h-4 w-4 text-yellow-400 fill-current" />
@@ -269,7 +276,9 @@ export const Experiences = () => {
                     <div className="absolute bottom-4 left-4 text-white">
                       <h3 className="text-2xl font-bold">{category.name}</h3>
                       <p className="text-sm text-gray-800 bg-gray-200 bg-opacity-30 px-2 py-1 rounded">
-                        {products.filter(p => p.category.toLowerCase().includes(category.name.toLowerCase())).length} Experiences Available
+                        {products.filter(p =>
+                          (p.category ?? '').toLowerCase().includes(category.name.toLowerCase())
+                        ).length} Experiences Available
                       </p>
                     </div>
                   </div>

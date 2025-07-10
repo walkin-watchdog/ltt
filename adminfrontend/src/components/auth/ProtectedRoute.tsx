@@ -15,8 +15,8 @@ export const ProtectedRoute = ({ children, requiredRoles }: {children: ReactNode
     );
   }
 
-  const wasTokenPresent = Boolean(token && user);
-  if (!token || !user || isTokenExpired(token)) {
+  const wasTokenPresent = Boolean(token);
+  if (!token || isTokenExpired(token) || !user) {
     if (wasTokenPresent) sessionStorage.removeItem('admin_token');
     return <Navigate to={`/login${wasTokenPresent ? '?expired=true' : ''}`} replace />;
   }

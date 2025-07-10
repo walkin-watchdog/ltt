@@ -97,15 +97,19 @@ router.post('/refresh', async (req, res) => {
   });
   if (black) return res.sendStatus(401);
 
+  await prisma.refreshTokenBlacklist.create({
+    data: { jti: payload.jti, exp: new Date(payload.exp * 1000) }
+  });
+
   const newJti     = crypto.randomUUID();
-  const access     = signAccess(payload);
+  const access     = signAccess({ id: payload.id, role: payload.role });
   const newRefresh = signRefresh({ id:payload.id, role:payload.role }, newJti);
 
   res.cookie('rt', newRefresh, {
     httpOnly : true,
     sameSite : 'strict',
     secure   : process.env.NODE_ENV === 'production',
-    maxAge   : 60 * 60 * 24 * 7 * 1000,
+    maxAge   : 60 * 60 * 24 * 30 * 1000,
   });
   res.json({ access });
 });

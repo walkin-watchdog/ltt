@@ -4,7 +4,8 @@ export const isTokenExpired = (token: string): boolean => {
     return true;
   }
   try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
+    const b64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const payload = JSON.parse(atob(b64));
     return payload.exp * 1000 < Date.now();
   } catch {
     return true;
@@ -20,7 +21,8 @@ export const isTokenNearExpiry = (
     return true;
   }
   try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
+    const b64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const payload = JSON.parse(atob(b64));
     return payload.exp * 1000 < Date.now() + thresholdMinutes * 60 * 1000;
   } catch {
     return true;

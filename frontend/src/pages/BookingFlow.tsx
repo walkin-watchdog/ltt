@@ -57,6 +57,9 @@ export const BookingFlow = () => {
     customerPhone: '',
     notes: ''
   });
+  const productCap      = currentProduct?.capacity ?? Infinity;
+  const selectedPkgCap  = formData.selectedPackage?.maxPeople ?? Infinity;
+  const maxCapacity     = Math.min(productCap, selectedPkgCap);
 
   // Check if children are allowed based on selected package
   const childrenAllowed = !formData.selectedPackage || formData.selectedPackage.ageGroups?.child?.enabled !== false;
@@ -388,7 +391,11 @@ export const BookingFlow = () => {
   const handleStepSubmit = async () => {
     if (currentStep === 1) {
       // Validate step 1
-      if (!formData.selectedDate || formData.adults < 1) {
+      if (
+        !formData.selectedDate ||
+        formData.adults < 1 ||
+        formData.adults + formData.children > maxCapacity
+      ) {
         toast.error('Please select number of people');
         return;
       }
@@ -762,8 +769,12 @@ export const BookingFlow = () => {
                           onChange={(e) => setFormData(prev => ({ ...prev, adults: parseInt(e.target.value) }))}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
                         >
-                          {[...Array(10)].map((_, i) => (
-                            <option key={i + 1} value={i + 1}>{i + 1} Adult{i > 0 ? 's' : ''}</option>
+                          {[...Array(maxCapacity - formData.children)]
+                            .map((_, i) => i + 1)
+                            .map(v => (
+                              <option key={v} value={v}>
+                                {v} Adult{v > 1 ? 's' : ''}
+                              </option>
                           ))}
                         </select>
                       </div>
@@ -778,9 +789,13 @@ export const BookingFlow = () => {
                             onChange={(e) => setFormData(prev => ({ ...prev, children: parseInt(e.target.value) }))}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
                           >
-                            {[...Array(6)].map((_, i) => (
-                              <option key={i} value={i}>{i} Child{i > 1 ? 'ren' : i === 1 ? '' : 'ren'}</option>
-                            ))}
+                            {[...Array(maxCapacity - formData.adults + 1)]
+                              .map((_, i) => i)
+                              .map(v => (
+                                <option key={v} value={v}>
+                                  {v} Child{v !== 1 ? 'ren' : ''}
+                                </option>
+                              ))}
                           </select>
                         </div>
                       )}

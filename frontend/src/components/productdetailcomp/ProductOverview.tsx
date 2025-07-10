@@ -1,5 +1,6 @@
 import type { RootState } from "../../store/store";
-import { AlertCircle, Calendar, CheckCircle, Clock, MapPin, Share2, Star, Users, Zap, Target } from "lucide-react";
+import { AlertCircle, Calendar, CheckCircle, Clock, MapPin, Share2, Star, Users, Zap, Target, Globe } from "lucide-react";
+import { useState } from 'react';
 import toast from "react-hot-toast";
 import { useSelector } from "react-redux";
 import { Link } from "react-router-dom";
@@ -77,6 +78,10 @@ import { Link } from "react-router-dom";
                 </div>
             );
         }
+
+  const [showFullDesc, setShowFullDesc] = useState(false);
+  const DESC_LIMIT = 180;
+
   return (
     <div ref={overviewRef} className="bg-white rounded-lg shadow-sm p-6 mb-8 scroll-mt-20">
       {/* Tour Badge and Share */}
@@ -104,7 +109,7 @@ import { Link } from "react-router-dom";
         const availability = getAvailabilityStatus();
         const IconComponent = availability.icon;
 
-        return (
+        return availability.status !== 'available' && (
           <div className={`${availability.bgColor} ${availability.borderColor} border rounded-lg p-4 mb-6`}>
             <div className="flex items-center">
               <IconComponent className={`h-5 w-5 ${availability.color} mr-3`} />
@@ -114,12 +119,12 @@ import { Link } from "react-router-dom";
                 </p>
                 {availability.status === 'sold_out' && (
                   <p className="text-sm text-gray-600 mt-1">
-                    Join our waitlist to be notified when spots become available
+                    Join our newsletter to be notified when spots become available
                   </p>
                 )}
                 {availability.status === 'not_operating' && (
                   <p className="text-sm text-gray-600 mt-1">
-                    This experience is temporarily suspended. Check back later for updates.
+                    This experience is temporarily unavailable. Check back later for updates.
                   </p>
                 )}
                 {availability.status === 'upcoming' && (
@@ -132,6 +137,24 @@ import { Link } from "react-router-dom";
           </div>
         );
       })()}
+
+      {/* Description */}
+      <div className="mb-6">
+        <h3 className="text-lg font-semibold mb-3">About</h3>
+        <p className="text-gray-600 leading-relaxed">
+            {showFullDesc || currentProduct.description.length <= DESC_LIMIT
+              ? currentProduct.description
+              : currentProduct.description.slice(0, DESC_LIMIT) + "…"}
+          </p>
+          {currentProduct.description.length > DESC_LIMIT && (
+            <button
+              onClick={() => setShowFullDesc(!showFullDesc)}
+              className="mt-2 text-sm font-medium text-[#ff914d] hover:underline"
+            >
+              {showFullDesc ? "Read less" : "Read more"}
+            </button>
+          )}
+      </div>
 
       {/* Key Information Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -159,7 +182,7 @@ import { Link } from "react-router-dom";
           </div>
         </div>
 
-        {currentProduct.tourType && (
+        {currentProduct.tourType && currentProduct.tourType !== 'public' && (
           <div className="flex items-center text-gray-600">
             <Zap className="h-4 w-4 mr-2 text-[#ff914d]" />
             <div>
@@ -174,10 +197,10 @@ import { Link } from "react-router-dom";
             <Target className="h-4 w-4 mr-2 text-[#ff914d]" />
             <div>
               <p className="text-xs text-gray-500">Difficulty</p>
-              <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
+              <span className={`inline-block px-2 py-1 text-xs font-medium ${
                 currentProduct.difficulty === 'Easy' ? 'bg-green-100 text-green-800' :
                 currentProduct.difficulty === 'Moderate' ? 'bg-yellow-100 text-yellow-800' :
-                currentProduct.difficulty === 'Challenging' ? 'bg-red-100 text-red-800' :
+                currentProduct.difficulty === 'Challenging' ? 'bg-orange-100 text-orange-800' :
                 'bg-gray-100 text-gray-800'
               }`}>
                 {currentProduct.difficulty}
@@ -186,6 +209,24 @@ import { Link } from "react-router-dom";
           </div>
         )}
 
+        {/* ­­­­­­­­­­­­­­Languages */}
+        {currentProduct.guides &&
+          Array.isArray(currentProduct.guides) &&
+          currentProduct.guides.length > 0 && (
+            <div className="flex items-center text-gray-600">
+              <Globe className="h-4 w-4 mr-2 text-[#ff914d]" />
+              <div>
+                <p className="text-xs text-gray-500">Languages</p>
+                <p className="font-medium">
+                  {currentProduct.guides
+                    .map((g: any) => g.language)
+                    .filter((lang: string, idx: number, arr: string[]) => lang && arr.indexOf(lang) === idx)
+                    .join(", ")}
+                </p>
+              </div>
+            </div>
+          )}
+
         <div className="flex items-center text-gray-600">
           <Star className="h-4 w-4 mr-2 text-yellow-400 fill-current" />
           <div>
@@ -193,14 +234,6 @@ import { Link } from "react-router-dom";
             <p className="font-medium">{averageRating.toFixed(1)} ({currentProduct.reviews?.length || 0})</p>
           </div>
         </div>
-      </div>
-
-      {/* Description */}
-      <div className="mb-6">
-        <h3 className="text-lg font-semibold mb-3">About</h3>
-        <p className="text-gray-700 leading-relaxed">
-          {currentProduct.description}
-        </p>
       </div>
     </div>
   );

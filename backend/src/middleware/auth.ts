@@ -22,7 +22,7 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
 
     const payload = verify(token, 'user');
 
-    if (payload.jti) {
+    if (payload.aud === 'refresh' && payload.jti) {
       const blocked = await prisma.refreshTokenBlacklist.findUnique({
         where: { jti: payload.jti },
       });

@@ -5,6 +5,7 @@ import { MapPin, Clock, Star, Percent, Tag, Calendar, AlertCircle, Search } from
 import type { RootState, AppDispatch } from '../store/store';
 import { NewsletterSubscription } from '../components/common/NewsletterSubscription';
 import { SEOHead } from '../components/seo/SEOHead';
+import { PriceDisplay } from '../components/common/PriceDisplay';
 
 export const SpecialOffers = () => {
   const [discountedProducts, setDiscountedProducts] = useState<any[]>([]);
@@ -258,7 +259,7 @@ export const SpecialOffers = () => {
                   : basePrice - pkg.discountValue;
                 
                 return (
-                <div key={product.id} className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow border-2 border-[#ff914d]">
+                <div key={product.id} className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow border-2 border-[#104c57]">
                   <div className="relative h-48">
                     <img
                       src={product.images[0] || 'https://images.pexels.com/photos/2132227/pexels-photo-2132227.jpeg'}
@@ -277,6 +278,13 @@ export const SpecialOffers = () => {
                     <div className="absolute top-12 right-4 bg-red-500 text-white px-2 py-1 rounded text-xs font-semibold">
                       LIMITED TIME
                     </div>
+                  </div>
+                  <div className="flex ml-2">
+                    {product.reserveNowPayLater !== false && (
+                      <span className="border-1 border-[#104c57] px-2 py-1 text-sm font-medium text-[#104c57] mt-2 mb-2">
+                          Reserve Now & Pay Later Eligible
+                      </span>
+                    )}
                   </div>
                   <div className="p-6">
                     <div className="flex items-center justify-between mb-2">
@@ -321,13 +329,20 @@ export const SpecialOffers = () => {
 
                     {/* Pricing with prominent savings */}
                     <div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-lg p-4 mb-4">
-                      <div className="text-center">
-                        <div className="text-sm text-gray-600 mb-1">Was: ₹{basePrice?.toLocaleString()}</div>
-                        <div className="text-3xl font-bold text-[#ff914d] mb-1">
-                          ₹{discountedPrice?.toLocaleString()}
-                        </div>
-                        <div className="text-sm font-semibold text-green-600">
-                          You Save: ₹{(basePrice - discountedPrice).toLocaleString()}
+                      <div className="text-center leading-tight">
+                        <PriceDisplay
+                          amount={discountedPrice}
+                          originalAmount={basePrice}
+                          currency="INR"
+                          className="text-2xl font-bold text-[#ff914d] inline-block"
+                        />
+                        <div className="text-sm font-semibold text-green-600 mt-1">
+                          You Save:&nbsp;
+                          <PriceDisplay
+                            amount={basePrice - discountedPrice}
+                            currency="INR"
+                            className="inline-block"
+                          />
                         </div>
                       </div>
                     </div>

@@ -203,9 +203,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           const { access } = await r.json();
           setToken(access);
           sessionStorage.setItem(TOKEN_KEY, access);
-          const bc = new BroadcastChannel('token_refresh');
-          bc.postMessage({ type: 'TOKEN_REFRESHED' });
-          bc.close();
+          new BroadcastChannel('token_refresh').postMessage({ type: 'TOKEN_REFRESHED' });
           res = await doFetch({ headers: { Authorization: `Bearer ${access}` } });
           if (res.status !== 401) return res;
         }

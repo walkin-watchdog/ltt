@@ -20,7 +20,7 @@ const bookingSchema = z.object({
   selectedTimeSlot: z.string().min(1),
   notes: z.string().optional(),
   partialPaymentAmount: z.number().min(0).optional(),
-  couponCode: z.string().optional(),
+  couponCode: z.string().nullable().optional(),
   discountAmount: z.number().min(0).optional()
 });
 
@@ -323,7 +323,7 @@ router.post('/', async (req, res, next) => {
         bookingDate:   data.bookingDate,
         selectedTimeSlot: data.selectedTimeSlot,
         notes:         data.notes,
-        couponCode:     data.couponCode,
+        couponCode:     data.couponCode? data.couponCode : undefined,
         discountAmount: data.discountAmount,
       },
       include: {
@@ -658,6 +658,38 @@ router.patch('/:id/status', authenticate, authorize(['ADMIN', 'EDITOR']), async 
   }
 });
 
+// Update booking status (Admin/Editor only)
+router.patch('/:id/payment-status', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, next) => {
+  try {
+    const { paymentStatus } = z.object({
+      paymentStatus: z.enum(['PENDING', 'PARTIAL', 'PAID', 'FAILED', 'REFUNDED'])
+    }).parse(req.body);
+
+    const booking = await prisma.booking.update({
+      where: { id: req.params.id },
+      data: { paymentStatus },
+      include: {
+        product: {
+          select: {
+            id: true,
+            title: true,
+            productCode: true
+          }
+        },
+        package: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
+      }
+    });
+
+    res.json(booking);
+  } catch (error) {
+    next(error);
+  }
+});
 
 // Reserve Now Pay Later
 router.post('/pay-later', async (req, res, next) => {
@@ -784,7 +816,7 @@ router.post('/pay-later', async (req, res, next) => {
         bookingDate:   data.bookingDate,
         selectedTimeSlot: data.selectedTimeSlot,
         notes:         data.notes,
-        couponCode:     data.couponCode,
+        couponCode:     data.couponCode? data.couponCode : undefined,
         discountAmount: data.discountAmount,
       },
       include: {

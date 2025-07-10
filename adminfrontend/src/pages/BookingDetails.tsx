@@ -262,7 +262,7 @@ export const BookingDetails = () => {
         <h2 className="text-xl font-medium text-gray-800 mb-4">Payment</h2>
         {booking.isManual && booking.paymentStatus === 'PARTIAL' || booking.paymentStatus === 'PAID' ? (
           <div className="text-gray-700">
-            <div className="font-semibold">Manual Booking</div>
+            <div className="font-semibold">Manual Payment</div>
             <div>Amount: ₹{(booking.paymentStatus === 'PARTIAL'
                 ? booking.partialPaymentAmount
                 : booking.totalAmount

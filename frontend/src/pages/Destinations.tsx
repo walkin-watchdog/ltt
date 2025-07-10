@@ -156,6 +156,13 @@ export const Destinations = () => {
                         </div>
                       )}
                     </div>
+                    <div className="flex ml-2">
+                      {product.reserveNowPayLater !== false && (
+                        <span className="border-1 border-[#104c57] px-2 py-1 text-sm font-medium text-[#104c57] mt-2 mb-2">
+                            Reserve Now & Pay Later Eligible
+                        </span>
+                      )}
+                    </div>
                     <div className="p-6">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-[#104c57] text-sm font-medium uppercase">
