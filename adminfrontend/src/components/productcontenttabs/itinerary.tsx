@@ -1,15 +1,89 @@
 import type { ItineraryDay, ItineraryTabProps } from "../../types/index.ts";
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, arrayMove, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Calendar, Route } from "lucide-react";
 
+ const SortableDay = ({
+
+   day,
+   editDay,
+   removeDay,
+ }: {
+   day: ItineraryDay;
+   editDay: (d: ItineraryDay) => void;
+   removeDay: (n: number) => void;
+ }) => {
+   const idStr = day.id;
+   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: idStr });
+   const style = {
+     transform: CSS.Transform.toString(transform),
+     transition,
+   };
+
+   return (
+     <div
+       ref={setNodeRef}
+       style={style}
+       {...attributes}
+       {...listeners}
+       className="border border-gray-200 rounded-lg p-4 bg-gray-50 flex items-center justify-between"
+     >
+       <div>
+         <h4 className="font-medium text-gray-900">
+           Day {day.day}: {day.title}
+         </h4>
+         <p className="text-sm text-gray-600">{day.description}</p>
+       </div>
+       <div className="flex space-x-2">
+         <button
+           onClick={() => editDay(day)}
+           className="text-blue-600 hover:text-blue-800 text-sm"
+         >
+           Edit
+         </button>
+         <button
+           onClick={() => removeDay(day.day)}
+           className="text-red-600 hover:text-red-800 text-sm"
+         >
+           Remove
+         </button>
+       </div>
+     </div>
+   );
+ };
 
 export const ItineraryTab = ({
     formData,
+    updateFormData,
     createNewDay,
     editDay,
     removeDay,
     getAllowedDays,
 
 }: ItineraryTabProps) => {
+    const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  );
+    const handleDragEnd = (event: DragEndEvent) => {
+      const { active, over } = event;
+      const itineraries = formData.itineraries;
+      if (!over || !itineraries) return;
+
+      const activeId = active.id as string;
+      const overId   = over.id   as string;
+      if (activeId !== overId) {
+        const oldIndex = itineraries.findIndex(d => d.id === activeId);
+        const newIndex = itineraries.findIndex(d => d.id === overId);
+        const reordered = arrayMove(itineraries, oldIndex, newIndex);
+        const numbered = reordered.map((day, idx) => ({
+          ...day,
+          day: idx + 1,
+        }));
+        updateFormData({ itineraries: numbered });
+      }
+    };
+
     return (
         <div className="space-y-6">
             {formData.type === 'TOUR' ? (
@@ -49,89 +123,15 @@ export const ItineraryTab = ({
                     </div>
 
                     {formData.itineraries && formData.itineraries.length > 0 ? (
-                        <div className="space-y-4">
-                            {formData.itineraries.map((day: ItineraryDay) => (
-                                <div key={day.day} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <h4 className="font-medium text-gray-900">Day {day.day}: {day.title}</h4>
-                                        <div className="flex space-x-2">
-                                            <button
-                                                type="button"
-                                                onClick={() => editDay(day)}
-                                                className="text-blue-600 hover:text-blue-800 text-sm"
-                                            >
-                                                Edit
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => removeDay(day.day)}
-                                                className="text-red-600 hover:text-red-800 text-sm"
-                                            >
-                                                Remove
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <p className="text-sm text-gray-600 mb-2">{day.description}</p>
-                                    {day.activities.length > 0 && (
-                                        <div className="mb-2">
-                                            <p className="text-xs font-medium text-gray-700 mb-1">Activities:</p>
-                                            <ul className="text-xs text-gray-600 space-y-1">
-                                                {day.activities.map((activity, idx) => (
-                                                    <li key={idx} className="flex items-start space-x-2">
-                                                        <div className="flex-1">
-                                                            {activity.description && (
-                                                                <div className="text-xs text-gray-600 mt-1">
-                                                                    {activity.description}
-                                                                </div>
-                                                            )}
-                                                            <div className="font-medium text-sm text-gray-900">{activity.location}</div>
-                                                            {activity.isStop && (
-                                                                <div className="text-xs text-blue-600 mt-1">
-                                                                    Stop • {activity.stopDuration || 0} minutes
-                                                                </div>
-                                                            )}
-                                                            {activity.isAdmissionIncluded && (
-                                                                <div className="text-xs text-emerald-600 mt-1">
-                                                                    ✓ Admission included
-                                                                </div>
-                                                            )}
-                                                            {(activity.inclusions && activity.inclusions.length > 0) && (
-                                                                <div className="text-xs text-green-600 mt-1">
-                                                                    Includes: {activity.inclusions.join(', ')}
-                                                                </div>
-                                                            )}
-                                                            {(activity.exclusions && activity.exclusions.length > 0) && (
-                                                                <div className="text-xs text-red-600 mt-1">
-                                                                    Excludes: {activity.exclusions.join(', ')}
-                                                                </div>
-                                                            )}
-                                                            {activity.images && activity.images.length > 0 && (
-                                                                <div className="flex space-x-2 mt-2">
-                                                                    {activity.images.slice(0, 3).map((img: string, imgIdx: number) => (
-                                                                        <img
-                                                                            key={imgIdx}
-                                                                            src={img}
-                                                                            alt={`Activity photo ${imgIdx + 1}`}
-                                                                            className="w-10 h-10 object-cover rounded"
-                                                                        />
-                                                                    ))}
-                                                                    {activity.images.length > 3 && (
-                                                                        <div className="w-10 h-10 bg-gray-200 rounded flex items-center justify-center text-xs text-gray-600">
-                                                                            +{activity.images.length - 3}
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </div>
-                                    )}
-
+                        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                            <SortableContext items={formData.itineraries.map(d => d.id)} strategy={verticalListSortingStrategy}>
+                                <div className="space-y-4">
+                                    {formData.itineraries.map((day: ItineraryDay) => (
+                                        <SortableDay key={day.id} day={day} editDay={editDay} removeDay={removeDay} />
+                                    ))}
                                 </div>
-                            ))}
-                        </div>
+                            </SortableContext>
+                        </DndContext>       
                     ) : (
                         <div className="text-center py-8 bg-gray-50 rounded-lg">
                             <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />

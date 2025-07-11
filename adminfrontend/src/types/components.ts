@@ -2,7 +2,8 @@
 import React from 'react';
 import type { 
   Product, 
-  newItem
+  newItem,
+  ProductFormData
 } from './product';
 import type { 
   PackageOption, 
@@ -69,7 +70,8 @@ export interface ProductImagesTabProps {
 }
 
 export interface ItineraryTabProps {
-  formData: any;
+  formData: ProductFormData;
+  updateFormData: (updates: Partial<ProductFormData>) => void;
   createNewDay: () => void;
   editDay: (day: ItineraryDay) => void;
   removeDay: (dayNumber: number) => void;

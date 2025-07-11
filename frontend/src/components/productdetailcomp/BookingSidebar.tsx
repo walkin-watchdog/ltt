@@ -809,13 +809,13 @@ export const BookingSidebar = ({
               href="tel:+1234567890"
               className="text-[#ff914d] font-medium block mb-1"
             >
-              +1 (234) 567-890
+              +91 78210 01995
             </a>
             <a
               href="mailto:admin@luxetimetravel.com"
               className="text-[#ff914d] font-medium"
             >
-              admim@luxetimetravel.com
+              admin@luxetimetravel.com
             </a>
           </div>
         </div>

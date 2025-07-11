@@ -879,30 +879,6 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
                 data: { ...pkgData, productId: req.params.id }
               });
 
-          // DELETE ALL EXISTING SLOTS for this package before creating new ones
-          if (pkg.id) {
-            // For existing packages, delete all existing slots first
-            await tx.slotChildTier.deleteMany({
-              where: {
-                slot: {
-                  packageId: createdOrUpdatedPkg.id
-                }
-              }
-            });
-            await tx.slotAdultTier.deleteMany({
-              where: {
-                slot: {
-                  packageId: createdOrUpdatedPkg.id
-                }
-              }
-            });
-            await tx.packageSlot.deleteMany({
-              where: {
-                packageId: createdOrUpdatedPkg.id
-              }
-            });
-          }
-
           if (pkg.slotConfigs && pkg.slotConfigs.length > 0) {
             const keepIds = pkg.slotConfigs.filter(c => c.id).map(c => c.id!);
             await tx.packageSlot.deleteMany({

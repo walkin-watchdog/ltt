@@ -14,6 +14,7 @@ import { AdditionalDetailsTab } from '../productcontenttabs/AdditionalDetails';
 import { GuidesAndLang } from '../productcontenttabs/GuidesAndLang.tsx';
 import { validateTab, validateTabWithToast } from './Validation';
 import { EditItineraryModel } from '../productcontenttabs/edititinerarymodel';
+import { nanoid } from 'nanoid';
 
 const contentTabs = [
   { id: 'basic', name: 'Basic Info', shortName: 'Basic', icon: Info },
@@ -216,6 +217,7 @@ export const ProductContentTab = ({
     const nextDay = currentItinerary.length + 1;
 
     setEditingDay({
+      id: nanoid(),
       day: nextDay,
       title: '',
       description: '',
@@ -347,6 +349,7 @@ export const ProductContentTab = ({
       case 'itinerary':
         return (
           <ItineraryTab
+            updateFormData={updateFormData}
             formData={formData}
             createNewDay={createNewDay}
             editDay={editDay}

@@ -1,5 +1,6 @@
 // Itinerary related types
 export interface ItineraryDay {
+  id: string;
   day: number;
   title: string;
   description: string;

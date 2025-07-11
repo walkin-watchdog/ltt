@@ -306,12 +306,8 @@ export const ProductForm = () => {
 
     if (product && product.packages) {
       const transformedPackages = product.packages.map((pkg: any) => {
-        // Always prefer slotConfigs if they exist, otherwise transform from slots
-        if (pkg.slotConfigs && Array.isArray(pkg.slotConfigs) && pkg.slotConfigs.length > 0) {
-          // slotConfigs already exist, use them as-is
-          return pkg;
-        } else if (pkg.slots && Array.isArray(pkg.slots) && pkg.slots.length > 0) {
-          // Transform slots to slotConfigs for form editing
+        // Only transform if slots exist and slotConfigs doesn't
+        if (pkg.slots && Array.isArray(pkg.slots) && !pkg.slotConfigs) {
           const slotConfigs = pkg.slots.map((slot: any) => {
             return {
               id: slot.id,
@@ -325,17 +321,9 @@ export const ProductForm = () => {
           return {
             ...pkg,
             slotConfigs: slotConfigs,
-            // Remove slots to avoid confusion
-            slots: undefined,
-          };
-        } else {
-          // No slots or slotConfigs, ensure slotConfigs is initialized
-          return {
-            ...pkg,
-            slotConfigs: [],
-            slots: undefined,
           };
         }
+        return pkg;
       });
 
       return {

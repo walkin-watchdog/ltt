@@ -165,7 +165,7 @@ export const Contact = () => {
               Call Now
             </a>
             <a
-              href="mailto:info@luxetimetravel.com"
+              href="mailto:admin@luxetimetravel.com"
               className="flex items-center w-full p-3 bg-[#104c57] text-white rounded-lg hover:bg-[#0d3d47] transition-colors"
             >
               <Mail className="h-5 w-5 mr-3" />

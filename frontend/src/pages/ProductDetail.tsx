@@ -502,7 +502,7 @@ export const ProductDetail = () => {
                                                         </div>
                                                         <div>
                                                             <span className="font-semibold text-gray-800 block">Phone Support</span>
-                                                            <span className="text-blue-600 font-medium">+1 (234) 567-890</span>
+                                                            <span className="text-blue-600 font-medium">+91 78210 01995</span>
                                                         </div>
                                                     </div>
                                                     
