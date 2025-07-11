@@ -97,13 +97,13 @@ export const Contact = () => {
                 <div>
                   <h3 className="font-semibold text-gray-900 mb-1">Phone</h3>
                   <p className="text-gray-600">
-                    <a href="tel:+919876543210" className="hover:text-[#ff914d] transition-colors">
-                      +91 98765 43210
+                    <a href="tel:+917821001995" className="hover:text-[#ff914d] transition-colors">
+                      +91 78210 01995
                     </a>
                   </p>
                   <p className="text-gray-600">
-                    <a href="tel:+911123456789" className="hover:text-[#ff914d] transition-colors">
-                      +91 11 2345 6789
+                    <a href="tel:+917821001995" className="hover:text-[#ff914d] transition-colors">
+                      +91 78210 01995
                     </a>
                   </p>
                 </div>
@@ -116,13 +116,13 @@ export const Contact = () => {
                 <div>
                   <h3 className="font-semibold text-gray-900 mb-1">Email</h3>
                   <p className="text-gray-600">
-                    <a href="mailto:info@luxetimetravel.com" className="hover:text-[#ff914d] transition-colors">
-                      info@luxetimetravel.com
+                    <a href="mailto:admin@luxetimetravel.com" className="hover:text-[#ff914d] transition-colors">
+                      admin@luxetimetravel.com
                     </a>
                   </p>
                   <p className="text-gray-600">
-                    <a href="mailto:bookings@luxetimetravel.com" className="hover:text-[#ff914d] transition-colors">
-                      bookings@luxetimetravel.com
+                    <a href="mailto:admin@luxetimetravel.com" className="hover:text-[#ff914d] transition-colors">
+                      admin@luxetimetravel.com
                     </a>
                   </p>
                 </div>
@@ -158,7 +158,7 @@ export const Contact = () => {
               Chat on WhatsApp
             </a>
             <a
-              href="tel:+919876543210"
+              href="tel:+917821001995"
               className="flex items-center w-full p-3 bg-[#ff914d] text-white rounded-lg hover:bg-[#e8823d] transition-colors"
             >
               <Phone className="h-5 w-5 mr-3" />

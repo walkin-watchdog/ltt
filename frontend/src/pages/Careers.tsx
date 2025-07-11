@@ -234,7 +234,7 @@ export const Careers = () => {
 
                   <div className="mt-8">
                     <a
-                      href={`mailto:careers@luxetimetravel.com?subject=Application for ${selectedJob.title}&body=Dear Hiring Team,%0D%0A%0D%0AI am interested in applying for the ${selectedJob.title} position.%0D%0A%0D%0APlease find my resume attached.%0D%0A%0D%0ABest regards`}
+                      href={`mailto:admin@luxetimetravel.com?subject=Application for ${selectedJob.title}&body=Dear Hiring Team,%0D%0A%0D%0AI am interested in applying for the ${selectedJob.title} position.%0D%0A%0D%0APlease find my resume attached.%0D%0A%0D%0ABest regards`}
                       className="w-full bg-[#ff914d] text-white py-3 px-6 rounded-lg font-semibold hover:bg-[#e8823d] transition-colors text-center block"
                     >
                       Apply for This Position
@@ -324,7 +324,7 @@ export const Careers = () => {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
-              href="mailto:careers@luxetimetravel.com"
+              href="mailto:admin@luxetimetravel.com"
               className="bg-[#ff914d] text-white px-8 py-3 rounded-lg font-semibold hover:bg-[#e8823d] transition-colors"
             >
               Send Your Resume

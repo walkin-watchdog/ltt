@@ -804,10 +804,10 @@ export const BookingSidebar = ({
               +1 (234) 567-890
             </a>
             <a
-              href="mailto:info@luxetimetravel.com"
+              href="mailto:admin@luxetimetravel.com"
               className="text-[#ff914d] font-medium"
             >
-              info@luxetimetravel.com
+              admim@luxetimetravel.com
             </a>
           </div>
         </div>

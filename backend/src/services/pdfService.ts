@@ -195,7 +195,7 @@ export class PDFService {
         doc.fontSize(10)
            .fillColor('#666666')
            .text('Thank you for choosing Luxé TimeTravel!', 50, 750)
-           .text('For support: info@luxetimetravel.com | +91 98765 43210', 50, 765);
+           .text('For support: admin@luxetimetravel.com | +91 78210 01995', 50, 765);
 
         doc.end();
       } catch (error) {

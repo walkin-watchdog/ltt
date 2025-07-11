@@ -62,11 +62,11 @@ export const Footer = () => {
             <ul className="space-y-3">
               <li className="flex items-center">
                 <Mail className="h-4 w-4 mr-3 text-[#ff914d]" />
-                <span className="text-gray-300">info@luxetimetravel.com</span>
+                <span className="text-gray-300">admin@luxetimetravel.com</span>
               </li>
               <li className="flex items-center">
                 <Phone className="h-4 w-4 mr-3 text-[#ff914d]" />
-                <span className="text-gray-300">+91 98765 43210</span>
+                <span className="text-gray-300">+91 78210 01995</span>
               </li>
               <li className="flex items-start">
                 <MapPin className="h-4 w-4 mr-3 text-[#ff914d] mt-1" />

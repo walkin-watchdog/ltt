@@ -92,9 +92,9 @@ export const SEOHead = ({
           ],
           "contactPoint": {
             "@type": "ContactPoint",
-            "telephone": "+91-98765-43210",
+            "telephone": "+91-78210-01995",
             "contactType": "customer service",
-            "email": "info@luxetimetravel.com"
+            "email": "admin@luxetimetravel.com"
           },
           "address": {
             "@type": "PostalAddress",

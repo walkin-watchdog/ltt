@@ -514,7 +514,7 @@ export const ProductDetail = () => {
                                                         </div>
                                                         <div>
                                                             <span className="font-semibold text-gray-800 block">Email Support</span>
-                                                            <span className="text-purple-600 font-medium">info@luxetimetravel.com</span>
+                                                            <span className="text-purple-600 font-medium">admin@luxetimetravel.com</span>
                                                         </div>
                                                     </div>
                                                     

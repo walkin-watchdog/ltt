@@ -88,13 +88,13 @@ export class ErrorBoundary extends Component<Props, State> {
               <p className="text-sm text-gray-500 mb-2">Need immediate help?</p>
               <div className="flex justify-center space-x-4 text-sm">
                 <a 
-                  href="tel:+919876543210" 
+                  href="tel:+917821001995" 
                   className="text-[#ff914d] hover:underline"
                 >
                   Call Support
                 </a>
                 <a 
-                  href="mailto:support@luxetimetravel.com" 
+                  href="mailto:admin@luxetimetravel.com" 
                   className="text-[#ff914d] hover:underline"
                 >
                   Email Us

@@ -454,18 +454,18 @@ const handleSubmit = async (e: React.FormEvent) => {
           </p>
           <div className="flex flex-col sm:flex-row gap-6 justify-center">
             <a
-              href="mailto:partnerships@luxetimetravel.com"
+              href="mailto:admin@luxetimetravel.com"
               className="flex items-center bg-white text-[#104c57] px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
             >
               <Mail className="h-5 w-5 mr-2" />
-              partnerships@luxetimetravel.com
+              admin@luxetimetravel.com
             </a>
             <a
-              href="tel:+919876543210"
+              href="tel:+917821001995"
               className="flex items-center border-2 border-white text-white px-6 py-3 rounded-lg font-semibold hover:bg-white hover:text-[#104c57] transition-colors"
             >
               <Phone className="h-5 w-5 mr-2" />
-              +91 98765 43210
+              +91 78210 01995
             </a>
           </div>
         </div>

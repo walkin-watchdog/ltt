@@ -880,36 +880,63 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
               });
 
           if (pkg.slotConfigs && pkg.slotConfigs.length > 0) {
-            for (const slotConfig of pkg.slotConfigs) {
-              const createdSlot = await tx.packageSlot.create({
-                data: {
-                  packageId: createdOrUpdatedPkg.id,
-                  Time: slotConfig.times,
-                  days: slotConfig.days,
-                }
-              });
-
-              if (slotConfig.adultTiers && slotConfig.adultTiers.length > 0) {
-                await tx.slotAdultTier.createMany({
-                  data: slotConfig.adultTiers.map(tier => ({
-                    slotId: createdSlot.id,
-                    min: tier.min,
-                    max: tier.max,
-                    price: tier.price,
-
-                  }))
-                });
+            const keepIds = pkg.slotConfigs.filter(c => c.id).map(c => c.id!);
+            await tx.packageSlot.deleteMany({
+              where: {
+                packageId: createdOrUpdatedPkg.id,
+                id: { notIn: keepIds }
               }
-
-              if (slotConfig.childTiers && slotConfig.childTiers.length > 0) {
-                await tx.slotChildTier.createMany({
-                  data: slotConfig.childTiers.map(tier => ({
-                    slotId: createdSlot.id,
-                    min: tier.min,
-                    max: tier.max,
-                    price: tier.price,
-                  }))
+            });
+  
+            for (const slotConfig of pkg.slotConfigs) {
+              if (slotConfig.id) {
+                const slotId = slotConfig.id;
+                await tx.packageSlot.update({
+                  where: { id: slotId },
+                  data: { Time: slotConfig.times, days: slotConfig.days }
                 });
+  
+                await tx.slotAdultTier.deleteMany({ where: { slotId } });
+                if (slotConfig.adultTiers?.length) {
+                  await tx.slotAdultTier.createMany({
+                    data: slotConfig.adultTiers.map(t => ({
+                      slotId, min: t.min, max: t.max, price: t.price
+                    }))
+                  });
+                }
+                await tx.slotChildTier.deleteMany({ where: { slotId } });
+                if (slotConfig.childTiers?.length) {
+                  await tx.slotChildTier.createMany({
+                    data: slotConfig.childTiers.map(t => ({
+                      slotId, min: t.min, max: t.max, price: t.price
+                    }))
+                  });
+                }
+              } else {
+                const newSlot = await tx.packageSlot.create({
+                  data: {
+                    packageId: createdOrUpdatedPkg.id,
+                    Time: slotConfig.times,
+                    days: slotConfig.days,
+                  }
+                });
+                if (slotConfig.adultTiers?.length) {
+                  await tx.slotAdultTier.createMany({
+                    data: slotConfig.adultTiers.map(t => ({
+                      slotId: newSlot.id, min: t.min, max: t.max, price: t.price
+                    }))
+                  });
+                }
+                if (slotConfig.childTiers?.length) {
+                  await tx.slotChildTier.createMany({
+                    data: slotConfig.childTiers.map(t => ({
+                      slotId: newSlot.id,
+                      min: t.min,
+                      max: t.max,
+                      price: t.price
+                    }))
+                  });
+                }
               }
             }
           }

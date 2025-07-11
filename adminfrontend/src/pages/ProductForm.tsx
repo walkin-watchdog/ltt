@@ -310,7 +310,8 @@ export const ProductForm = () => {
         if (pkg.slots && Array.isArray(pkg.slots) && !pkg.slotConfigs) {
           const slotConfigs = pkg.slots.map((slot: any) => {
             return {
-              times: slot.Time || [], // Time array from slot
+              id: slot.id,
+              times: slot.Time || [],
               days: slot.days || [],
               adultTiers: slot.adultTiers || [],
               childTiers: slot.childTiers || [],

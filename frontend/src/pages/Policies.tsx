@@ -124,9 +124,9 @@ export const Policies = () => {
                     <p className="text-gray-700">
                       If you have questions about this Privacy Policy, please contact us at:
                       <br />
-                      Email: privacy@luxetimetravel.com
+                      Email: admin@luxetimetravel.com
                       <br />
-                      Phone: +91 98765 43210
+                      Phone: +91 78210 01995
                     </p>
                   </div>
                 </div>
