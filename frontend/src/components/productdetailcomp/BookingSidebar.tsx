@@ -14,6 +14,7 @@ import clsx from "clsx";
 import toast from "react-hot-toast";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { DayPicker } from "react-day-picker";
+import { Pricing } from "./pricing";
 
 interface BookingSidebarProps {
   cheapestPackage: any;
@@ -763,6 +764,13 @@ export const BookingSidebar = ({
                               See more time slots
                             </button>
                           )}
+                        <Pricing
+                            selectedPackage={selectedPackage}
+                            selectedSlot={selectedSlot}
+                            adultsCount={adultsCount}
+                            childrenCount={childrenCount}
+                            pkg={pkg}
+                        />
                         </div>
                       )}
                     </div>
@@ -1248,6 +1256,13 @@ export const BookingSidebar = ({
                         </button>
                       </div>
                     )}
+                      <Pricing
+                            selectedPackage={selectedPackage}
+                            selectedSlot={selectedSlot}
+                            adultsCount={adultsCount}
+                            childrenCount={childrenCount}
+                            pkg={pkg}
+                        />
                   </div>
                 ))
               )}

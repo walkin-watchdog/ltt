@@ -32,6 +32,7 @@ export interface MeetingPoint {
 
 // Update Product interface types
 interface Product {
+  cancellationTerms : string[]
   minPeople: boolean;
   cutoffTime: number;
   requirePhone: boolean;

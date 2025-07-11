@@ -2,15 +2,15 @@ import type { Product } from '../../types/index.ts';
 
 export const ProductPolicies = ({ product }:{product: Product;}) => {
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6 scroll-mt-20">
-      <h3 className="text-lg font-semibold mb-4">
-        Cancellation Policy
-      </h3>
-      <div className="bg-gray-50 p-4 rounded-lg space-y-4">
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 scroll-mt-20">
+      <div className="bg-amber-50 border-b border-amber-100 px-6 py-4">
+        <h3 className="text-lg font-semibold text-amber-800">Cancellation Policy</h3>
+      </div>
+      <div className="p-6">
         {/* Policy Type Badge */}
         {product.cancellationPolicyType && typeof product.cancellationPolicyType === 'string' && product.cancellationPolicyType !== 'custom' && (
-          <div className="flex items-center space-x-2">
-            <span className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full font-medium">
+          <div className="mb-4">
+            <span className="inline-flex items-center px-3 py-1 bg-amber-100 text-amber-800 text-sm rounded-full font-medium">
               {product.cancellationPolicyType === 'standard' && 'Standard Policy'}
               {product.cancellationPolicyType === 'moderate' && 'Moderate Policy'}
               {product.cancellationPolicyType === 'strict' && 'Strict Policy'}
@@ -22,16 +22,16 @@ export const ProductPolicies = ({ product }:{product: Product;}) => {
         {/* Structured Policy Terms */}
         {Array.isArray(product.cancellationTerms) && product.cancellationTerms.length > 0 ? (
           <div className="space-y-3">
-            <h4 className="font-medium text-gray-800">Cancellation Terms:</h4>
+            <h4 className="font-medium text-gray-800 mb-3">Cancellation Terms:</h4>
             {product.cancellationTerms.map((term: any, index: number) => (
-              <div key={index} className="flex items-center justify-between p-3 bg-white rounded-md border">
+              <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
                 <div className="flex-1">
                   <div className="font-medium text-sm">{term.timeframe}</div>
-                  <div className="text-sm text-gray-600">{term.description}</div>
+                  <div className="text-sm text-gray-600 mt-1">{term.description}</div>
                 </div>
-                <div className="text-right">
-                  <div className={`font-bold text-lg ${term.refundPercent === 100 ? 'text-green-600' :
-                    term.refundPercent > 0 ? 'text-yellow-600' : 'text-red-600'
+                <div className="text-right ml-4">
+                  <div className={`font-semibold text-lg ${term.refundPercent === 100 ? 'text-green-600' :
+                    term.refundPercent > 0 ? 'text-amber-600' : 'text-red-600'
                     }`}>
                     {term.refundPercent}%
                   </div>
@@ -41,10 +41,12 @@ export const ProductPolicies = ({ product }:{product: Product;}) => {
             ))}
           </div>
         ) : (
-          <p className="text-gray-600">
-            {product.cancellationPolicy ||
-              'No specific policy provided.'}
-          </p>
+          <div className="prose prose-sm max-w-none">
+            <p className="text-gray-700 leading-relaxed">
+              {product.cancellationPolicy ||
+                'No specific policy provided. Please contact our customer service for details about cancellations and refunds.'}
+            </p>
+          </div>
         )}
 
         {/* Additional Information Requirements */}

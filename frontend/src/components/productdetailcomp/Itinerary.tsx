@@ -44,11 +44,11 @@ interface ExpandedActivities {
   [key: string]: boolean;
 }
 
-export const Itinerary = ({ 
-  itineraryRef, 
+export const Itinerary = ({
+  itineraryRef,
   detailsRef,
-  onNavigateToDeparture 
-}: { 
+  onNavigateToDeparture
+}: {
   itineraryRef: React.RefObject<HTMLDivElement | null>;
   detailsRef?: React.RefObject<HTMLDivElement | null>;
   onNavigateToDeparture?: () => void;
@@ -101,7 +101,7 @@ export const Itinerary = ({
     if (!overviewMapRef.current || !currentProduct?.itineraries || selectedDay !== 'overview') return;
 
     const allActivities: (Activity & { dayNumber: number })[] = [];
-    
+
     // Collect all activities from all days
     currentProduct.itineraries.forEach((day: any) => {
       if (day.activities && day.activities.length > 0) {
@@ -237,8 +237,13 @@ export const Itinerary = ({
       ]
     });
 
-    // Add markers for each activity
-    activities.forEach((activity, index) => {
+    // Add markers only for stops
+    let stopCounter = 0;
+    activities.forEach((activity) => {
+      // Only show markers for stops
+      if (!activity.isStop) return;
+      
+      stopCounter++;
       const position = {
         lat: activity.locationLat || activity.lat || 0,
         lng: activity.locationLng || activity.lng || 0
@@ -249,7 +254,7 @@ export const Itinerary = ({
         map: map,
         title: activity.location,
         label: {
-          text: (index + 1).toString(),
+          text: stopCounter.toString(),
           color: 'white',
           fontWeight: 'bold'
         },
@@ -404,7 +409,7 @@ export const Itinerary = ({
                 <div className="text-xs opacity-90">All locations</div>
               </button>
             )}
-            
+
             {/* Individual Day Tabs */}
             {itineraryDays.map((day: any) => (
               <button
@@ -470,7 +475,7 @@ export const Itinerary = ({
             {/* Pickup Information */}
             <div className="relative">
               <div className="flex items-center mb-4">
-                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3">
+                <div className="w-8 h-8 bg-green-100 border-2 border-green-600 rounded-full flex items-center justify-center mr-3">
                   <Navigation className="w-4 h-4 text-green-600" />
                 </div>
                 <div>
@@ -523,149 +528,171 @@ export const Itinerary = ({
                 </div>
               )}
 
-              {/* Vertical Line */}
-              <div className="absolute left-4 top-12 w-0.5 bg-gray-300 h-full"></div>
+              {/* Vertical Line connecting to activities */}
+              <div className="absolute left-4 top-12 w-1 border-l-4 border-dotted border-gray-900 h-full"></div>
             </div>
 
             {/* Activities Timeline */}
-            <div className="space-y-6">
-              {currentDayData.activities.map((activity: Activity, index: number) => {
-                const activityId = `${selectedDay}-${index}`;
-                const isExpanded = expandedActivities[activityId];
+            <div className="relative">
+              {/* Main vertical dotted line that runs through all activities */}
+              <div className="absolute left-4 top-0 bottom-0 w-1 border-l-4 border-dotted border-gray-900 z-0"></div>
+              
+              <div className="space-y-0">
+                {currentDayData.activities.map((activity: Activity, index: number) => {
+                  const activityId = `${selectedDay}-${index}`;
+                  const isExpanded = expandedActivities[activityId];
+                  
+                  // Calculate stop number (only count stops for numbering)
+                  const stopNumber = currentDayData.activities
+                    .slice(0, index + 1)
+                    .filter(act => act.isStop).length;
 
-                return (
-                  <div key={activityId} className="relative">
-                    {/* Activity Marker */}
-                    <div className="flex items-start">
-                      <div className="w-8 h-8 bg-[#ff914d] rounded-full flex items-center justify-center mr-3 z-10">
-                        <span className="text-white text-sm font-bold">{index + 1}</span>
-                      </div>
+                  return (
+                    <div key={activityId} className="relative">
+                      {/* Activity Marker */}
+                      <div className="flex items-start">
+                        {activity.isStop ? (
+                          <div className="relative z-10">
+                            <div className="w-8 h-8 bg-[#ff914d] rounded-full flex items-center justify-center mr-3">
+                              <span className="text-white text-sm font-bold">{stopNumber}</span>
+                            </div>
+                          </div>
+                        ) : (
+                          // For pass-by activities, no visible marker
+                          <div className="w-8 h-8 mr-3"></div>
+                        )}
 
-                      <div className="flex-1">
-                        <div className="bg-white border border-gray-200 p-4">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <h4 className="font-semibold text-gray-900 mb-2">
+                        <div className="flex-1 pb-6">
+                          {activity.isStop ? (
+                            // Stop Activity - Full card with details
+                            <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <h4 className="font-semibold text-gray-900 mb-2">
+                                    {activity.location}
+                                  </h4>
+
+                                  <div className="flex items-center space-x-4 text-sm text-gray-600 mb-2">
+                                    <div className="flex items-center">
+                                      <Clock className="w-4 h-4 mr-1" />
+                                      <span>Stop: {formatDuration(activity.stopDuration, activity.durationUnit)}</span>
+                                    </div>
+
+                                    {activity.isAdmissionIncluded && (
+                                      <div className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
+                                        Admission included
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {(activity.description || activity.inclusions.length > 0 || activity.exclusions.length > 0 || activity.images && activity.images.length > 0) && (
+                                  <button
+                                    onClick={() => toggleActivity(activityId)}
+                                    className="ml-2 p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                                  >
+                                    {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                                  </button>
+                                )}
+                              </div>
+
+                              {/* Expanded Content for Stops */}
+                              {isExpanded && (
+                                <div className="mt-4 pt-4 border-t border-gray-100 space-y-3">
+                                  {activity.description && (
+                                    <>
+                                      <p className="text-sm text-gray-700">
+                                        {expandedActivityDesc[activityId] ||
+                                          activity.description.length <= DESC_LIMIT
+                                          ? activity.description
+                                          : activity.description.slice(0, DESC_LIMIT) + "…"}
+                                      </p>
+                                      {activity.description.length > DESC_LIMIT && (
+                                        <button
+                                          onClick={() =>
+                                            setExpandedActivityDesc(prev => ({
+                                              ...prev,
+                                              [activityId]: !prev[activityId],
+                                            }))
+                                          }
+                                          className="mt-1 text-xs font-medium text-[#ff914d] hover:underline"
+                                        >
+                                          {expandedActivityDesc[activityId] ? "Read less" : "Read more"}
+                                        </button>
+                                      )}
+                                    </>
+                                  )}
+
+                                  {activity.inclusions.length > 0 && (
+                                    <div>
+                                      <h5 className="text-sm font-medium text-green-800 mb-1">Inclusions:</h5>
+                                      <ul className="text-sm text-gray-600 space-y-1">
+                                        {activity.inclusions.map((inclusion, idx) => (
+                                          <li key={idx} className="flex items-start">
+                                            <span className="text-green-500 mr-2">•</span>
+                                            {inclusion}
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  )}
+
+                                  {activity.exclusions.length > 0 && (
+                                    <div>
+                                      <h5 className="text-sm font-medium text-red-800 mb-1">Exclusions:</h5>
+                                      <ul className="text-sm text-gray-600 space-y-1">
+                                        {activity.exclusions.map((exclusion, idx) => (
+                                          <li key={idx} className="flex items-start">
+                                            <span className="text-red-500 mr-2">•</span>
+                                            {exclusion}
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  )}
+
+                                  {/* Activity Images */}
+                                  {activity.images && activity.images.length > 0 && (
+                                    <div className="mt-3">
+                                      <h5 className="text-sm font-medium text-gray-900 mb-1"> Photos</h5>
+                                      <div className="grid grid-cols-2 gap-2">
+                                        {activity.images.map((img: string, idx: number) => (
+                                          <img
+                                            key={idx}
+                                            src={img}
+                                            alt={`Activity photo ${idx + 1}`}
+                                            className="w-full h-32 object-cover rounded-lg shadow-sm"
+                                          />
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            // Pass By Activity - Simple display with left border and shifted towards map
+                            <div className="flex flex-col space-y-1 py-2 border-l-4 border-gray-300 pl-4 ml-4">
+                              <div className="text-sm text-gray-500">
+                                Pass by
+                              </div>
+                              <h4 className="font-semibold text-gray-900">
                                 {activity.location}
                               </h4>
-
-                              <div className="flex items-center space-x-4 text-sm text-gray-600 mb-2">
-                                {activity.isStop && (
-                                  <div className="flex items-center">
-                                    <Clock className="w-4 h-4 mr-1" />
-                                    <span>Stop: {formatDuration(activity.stopDuration, activity.durationUnit)}</span>
-                                  </div>
-                                )}
-
-                                <div className={`px-2 py-1 rounded-full text-xs ${activity.isAdmissionIncluded
-                                  ? 'bg-green-100 text-green-800'
-                                  : 'bg-red-100 text-red-800'
-                                  }`}>
-                                  {activity.isAdmissionIncluded ? 'Admission included' : 'Admission not included'}
-                                </div>
-                              </div>
-                            </div>
-
-                            {(activity.description || activity.inclusions.length > 0 || activity.exclusions.length > 0 || activity.images && activity.images.length > 0) && (
-                              <button
-                                onClick={() => toggleActivity(activityId)}
-                                className="ml-2 p-1 text-gray-400 hover:text-gray-600 transition-colors"
-                              >
-                                {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                              </button>
-                            )}
-                          </div>
-
-                          {/* Expanded Content */}
-                          {isExpanded && (
-                            <div className="mt-4 pt-4 border-t border-gray-100 space-y-3">
-                              {activity.description && (
-                                <>
-                                  <p className="text-sm text-gray-700">
-                                    {expandedActivityDesc[activityId] ||
-                                    activity.description.length <= DESC_LIMIT
-                                      ? activity.description
-                                      : activity.description.slice(0, DESC_LIMIT) + "…"}
-                                  </p>
-                                  {activity.description.length > DESC_LIMIT && (
-                                    <button
-                                      onClick={() =>
-                                        setExpandedActivityDesc(prev => ({
-                                          ...prev,
-                                          [activityId]: !prev[activityId],
-                                        }))
-                                      }
-                                      className="mt-1 text-xs font-medium text-[#ff914d] hover:underline"
-                                    >
-                                      {expandedActivityDesc[activityId] ? "Read less" : "Read more"}
-                                    </button>
-                                  )}
-                                </>
-                              )}
-
-                              {activity.inclusions.length > 0 && (
-                                <div>
-                                  <h5 className="text-sm font-medium text-green-800 mb-1">Inclusions:</h5>
-                                  <ul className="text-sm text-gray-600 space-y-1">
-                                    {activity.inclusions.map((inclusion, idx) => (
-                                      <li key={idx} className="flex items-start">
-                                        <span className="text-green-500 mr-2">•</span>
-                                        {inclusion}
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              )}
-
-                              {activity.exclusions.length > 0 && (
-                                <div>
-                                  <h5 className="text-sm font-medium text-red-800 mb-1">Exclusions:</h5>
-                                  <ul className="text-sm text-gray-600 space-y-1">
-                                    {activity.exclusions.map((exclusion, idx) => (
-                                      <li key={idx} className="flex items-start">
-                                        <span className="text-red-500 mr-2">•</span>
-                                        {exclusion}
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              )}
-
-                              {/* Activity Images */}
-                              {activity.images && activity.images.length > 0 && (
-                                <div className="mt-3">
-                                  <h5 className="text-sm font-medium text-gray-900 mb-1">Activity Photos</h5>
-                                  <div className="grid grid-cols-2 gap-2">
-                                    {activity.images.map((img: string, idx: number) => (
-                                      <img
-                                        key={idx}
-                                        src={img}
-                                        alt={`Activity photo ${idx + 1}`}
-                                        className="w-full h-32 object-cover rounded-lg shadow-sm"
-                                      />
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
                             </div>
                           )}
                         </div>
                       </div>
                     </div>
-
-                    {/* Vertical line continues */}
-                    {index < currentDayData.activities.length - 1 && (
-                      <div className="absolute left-4 top-12 w-0.5 bg-gray-300 h-6"></div>
-                    )}
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
 
             {/* End Point */}
             <div className="relative">
               <div className="flex items-center">
-                <div className="w-8 h-8 bg-gray-400 rounded-full flex items-center justify-center mr-3">
+                <div className="w-8 h-8 bg-gray-400 border-2 border-gray-600 rounded-full flex items-center justify-center mr-3">
                   <MapPin className="w-4 h-4 text-white" />
                 </div>
                 <div>
