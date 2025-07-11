@@ -5,6 +5,7 @@ import { MapPin, Clock, Star, Users, ChevronRight, ChevronLeft } from 'lucide-re
 import { fetchProducts } from '../store/slices/productsSlice';
 import { PriceDisplay } from '../components/common/PriceDisplay';
 import type { AppDispatch, RootState } from '../store/store';
+import { getCurrencyForProduct } from '../lib/utils';
 import Slider from 'react-slick';
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
@@ -190,13 +191,13 @@ export const Destinations = () => {
                              <PriceDisplay 
                                amount={product.lowestDiscountedPackagePrice || 0}
                                originalAmount={product.lowestPackagePrice}
-                               currency="INR"
+                               currency={getCurrencyForProduct(product)}
                              />
                             </>
                           ) : (
                            <PriceDisplay 
                              amount={product.lowestPackagePrice || 0}
-                             currency="INR"
+                             currency={getCurrencyForProduct(product)}
                            />
                           )}
                         </div>

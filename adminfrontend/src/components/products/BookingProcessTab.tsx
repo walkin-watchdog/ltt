@@ -44,8 +44,8 @@ export const BookingProcessTab = ({ formData, updateFormData }:
             <input
               type="number"
               min="1"
-              value={formData.minParticipants || 1}
-              onChange={(e) => updateFormData({ minParticipants: parseInt(e.target.value) })}
+              value={formData.minparticipants || 1}
+              onChange={(e) => updateFormData({ minparticipants: parseInt(e.target.value) })}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
               placeholder="1"
             />
@@ -62,17 +62,17 @@ export const BookingProcessTab = ({ formData, updateFormData }:
               Payment Type
             </label>
             <select
-              value={formData.paymentType || 'full'}
+              value={formData.paymentType || 'FULL'}
               onChange={(e) => updateFormData({ paymentType: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
             >
-              <option value="full">Full Payment Required</option>
-              <option value="partial">Partial Payment Allowed</option>
-              <option value="deposit">Deposit Required</option>
+              <option value="FULL">Full Payment Required</option>
+              <option value="PARTIAL">Partial Payment Allowed</option>
+              <option value="DEPOSIT">Deposit Required</option>
             </select>
           </div>
 
-          {formData.paymentType === 'partial' && (
+          {formData.paymentType === 'PARTIAL' && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Minimum Payment (%)
@@ -84,12 +84,12 @@ export const BookingProcessTab = ({ formData, updateFormData }:
                 value={formData.minimumPaymentPercent || 50}
                 onChange={(e) => updateFormData({ minimumPaymentPercent: parseInt(e.target.value) })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                placeholder="50"
+                placeholder="20"
               />
             </div>
           )}
 
-          {formData.paymentType === 'deposit' && (
+          {formData.paymentType === 'DEPOSIT' && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Deposit Amount (₹)
@@ -98,7 +98,7 @@ export const BookingProcessTab = ({ formData, updateFormData }:
                 type="number"
                 min="0"
                 value={formData.depositAmount || 1000}
-                onChange={(e) => updateFormData({ depositAmount: parseInt(e.target.value) })}
+                onChange={(e) => updateFormData({ depositAmount: parseFloat(e.target.value) })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
                 placeholder="1000"
               />

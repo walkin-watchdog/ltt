@@ -182,6 +182,9 @@ const productSchema = z.object({
   cutoffTime: z.number().min(0).optional().default(24), 
   passportDetailsOption: z.string().optional(),
   reserveNowPayLater: z.boolean().optional().default(true),
+  paymentType: z.enum(['FULL','PARTIAL','DEPOSIT']).optional().default('FULL'),
+  minimumPaymentPercent: z.number().min(1).max(100).optional().default(20),
+  depositAmount: z.number().min(0).optional().default(0),
 });
 
 // Get all products (public)

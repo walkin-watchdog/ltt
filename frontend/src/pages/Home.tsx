@@ -10,6 +10,7 @@ import { PriceDisplay } from '../components/common/PriceDisplay';
 import { NewsletterSubscription } from '../components/common/NewsletterSubscription';
 import type { AppDispatch, RootState } from '../store/store';
 import { Helmet } from 'react-helmet-async';
+import { getCurrencyForProduct } from '../lib/utils';
 
 type ArrowProps = {
   className?: string;
@@ -211,13 +212,13 @@ export const Home = () => {
                            <PriceDisplay 
                              amount={product.lowestDiscountedPackagePrice}
                              originalAmount={product.lowestPackagePrice}
-                             currency="INR"
+                             currency={getCurrencyForProduct(product)}
                            />
                           </>
                         ) : (
                          <PriceDisplay 
                            amount={product.lowestPackagePrice || 0}
-                           currency="INR"
+                           currency={getCurrencyForProduct(product)}
                          />
                         )}
                       </div>
@@ -308,13 +309,13 @@ export const Home = () => {
                            <PriceDisplay 
                              amount={product.lowestDiscountedPackagePrice}
                              originalAmount={product.lowestPackagePrice}
-                             currency="INR"
+                             currency={getCurrencyForProduct(product)}
                            />
                           </>
                         ) : (
                          <PriceDisplay 
                            amount={product.lowestPackagePrice || 0}
-                           currency="INR"
+                           currency={getCurrencyForProduct(product)}
                          />
                         )}
                       </div>

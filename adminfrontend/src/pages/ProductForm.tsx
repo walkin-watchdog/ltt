@@ -150,7 +150,9 @@ export const ProductForm = () => {
     meetingPoints: [],
     phonenumber: '',
     tourType: '',
-
+    paymentType: 'FULL',
+    minimumPaymentPercent: 20,
+    depositAmount: 0,
   });
 
   const tabValidations: Record<string, (formData: any) => string[]> = {

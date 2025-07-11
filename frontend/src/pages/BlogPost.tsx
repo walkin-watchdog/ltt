@@ -48,7 +48,7 @@ export const BlogPost = () => {
   };
 
   const getAuthorName = (post: Post) => {
-    return post._embedded?.author?.[0]?.name || 'Admin';
+    return post._embedded?.author?.[0]?.name || 'Luxé TimeTravel';
   };
 
   const getAuthorAvatar = (post: Post) => {

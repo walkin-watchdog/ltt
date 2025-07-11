@@ -70,6 +70,11 @@ export interface Product {
   customRequirementFields: boolean;
   additionalRequirements: string;
   passportDetailsOption: any;
+
+  // Payment options
+  paymentType?: 'FULL' | 'PARTIAL' | 'DEPOSIT';
+  minimumPaymentPercent?: number;
+  depositAmount?: number;
   
   // Policies
   minPeople: boolean;
@@ -176,6 +181,11 @@ export interface ProductFormData {
   partialRefundPercent: number;
   noRefundAfterHours: number;
   cancellationTerms: string[];
+
+  // Payment options
+  paymentType?: 'FULL' | 'PARTIAL' | 'DEPOSIT';
+  minimumPaymentPercent?: number;
+  depositAmount?: number;
   
   // Requirements
   requirePhone: boolean;

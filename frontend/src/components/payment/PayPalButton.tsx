@@ -3,7 +3,8 @@ import { useEffect, useRef } from 'react';
 interface PayPalButtonProps {
   amount: number;
   currency: string;
-  onSuccess: (details: any) => void;
+  orderId: string;
+  onSuccess: (details?: any) => void;
   onError?: (error: any) => void;
   onCancel?: () => void;
   style?: {
@@ -22,7 +23,8 @@ declare global {
 
 export const PayPalButton = ({
   amount,
-  currency = 'USD',
+  currency,
+  orderId,
   onSuccess,
   onError,
   onCancel,
@@ -41,7 +43,8 @@ export const PayPalButton = ({
       }
 
       const script = document.createElement('script');
-      script.src = `https://www.paypal.com/sdk/js?client-id=${import.meta.env.VITE_PAYPAL_CLIENT_ID}&currency=${currency}`;
+      script.src = `https://www.paypal.com/sdk/js?client-id=${import.meta.env.VITE_PAYPAL_CLIENT_ID}` +
+               `&components=buttons&currency=${currency}&intent=capture`;
       script.onload = () => renderPayPalButton();
       script.onerror = () => {
         console.error('Failed to load PayPal SDK');
@@ -61,21 +64,10 @@ export const PayPalButton = ({
             shape: style.shape || 'rect',
             label: style.label || 'paypal'
           },
-          createOrder: (_: any, actions: any) => {
-            return actions.order.create({
-              purchase_units: [{
-                amount: {
-                  value: amount.toString(),
-                  currency_code: currency
-                },
-                description: 'Luxé TimeTravel Booking'
-              }]
-            });
-          },
-          onApprove: async (_: any, actions: any) => {
+          createOrder: () => orderId,
+          onApprove: async () => {
             try {
-              const details = await actions.order.capture();
-              onSuccess(details);
+              onSuccess();
             } catch (error) {
               console.error('PayPal capture error:', error);
               onError?.(error);

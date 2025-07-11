@@ -1,5 +1,6 @@
 import clsx, { type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { type Product } from "../store/slices/productsSlice"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -20,6 +21,14 @@ export function debounce<T extends (...args: any[]) => void>(fn: T, delay = 300)
 
   return debounced as typeof debounced & { cancel: () => void };
 }
+
+export const getCurrencyForProduct = (product: Product): string => {
+  if ((product as any).lowestPackageCurrency) return (product as any).lowestPackageCurrency;
+
+  const firstActivePkg = product.packages?.find(p => p.isActive);
+  return firstActivePkg?.currency ?? 'INR';
+};
+
 
 // Utility function to check if a slot is still bookable based on cutoff time
 export function isSlotBookable(

@@ -92,6 +92,9 @@ model Product {
   phonenumber String? @default("")
   reserveNowPayLater Boolean @default(true)
   cutoffTime Int? @default(24) // Hours before tour start time when booking should be cut off
+  paymentType           PaymentType  @default(FULL)
+  minimumPaymentPercent Int?    @default(20)
+  depositAmount         Float?  @default(0)
   isActive    Boolean @default(true)
   isDraft     Boolean @default(false)
   availabilityStartDate DateTime?
@@ -429,6 +432,8 @@ enum BookingStatus {
   CONFIRMED
   CANCELLED
   COMPLETED
+  REFUNDED
+  PARTIALLY_REFUNDED
 }
 
 enum PaymentStatus {
@@ -437,6 +442,14 @@ enum PaymentStatus {
   PAID
   FAILED
   REFUNDED
+  CANCELLED
+  PARTIALLY_REFUNDED
+}
+
+enum PaymentType {
+  FULL
+  PARTIAL
+  DEPOSIT
 }
 
 enum CouponType {

@@ -6,6 +6,7 @@ import type { RootState, AppDispatch } from '../store/store';
 import { PriceDisplay } from '../components/common/PriceDisplay';
 import { fetchProducts } from '../store/slices/productsSlice';
 import { SEOHead } from '../components/seo/SEOHead';
+import { getCurrencyForProduct } from '../lib/utils';
 import Slider from 'react-slick';
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
@@ -211,13 +212,13 @@ export const Experiences = () => {
                              <PriceDisplay 
                                amount={product.lowestDiscountedPackagePrice}
                                originalAmount={product.lowestPackagePrice}
-                               currency="INR"
+                               currency={getCurrencyForProduct(product)}
                              />
                             </>
                           ) : (
                            <PriceDisplay 
                              amount={product.lowestPackagePrice || 0}
-                             currency="INR"
+                             currency={getCurrencyForProduct(product)}
                            />
                           )}
                         </div>

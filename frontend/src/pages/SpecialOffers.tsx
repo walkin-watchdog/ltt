@@ -6,6 +6,7 @@ import type { RootState, AppDispatch } from '../store/store';
 import { NewsletterSubscription } from '../components/common/NewsletterSubscription';
 import { SEOHead } from '../components/seo/SEOHead';
 import { PriceDisplay } from '../components/common/PriceDisplay';
+import { getCurrencyForProduct } from '../lib/utils';
 
 export const SpecialOffers = () => {
   const [discountedProducts, setDiscountedProducts] = useState<any[]>([]);
@@ -333,14 +334,14 @@ export const SpecialOffers = () => {
                         <PriceDisplay
                           amount={discountedPrice}
                           originalAmount={basePrice}
-                          currency="INR"
+                          currency={getCurrencyForProduct(product)}
                           className="text-2xl font-bold text-[#ff914d] inline-block"
                         />
                         <div className="text-sm font-semibold text-green-600 mt-1">
                           You Save:&nbsp;
                           <PriceDisplay
                             amount={basePrice - discountedPrice}
-                            currency="INR"
+                            currency={getCurrencyForProduct(product)}
                             className="inline-block"
                           />
                         </div>

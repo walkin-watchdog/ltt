@@ -23,7 +23,7 @@ const captureOrderSchema = z.object({
 });
 
 // Create PayPal order
-router.post('/create-order', authenticate, rateLimitPayment, async (req, res, next) => {
+router.post('/create-order', rateLimitPayment, async (req, res, next) => {
   try {
     const { bookingId, amount, currency } = createOrderSchema.parse(req.body);
     
@@ -69,7 +69,7 @@ router.post('/create-order', authenticate, rateLimitPayment, async (req, res, ne
 });
 
 // Capture PayPal payment
-router.post('/capture', authenticate, rateLimitPayment, async (req, res, next) => {
+router.post('/capture', rateLimitPayment, async (req, res, next) => {
   try {
     const { bookingId, orderId } = captureOrderSchema.parse(req.body);
     
@@ -104,12 +104,22 @@ router.post('/capture', authenticate, rateLimitPayment, async (req, res, next) =
       },
     });
 
+    const paymentRecord = await prisma.payment.findFirst({
+      where: {
+        bookingId: booking.id,
+        paypalOrderId: orderId,
+      },
+      select: { amount: true },
+    });
+
     // Update booking status
     await prisma.booking.update({
       where: { id: booking.id },
       data: {
         status: 'CONFIRMED',
-        paymentStatus: 'PAID',
+        paymentStatus: booking.product?.paymentType === 'FULL' ? 'PAID' : 'PARTIAL',
+        partialPaymentAmount:
+          booking.product?.paymentType === 'FULL' ? undefined : paymentRecord?.amount ?? 0,
       },
       include: {
         product: true,
@@ -189,19 +199,26 @@ router.post('/:paymentId/refund', authenticate, authorize(['ADMIN']), async (req
       const now = new Date();
       const hoursUntilBooking = (bookingDate.getTime() - now.getTime()) / (1000 * 60 * 60);
       
+      // Define type for cancellation term
+      type CancellationTerm = {
+        timeframe: string;
+        refundPercent: number;
+        [key: string]: any;
+      };
+
       // Apply cancellation policy logic
       if (product.cancellationPolicyType && product.cancellationTerms) {
         // Find applicable cancellation term
-        const applicableTerm = product.cancellationTerms.find((term: any) => {
+        const applicableTerm = (product.cancellationTerms as CancellationTerm[]).find((term) => {
           // This is simplified - you'd want more sophisticated time parsing
-          if (term.timeframe.includes('24+ hours') && hoursUntilBooking >= 24) return true;
-          if (term.timeframe.includes('7+ days') && hoursUntilBooking >= 168) return true;
-          if (term.timeframe.includes('4+ days') && hoursUntilBooking >= 96) return true;
-          if (term.timeframe.includes('3-6 days') && hoursUntilBooking >= 72 && hoursUntilBooking < 144) return true;
+          if (typeof term.timeframe === 'string' && term.timeframe.includes('24+ hours') && hoursUntilBooking >= 24) return true;
+          if (typeof term.timeframe === 'string' && term.timeframe.includes('7+ days') && hoursUntilBooking >= 168) return true;
+          if (typeof term.timeframe === 'string' && term.timeframe.includes('4+ days') && hoursUntilBooking >= 96) return true;
+          if (typeof term.timeframe === 'string' && term.timeframe.includes('3-6 days') && hoursUntilBooking >= 72 && hoursUntilBooking < 144) return true;
           return false;
         });
         
-        if (applicableTerm) {
+        if (applicableTerm && typeof applicableTerm.refundPercent === 'number') {
           refundAmount = payment.amount * (applicableTerm.refundPercent / 100);
         }
       } else {

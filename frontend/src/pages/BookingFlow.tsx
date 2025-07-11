@@ -14,6 +14,8 @@ import { toast } from 'react-hot-toast';
 import { isSlotBookable } from '../lib/utils';
 import PhoneInput from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';
+import { getCurrencyForProduct } from '../lib/utils';
+import { PayPalButton } from '../components/payment/PayPalButton';
 
 interface BookingFormData {
   selectedDate: string;
@@ -44,6 +46,9 @@ export const BookingFlow = () => {
   const [couponCode, setCouponCode] = useState<string | null>(null);
   const [couponError, setCouponError] = useState<string>('');
   const [agreeTerms, setAgreeTerms] = useState(false)
+  const [showPaypalBtn, setShowPaypalBtn] = useState(false);
+  const [paypalOrder, setPaypalOrder] = useState<{bookingId:string,orderId:string}|null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<'RAZORPAY'|'PAYPAL'>('RAZORPAY');
 
   const [formData, setFormData] = useState<BookingFormData>({
     selectedDate: '',
@@ -272,6 +277,23 @@ export const BookingFlow = () => {
     appliedDiscount
   ]);
 
+  const calculatePayNow = useCallback(() => {
+    if (!currentProduct) return calculateTotal();
+    switch (currentProduct.paymentType) {
+      case 'PARTIAL':
+        return Math.round(
+          calculateTotal() * ((currentProduct.minimumPaymentPercent ?? 20) / 100)
+        );
+      case 'DEPOSIT':
+        return currentProduct.depositAmount && currentProduct.depositAmount > 0
+          ? currentProduct.depositAmount
+          : calculateTotal();
+      default:
+        return calculateTotal();
+    }
+  }, [currentProduct, calculateTotal]);
+
+
   const { saveAbandonedCart, clearAbandonedCart } = useAbandonedCart(productId);
   const beganRef = useRef(false);
 
@@ -323,6 +345,35 @@ export const BookingFlow = () => {
     }
   }, [dispatch, productId]);
 
+  const initializePayPal = async (
+    booking: { id: string },
+    amount: number,
+    setPaypalOrder: React.Dispatch<React.SetStateAction<{ bookingId: string; orderId: string } | null>>,
+    setShowPaypalBtn: React.Dispatch<React.SetStateAction<boolean>>
+  ) => {
+    if (!currentProduct) {
+      console.error('No product attached to booking');
+      return;
+    }
+    const resp = await fetch(`${import.meta.env.VITE_API_URL}/payments/paypal/create-order`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        bookingId: booking.id,
+        amount,
+        currency: getCurrencyForProduct(currentProduct)
+      }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data?.error || 'PayPal order failed');
+    setPaypalOrder({ bookingId: booking.id, orderId: data.orderId });
+    setShowPaypalBtn(true);
+  };
+    
+  useEffect(()=>{
+    setShowPaypalBtn(false);
+  },[paymentMethod, appliedDiscount, formData.adults, formData.children]);
 
   useEffect(() => {
     if (currentStep === 2 && emailBlurred && formData.customerEmail && currentProduct?.id) {
@@ -345,8 +396,7 @@ export const BookingFlow = () => {
        beganRef.current = true;
       }
     }
-    
-    // Check for recovered cart from abandonment
+
     const recoveryData = sessionStorage.getItem('recover_cart');
     if (recoveryData && currentProduct) {
       try {
@@ -444,15 +494,28 @@ export const BookingFlow = () => {
   };
 
   const initializePayment = async (booking: { id: string }) => {
+    if (!currentProduct) {
+      console.error('No product attached to booking');
+      return;
+    }
+    if (paymentMethod === 'PAYPAL') {
+      try {
+        const amt = calculatePayNow();
+        await initializePayPal(booking, amt, setPaypalOrder, setShowPaypalBtn);
+      } catch (err) {
+        console.error(err);
+        toast.error('Unable to start PayPal payment');
+      }
+      return;
+    }
     try {
-      // Create Razorpay order
       const orderResponse = await fetch(`${import.meta.env.VITE_API_URL}/payments/create-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           bookingId: booking.id,
-          amount: calculateTotal(),
-          currency: 'INR'
+          amount: Math.round(calculatePayNow() * 100),
+          currency: getCurrencyForProduct(currentProduct)
         })
       });
 
@@ -664,15 +727,25 @@ export const BookingFlow = () => {
         </div>
 
         {/* Total amount */}
-        <div className="mt-6 pt-4 border-t border-gray-200">
+        <div className="mt-6 pt-4 border-t border-gray-200 space-y-1">
           <div className="flex justify-between items-center text-lg font-semibold">
             <span>Total Amount:</span>
-            <PriceDisplay amount={calculateTotal()} currency="INR" />
+            <PriceDisplay amount={calculateTotal()} currency={getCurrencyForProduct(currentProduct)} />
           </div>
+          <div className="flex justify-between items-center text-lg font-semibold">
+            <span>Pay Now:</span>
+            <PriceDisplay amount={calculatePayNow()} currency={getCurrencyForProduct(currentProduct)} />
+          </div>
+          {calculatePayNow() < calculateTotal() && (
+            <div className="flex justify-between items-center text-sm text-gray-600">
+              <span>Due Later:</span>
+              <PriceDisplay amount={calculateTotal() - calculatePayNow()} currency={getCurrencyForProduct(currentProduct)} />
+            </div>
+          )}
           {appliedDiscount > 0 && (
             <div className="flex justify-between items-center text-sm text-green-600 mt-1">
               <span>Discount Applied:</span>
-              <span>-₹{appliedDiscount.toLocaleString()}</span>
+              <PriceDisplay amount={appliedDiscount} currency={getCurrencyForProduct(currentProduct)} />
             </div>
           )}
         </div>
@@ -698,7 +771,7 @@ export const BookingFlow = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Add Razorpay script */}
-      <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+      <script key="razorpay" src="https://checkout.razorpay.com/v1/checkout.js"></script>
       
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Progress Steps */}
@@ -924,6 +997,24 @@ export const BookingFlow = () => {
                     {/* Booking Summary */}
                     {renderBookingSummary()}
 
+                    <fieldset className="mb-6">
+                      <legend className="text-sm font-medium text-gray-700 mb-2">Payment Method *</legend>
+                      <div className="space-y-2">
+                        <label className="flex items-center space-x-2">
+                          <input type="radio" name="payMethod" value="RAZORPAY"
+                                 checked={paymentMethod==='RAZORPAY'}
+                                 onChange={()=>setPaymentMethod('RAZORPAY')} />
+                          <span>Razorpay</span>
+                        </label>
+                        <label className="flex items-center space-x-2">
+                          <input type="radio" name="payMethod" value="PAYPAL"
+                                 checked={paymentMethod==='PAYPAL'}
+                                 onChange={()=>setPaymentMethod('PAYPAL')} />
+                          <span>PayPal</span>
+                        </label>
+                      </div>
+                    </fieldset>
+
                     {/* Terms */}
                     <div className="border border-gray-200 rounded-lg p-4">
                       <label className="flex items-start">
@@ -989,16 +1080,55 @@ export const BookingFlow = () => {
                       Pay Later 
                     </button>
                   )}
-                  <button
+                  {/* <button
                     onClick={handleStepSubmit}
                     disabled={bookingLoading || !agreeTerms && currentStep === 3}
                     className="px-6 py-2 bg-[#ff914d] text-white rounded-lg hover:bg-[#e8823d] transition-colors disabled:opacity-50"
                   >
-                    {bookingLoading ? 'Processing...' : 
-                     currentStep === 1 ? 'Continue' :
-                     currentStep === 2 ? 'Review' :
-                     'Pay Now'}
-                  </button>
+                    {bookingLoading
+                    ? 'Processing…'
+                    : currentStep === 1
+                      ? 'Continue'
+                      : currentStep === 2
+                        ? 'Review'
+                        : currentProduct?.paymentType === 'FULL'
+                          ? 'Pay Now'
+                          : 'Pay Deposit'}
+                  </button> */}
+                  {paymentMethod === 'PAYPAL' && currentStep === 3 && showPaypalBtn && paypalOrder
+                    ? <PayPalButton
+                        amount={calculatePayNow()}
+                        currency={getCurrencyForProduct(currentProduct)}
+                        orderId={paypalOrder.orderId}
+                        onSuccess={async()=> {
+                          const cap = await fetch(`${import.meta.env.VITE_API_URL}/payments/paypal/capture`,{
+                            method:'POST',
+                            headers:{'Content-Type':'application/json'},
+                            credentials:'include',
+                            body:JSON.stringify(paypalOrder)
+                          });
+                          if(cap.ok){ setCurrentStep(4); }
+                          else { toast.error('Payment verification failed'); }
+                        }}
+                        onError={()=>toast.error('PayPal error')}
+                        onCancel={()=>toast('Payment cancelled')}
+                      />
+                    : <button
+                        onClick={handleStepSubmit}
+                        disabled={bookingLoading || (currentStep===3 && !agreeTerms)}
+                        className="px-6 py-2 bg-[#ff914d] text-white rounded-lg hover:bg-[#e8823d] transition-colors disabled:opacity-50"
+                      >
+                        {bookingLoading
+                          ? 'Processing…'
+                          : currentStep === 1
+                            ? 'Continue'
+                            : currentStep === 2
+                              ? 'Review'
+                              : paymentMethod === 'RAZORPAY'
+                                ? 'Pay Now'
+                                : 'Pay with PayPal'}
+                      </button>
+                  }
                 </div>
               )}
             </div>
@@ -1051,24 +1181,26 @@ export const BookingFlow = () => {
                   <span>Gross Total:</span>
                   <PriceDisplay 
                     amount={calculateTotal() + appliedDiscount}
-                    currency="INR"
+                    currency={getCurrencyForProduct(currentProduct)}
                     className="text-[#ff914d]"
                   />
                 </div>
                 {appliedDiscount > 0 && (
                   <div className="flex justify-between font-semibold text-lg text-green-600">
                     <span>Savings:</span>
-                    <span><PriceDisplay amount={appliedDiscount} currency="INR" /></span>
+                    <span><PriceDisplay amount={appliedDiscount} currency={getCurrencyForProduct(currentProduct)} /></span>
                   </div>
                 )}
                 <div className="flex justify-between font-semibold text-lg">
-                  <span>Payable:</span>
-                  <PriceDisplay 
-                    amount={calculateTotal()}
-                    currency="INR"
-                    className="text-[#ff914d]"
-                  />
+                  <span>Pay&nbsp;Now:</span>
+                  <PriceDisplay amount={calculatePayNow()} currency={getCurrencyForProduct(currentProduct)} className="text-[#ff914d]" />
                 </div>
+                {calculatePayNow() < calculateTotal() && (
+                  <div className="flex justify-between font-semibold text-sm text-gray-600">
+                    <span>Due&nbsp;Later:</span>
+                    <PriceDisplay amount={calculateTotal() - calculatePayNow()} currency={getCurrencyForProduct(currentProduct)} />
+                  </div>
+                )}
               </div>
 
               {/* Coupon Code */}

@@ -49,7 +49,7 @@ router.post('/create-order', rateLimitPayment, async (req, res, next) => {
       notes: {
         bookingId: booking.id,
         bookingCode: booking.bookingCode,
-        productTitle: booking.product.title,
+        productTitle: booking.product?.title,
       },
     });
 
@@ -96,7 +96,7 @@ router.post('/verify', rateLimitPayment, async (req, res, next) => {
     }
 
     // Update payment record
-    const payment = await prisma.payment.updateMany({
+    await prisma.payment.updateMany({
       where: {
         bookingId: booking.id,
         razorpayOrderId: paymentData.razorpay_order_id,
@@ -108,12 +108,26 @@ router.post('/verify', rateLimitPayment, async (req, res, next) => {
       },
     });
 
+    const paymentRecord = await prisma.payment.findFirst({
+      where: {
+        bookingId: booking.id,
+        razorpayOrderId: paymentData.razorpay_order_id,
+      },
+      select: { amount: true },
+    });
+
+    const isPartialPayment = booking.product?.paymentType !== 'FULL';
+
     // Update booking status
+    const bookingPaymentStatus =
+      booking.product?.paymentType === 'FULL' ? 'PAID' : 'PARTIAL';
+
     const updatedBooking = await prisma.booking.update({
       where: { id: booking.id },
       data: {
         status: 'CONFIRMED',
-        paymentStatus: 'PAID',
+        paymentStatus: isPartialPayment ? 'PARTIAL' : 'PAID',
+        partialPaymentAmount: isPartialPayment ? paymentRecord?.amount ?? 0 : undefined,
       },
       include: {
         product: true,

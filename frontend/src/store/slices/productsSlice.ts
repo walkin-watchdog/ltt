@@ -31,7 +31,7 @@ export interface MeetingPoint {
 }
 
 // Update Product interface types
-interface Product {
+export interface Product {
   cancellationTerms : string[]
   minPeople: boolean;
   cutoffTime: number;
@@ -92,6 +92,9 @@ interface Product {
   lowestDiscountedPackagePrice?: number;
   healthRestrictions?: string[];
   reserveNowPayLater?: boolean;
+  paymentType?: 'FULL' | 'PARTIAL' | 'DEPOSIT';
+  minimumPaymentPercent?: number;
+  depositAmount?: number;
 }
 
 interface ProductsFilter {
