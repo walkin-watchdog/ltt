@@ -3,7 +3,7 @@ import { useState } from "react";
 import { LocationAutocomplete } from "../ui/LocationAutocomplete";
 import { getDescription, predefinedCategories } from "./predefinedcategories";
 import { ImageUploader } from "../gallery/ImageUploader";
-import type { EditItineraryModelProps } from "@/types";
+import type { EditItineraryModelProps, ItineraryActivity } from "@/types";
 import {
   DndContext,
   closestCenter,
@@ -67,9 +67,11 @@ export const EditItineraryModel = ({
     const newIndex = parseInt(over.id as string, 10);
     if (oldIndex === newIndex) return;
 
-    const reordered = arrayMove(editingDay.activities, oldIndex, newIndex).map(
-      (a, i) => ({ ...a, order: i })
-    );
+    const reordered = arrayMove<ItineraryActivity>(
+      editingDay.activities,
+      oldIndex,
+      newIndex
+    ).map((a, i) => ({ ...a, order: i }))
     setEditingDay({ ...editingDay, activities: reordered });
   };
 
@@ -274,12 +276,13 @@ export const EditItineraryModel = ({
                         <LocationAutocomplete
                           value={newActivity.location}
                           onChange={(location, lat, lng, placeId) =>
-                            setNewActivity(prev => ({
-                              ...prev,
-                              location,
-                              lat,
-                              lng,
-                              placeId,
+                            setNewActivity(
+                              (prev: ItineraryActivity): ItineraryActivity => ({
+                                ...prev,
+                                location,
+                                lat,
+                                lng,
+                                placeId,
                             }))
                           }
                           placeholder="Activity location"
@@ -307,7 +310,12 @@ export const EditItineraryModel = ({
                         <textarea
                           value={newActivity.description || ""}
                           onChange={(e) =>
-                            setNewActivity(prev => ({ ...prev, description: e.target.value }))
+                            setNewActivity(
+                              (prev: ItineraryActivity): ItineraryActivity => ({
+                                ...prev,
+                                description: e.target.value,
+                              })
+                            )
                           }
                           className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-xs"
                           placeholder="Describe this activity (optional)"
@@ -323,7 +331,12 @@ export const EditItineraryModel = ({
                         <ImageUploader
                           images={newActivity.images || []}
                           onChange={(images) =>
-                            setNewActivity(prev => ({ ...prev, images }))
+                            setNewActivity(
+                              (prev: ItineraryActivity): ItineraryActivity => ({
+                                ...prev,
+                                images,
+                              })
+                            )
                           }
                           maxImages={10}
                           folder="itinerary-activity"
@@ -699,7 +712,7 @@ export const EditItineraryModel = ({
                     onDragEnd={handleDragEnd}
                   >
                     <SortableContext
-                      items={editingDay.activities.map((_, i) => i.toString())}
+                      items={editingDay.activities.map((_unused: unknown, i: number) => i.toString())}
                       strategy={verticalListSortingStrategy}
                     >
                       <div className="space-y-2">

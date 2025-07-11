@@ -400,7 +400,7 @@ export const Itinerary = ({
             {showOverviewTab && (
               <button
                 onClick={() => setSelectedDay('overview')}
-                className={`flex-shrink-0 px-4 py-3 rounded-lg border-2 transition-all duration-200 ${selectedDay === 'overview'
+                className={`flex-shrink-0 px-4 py-3 border-1 transition-all duration-200 ${selectedDay === 'overview'
                   ? 'bg-[#ff914d] text-white border-[#ff914d]'
                   : 'bg-white text-gray-700 border-gray-200 hover:border-[#ff914d] hover:text-[#ff914d]'
                   }`}
@@ -415,7 +415,7 @@ export const Itinerary = ({
               <button
                 key={day.day}
                 onClick={() => setSelectedDay(day.day)}
-                className={`flex-shrink-0 px-4 py-3 rounded-lg border-2 transition-all duration-200 ${selectedDay === day.day
+                className={`flex-shrink-0 px-4 py-3 border-1 transition-all duration-200 ${selectedDay === day.day
                   ? 'bg-[#ff914d] text-white border-[#ff914d]'
                   : 'bg-white text-gray-700 border-gray-200 hover:border-[#ff914d] hover:text-[#ff914d]'
                   }`}
