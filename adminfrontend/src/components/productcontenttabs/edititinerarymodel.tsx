@@ -40,6 +40,45 @@ export const EditItineraryModel = ({
   saveItineraryDay
 }: EditItineraryModelProps) => {
   const [editingActivityIndex, setEditingActivityIndex] = useState<number | null>(null);
+  const handleAddActivity = () => {
+    if (!newActivity.location || !editingDay) return;
+
+    const finalInclusions = [
+      ...(newActivity.inclusions || []),
+      ...(activityInclusionSubcategory && !newActivity.inclusions?.includes(activityInclusionSubcategory)
+        ? [activityInclusionSubcategory]
+        : []),
+      ...(activityInclusionCustomTitle ? [activityInclusionCustomTitle] : []),
+    ];
+
+    const finalExclusions = [
+      ...(newActivity.exclusions || []),
+      ...(activityExclusionSubcategory && !newActivity.exclusions?.includes(activityExclusionSubcategory)
+        ? [activityExclusionSubcategory]
+        : []),
+      ...(activityExclusionCustomTitle ? [activityExclusionCustomTitle] : []),
+    ];
+
+    setEditingDay({
+      ...editingDay,
+      activities: [
+        ...editingDay.activities,
+        { ...newActivity, inclusions: finalInclusions, exclusions: finalExclusions, order: editingDay.activities.length },
+      ],
+    });
+
+    setNewActivity({ location: '', isStop: false, stopDuration: undefined, durationUnit: 'minutes', isAdmissionIncluded: false, inclusions: [], exclusions: [], order: 0 });
+    setActivityInclusionCategory('');
+    setActivityInclusionSubcategory('');
+    setShowActivityInclusionCustomForm(false);
+    setActivityInclusionCustomTitle('');
+    setActivityInclusionCustomDescription('');
+    setActivityExclusionCategory('');
+    setActivityExclusionSubcategory('');
+    setShowActivityExclusionCustomForm(false);
+    setActivityExclusionCustomTitle('');
+    setActivityExclusionCustomDescription('');
+  };
 
   return (
     <>
@@ -103,13 +142,13 @@ export const EditItineraryModel = ({
                         <LocationAutocomplete
                           value={newActivity.location}
                           onChange={(location, lat, lng, placeId) =>
-                            setNewActivity({
-                              ...newActivity,
-                              location: location,
+                            setNewActivity(prev => ({
+                              ...prev,
+                              location,
                               lat,
                               lng,
                               placeId,
-                            })
+                            }))
                           }
                           placeholder="Activity location"
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-sm"
@@ -128,35 +167,40 @@ export const EditItineraryModel = ({
                         </label>
                       </div>
                     </div>
-                    <div className="mt-3">
-                      <label className="block text-xs font-medium text-gray-700 mb-1">
-                        Activity Description <span className="text-gray-400">(Optional)</span>
-                      </label>
-                      <textarea
-                        value={newActivity.description || ""}
-                        onChange={(e) => setNewActivity({ ...newActivity, description: e.target.value })}
-                        className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-xs"
-                        placeholder="Describe this activity (optional)"
-                        rows={2}
-                      />
-                    </div>
-                    <div className="mt-3">
-                      <label className="block text-xs font-medium text-gray-700 mb-1">
-                        Activity Images (Optional)
-                      </label>
-                      <ImageUploader
-                        images={newActivity.images || []}
-                        onChange={(images) =>
-                          setNewActivity({ ...newActivity, images })
-                        }
-                        maxImages={10}
-                        folder="itinerary-activity"
-                        title="Activity Images"
-                        allowReordering={false}
-                        className="mb-4"
-                      />
-                    </div>
-
+                    {newActivity.isStop && (
+                      <div className="mt-3">
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Activity Description <span className="text-gray-400">(Optional)</span>
+                        </label>
+                        <textarea
+                          value={newActivity.description || ""}
+                          onChange={(e) =>
+                            setNewActivity(prev => ({ ...prev, description: e.target.value }))
+                          }
+                          className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-xs"
+                          placeholder="Describe this activity (optional)"
+                          rows={2}
+                        />
+                      </div>
+                    )}
+                    {newActivity.isStop && (
+                      <div className="mt-3">
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Activity Images (Optional)
+                        </label>
+                        <ImageUploader
+                          images={newActivity.images || []}
+                          onChange={(images) =>
+                            setNewActivity(prev => ({ ...prev, images }))
+                          }
+                          maxImages={10}
+                          folder="itinerary-activity"
+                          title="Activity Images"
+                          allowReordering={false}
+                          className="mb-4"
+                        />
+                      </div>
+                    )}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
                       {/* Duration Fields - Only show when isStop is true */}
                       {newActivity.isStop && (
@@ -192,236 +236,239 @@ export const EditItineraryModel = ({
                       )}
 
                       {/* Admission Inclusion Field */}
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
-                          Admission
-                        </label>
-                        <label className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            checked={newActivity.isAdmissionIncluded || false}
-                            onChange={(e) => setNewActivity({
-                              ...newActivity,
-                              isAdmissionIncluded: e.target.checked
-                            })}
-                            className="h-4 w-4 text-[#ff914d] focus:ring-[#ff914d] border-gray-300 rounded"
-                          />
-                          <span className="text-xs text-gray-700">Is admission to this place included in the price of your tour?</span>
-                        </label>
-                      </div>
+                      {newActivity.isStop && (
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Admission
+                          </label>
+                          <label className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              checked={newActivity.isAdmissionIncluded || false}
+                              onChange={(e) => setNewActivity({
+                                ...newActivity,
+                                isAdmissionIncluded: e.target.checked
+                              })}
+                              className="h-4 w-4 text-[#ff914d] focus:ring-[#ff914d] border-gray-300 rounded"
+                            />
+                            <span className="text-xs text-gray-700">Is admission to this place included in the price of your tour?</span>
+                          </label>
+                        </div>
+                      )}
                     </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
-                          Inclusions
-                        </label>
-                        <div className="space-y-2">
+                    {newActivity.isStop && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Inclusions
+                          </label>
                           <div className="space-y-2">
-                            <div>
-                              <label className="block text-xs font-medium text-gray-700 mb-1">Category</label>
-                              <select
-                                value={activityInclusionCategory}
-                                onChange={(e) => {
-                                  setActivityInclusionCategory(e.target.value);
-                                  setActivityInclusionSubcategory('');
-                                  setShowActivityInclusionCustomForm(e.target.value === 'Custom');
-                                }}
-                                className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-xs"
-                              >
-                                <option value="">Select category...</option>
-                                {Object.keys(predefinedCategories).map(category => (
-                                  <option key={category} value={category}>{category}</option>
-                                ))}
-                                <option value="Custom">Custom</option>
-                              </select>
-                            </div>
-
-                            {activityInclusionCategory && activityInclusionCategory !== 'Custom' && (
+                            <div className="space-y-2">
                               <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">Item</label>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Category</label>
                                 <select
-                                  value={activityInclusionSubcategory}
-                                  onChange={(e) => setActivityInclusionSubcategory(e.target.value)}
+                                  value={activityInclusionCategory}
+                                  onChange={(e) => {
+                                    setActivityInclusionCategory(e.target.value);
+                                    setActivityInclusionSubcategory('');
+                                    setShowActivityInclusionCustomForm(e.target.value === 'Custom');
+                                  }}
                                   className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-xs"
                                 >
-                                  <option value="">Select item...</option>
-                                  {predefinedCategories[activityInclusionCategory as keyof typeof predefinedCategories].items.map(item => (
-                                    <option key={item} value={item}>{item}</option>
+                                  <option value="">Select category...</option>
+                                  {Object.keys(predefinedCategories).map(category => (
+                                    <option key={category} value={category}>{category}</option>
                                   ))}
+                                  <option value="Custom">Custom</option>
                                 </select>
-                                {activityInclusionSubcategory && (
-                                  <p className="text-xs text-gray-500 mt-1">
-                                    {getDescription(activityInclusionCategory, activityInclusionSubcategory)}
-                                  </p>
-                                )}
                               </div>
-                            )}
 
-                            {showActivityInclusionCustomForm && (
-                              <div className="space-y-2 p-2 border border-gray-200 rounded-md bg-white">
+                              {activityInclusionCategory && activityInclusionCategory !== 'Custom' && (
                                 <div>
-                                  <label className="block text-xs font-medium text-gray-700 mb-1">Custom Title</label>
-                                  <input
-                                    type="text"
-                                    value={activityInclusionCustomTitle}
-                                    onChange={(e) => setActivityInclusionCustomTitle(e.target.value)}
+                                  <label className="block text-xs font-medium text-gray-700 mb-1">Item</label>
+                                  <select
+                                    value={activityInclusionSubcategory}
+                                    onChange={(e) => setActivityInclusionSubcategory(e.target.value)}
                                     className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-xs"
-                                    placeholder="Enter custom title"
-                                  />
+                                  >
+                                    <option value="">Select item...</option>
+                                    {predefinedCategories[activityInclusionCategory as keyof typeof predefinedCategories].items.map(item => (
+                                      <option key={item} value={item}>{item}</option>
+                                    ))}
+                                  </select>
+                                  {activityInclusionSubcategory && (
+                                    <p className="text-xs text-gray-500 mt-1">
+                                      {getDescription(activityInclusionCategory, activityInclusionSubcategory)}
+                                    </p>
+                                  )}
                                 </div>
-                                <div>
-                                  <label className="block text-xs font-medium text-gray-700 mb-1">Description (Optional)</label>
-                                  <textarea
-                                    value={activityInclusionCustomDescription}
-                                    onChange={(e) => setActivityInclusionCustomDescription(e.target.value)}
-                                    className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-xs"
-                                    placeholder="Enter description (optional)"
-                                    rows={2}
-                                  />
-                                </div>
-                              </div>
-                            )}
+                              )}
 
-                            <button
-                              type="button"
-                              onClick={addActivityInclusion}
-                              disabled={(!activityInclusionSubcategory && !activityInclusionCustomTitle)}
-                              className="w-full px-2 py-1 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors disabled:bg-gray-300 text-xs"
-                            >
-                              Add Inclusion
-                            </button>
+                              {showActivityInclusionCustomForm && (
+                                <div className="space-y-2 p-2 border border-gray-200 rounded-md bg-white">
+                                  <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">Custom Title</label>
+                                    <input
+                                      type="text"
+                                      value={activityInclusionCustomTitle}
+                                      onChange={(e) => setActivityInclusionCustomTitle(e.target.value)}
+                                      className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-xs"
+                                      placeholder="Enter custom title"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">Description (Optional)</label>
+                                    <textarea
+                                      value={activityInclusionCustomDescription}
+                                      onChange={(e) => setActivityInclusionCustomDescription(e.target.value)}
+                                      className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-xs"
+                                      placeholder="Enter description (optional)"
+                                      rows={2}
+                                    />
+                                  </div>
+                                </div>
+                              )}
+
+                              <button
+                                type="button"
+                                onClick={addActivityInclusion}
+                                disabled={(!activityInclusionSubcategory && !activityInclusionCustomTitle)}
+                                className="w-full px-2 py-1 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors disabled:bg-gray-300 text-xs"
+                              >
+                                Add Inclusion
+                              </button>
+                            </div>
+
+                            <div className="flex flex-wrap gap-1">
+                              {(newActivity.inclusions || []).map((inclusion: string, idx: number) => (
+                                <span key={idx} className="inline-flex items-center bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
+                                  {inclusion.length > 25 ? `${inclusion.substring(0, 25)}...` : inclusion}
+                                  <button
+                                    type="button"
+                                    onClick={() => setNewActivity({
+                                      ...newActivity,
+                                      inclusions: (newActivity.inclusions || []).filter((_: string, i: number) => i !== idx)
+                                    })}
+                                    className="ml-1 text-green-600 hover:text-green-800"
+                                    title={inclusion}
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </span>
+                              ))}
+                            </div>
                           </div>
+                        </div>
 
-                          <div className="flex flex-wrap gap-1">
-                            {(newActivity.inclusions || []).map((inclusion: string, idx: number) => (
-                              <span key={idx} className="inline-flex items-center bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
-                                {inclusion.length > 25 ? `${inclusion.substring(0, 25)}...` : inclusion}
-                                <button
-                                  type="button"
-                                  onClick={() => setNewActivity({
-                                    ...newActivity,
-                                    inclusions: (newActivity.inclusions || []).filter((_: string, i: number) => i !== idx)
-                                  })}
-                                  className="ml-1 text-green-600 hover:text-green-800"
-                                  title={inclusion}
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Exclusions
+                          </label>
+                          <div className="space-y-2">
+                            <div className="space-y-2">
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Category</label>
+                                <select
+                                  value={activityExclusionCategory}
+                                  onChange={(e) => {
+                                    setActivityExclusionCategory(e.target.value);
+                                    setActivityExclusionSubcategory('');
+                                    setShowActivityExclusionCustomForm(e.target.value === 'Custom');
+                                  }}
+                                  className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-xs"
                                 >
-                                  <X className="h-3 w-3" />
-                                </button>
-                              </span>
-                            ))}
+                                  <option value="">Select category...</option>
+                                  {Object.keys(predefinedCategories).map(category => (
+                                    <option key={category} value={category}>{category}</option>
+                                  ))}
+                                  <option value="Custom">Custom</option>
+                                </select>
+                              </div>
+
+                              {activityExclusionCategory && activityExclusionCategory !== 'Custom' && (
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-700 mb-1">Item</label>
+                                  <select
+                                    value={activityExclusionSubcategory}
+                                    onChange={(e) => setActivityExclusionSubcategory(e.target.value)}
+                                    className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-xs"
+                                  >
+                                    <option value="">Select item...</option>
+                                    {predefinedCategories[activityExclusionCategory as keyof typeof predefinedCategories].items.map(item => (
+                                      <option key={item} value={item}>{item}</option>
+                                    ))}
+                                  </select>
+                                  {activityExclusionSubcategory && (
+                                    <p className="text-xs text-gray-500 mt-1">
+                                      {getDescription(activityExclusionCategory, activityExclusionSubcategory)}
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+
+                              {showActivityExclusionCustomForm && (
+                                <div className="space-y-2 p-2 border border-gray-200 rounded-md bg-white">
+                                  <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">Custom Title</label>
+                                    <input
+                                      type="text"
+                                      value={activityExclusionCustomTitle}
+                                      onChange={(e) => setActivityExclusionCustomTitle(e.target.value)}
+                                      className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-xs"
+                                      placeholder="Enter custom title"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">Description (Optional)</label>
+                                    <textarea
+                                      value={activityExclusionCustomDescription}
+                                      onChange={(e) => setActivityExclusionCustomDescription(e.target.value)}
+                                      className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-xs"
+                                      placeholder="Enter description (optional)"
+                                      rows={2}
+                                    />
+                                  </div>
+                                </div>
+                              )}
+
+                              <button
+                                type="button"
+                                onClick={addActivityExclusion}
+                                disabled={(!activityExclusionSubcategory && !activityExclusionCustomTitle)}
+                                className="w-full px-2 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors disabled:bg-gray-300 text-xs"
+                              >
+                                Add Exclusion
+                              </button>
+                            </div>
+
+                            <div className="flex flex-wrap gap-1">
+                              {(newActivity.exclusions || []).map((exclusion: string, idx: number) => (
+                                <span key={idx} className="inline-flex items-center bg-red-100 text-red-800 px-2 py-1 rounded text-xs">
+                                  {exclusion.length > 25 ? `${exclusion.substring(0, 25)}...` : exclusion}
+                                  <button
+                                    type="button"
+                                    onClick={() => setNewActivity({
+                                      ...newActivity,
+                                      exclusions: (newActivity.exclusions || []).filter((_: string, i: number) => i !== idx)
+                                    })}
+                                    className="ml-1 text-red-600 hover:text-red-800"
+                                    title={exclusion}
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </span>
+                              ))}
+                            </div>
                           </div>
                         </div>
                       </div>
-
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
-                          Exclusions
-                        </label>
-                        <div className="space-y-2">
-                          <div className="space-y-2">
-                            <div>
-                              <label className="block text-xs font-medium text-gray-700 mb-1">Category</label>
-                              <select
-                                value={activityExclusionCategory}
-                                onChange={(e) => {
-                                  setActivityExclusionCategory(e.target.value);
-                                  setActivityExclusionSubcategory('');
-                                  setShowActivityExclusionCustomForm(e.target.value === 'Custom');
-                                }}
-                                className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-xs"
-                              >
-                                <option value="">Select category...</option>
-                                {Object.keys(predefinedCategories).map(category => (
-                                  <option key={category} value={category}>{category}</option>
-                                ))}
-                                <option value="Custom">Custom</option>
-                              </select>
-                            </div>
-
-                            {activityExclusionCategory && activityExclusionCategory !== 'Custom' && (
-                              <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">Item</label>
-                                <select
-                                  value={activityExclusionSubcategory}
-                                  onChange={(e) => setActivityExclusionSubcategory(e.target.value)}
-                                  className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-xs"
-                                >
-                                  <option value="">Select item...</option>
-                                  {predefinedCategories[activityExclusionCategory as keyof typeof predefinedCategories].items.map(item => (
-                                    <option key={item} value={item}>{item}</option>
-                                  ))}
-                                </select>
-                                {activityExclusionSubcategory && (
-                                  <p className="text-xs text-gray-500 mt-1">
-                                    {getDescription(activityExclusionCategory, activityExclusionSubcategory)}
-                                  </p>
-                                )}
-                              </div>
-                            )}
-
-                            {showActivityExclusionCustomForm && (
-                              <div className="space-y-2 p-2 border border-gray-200 rounded-md bg-white">
-                                <div>
-                                  <label className="block text-xs font-medium text-gray-700 mb-1">Custom Title</label>
-                                  <input
-                                    type="text"
-                                    value={activityExclusionCustomTitle}
-                                    onChange={(e) => setActivityExclusionCustomTitle(e.target.value)}
-                                    className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-xs"
-                                    placeholder="Enter custom title"
-                                  />
-                                </div>
-                                <div>
-                                  <label className="block text-xs font-medium text-gray-700 mb-1">Description (Optional)</label>
-                                  <textarea
-                                    value={activityExclusionCustomDescription}
-                                    onChange={(e) => setActivityExclusionCustomDescription(e.target.value)}
-                                    className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent text-xs"
-                                    placeholder="Enter description (optional)"
-                                    rows={2}
-                                  />
-                                </div>
-                              </div>
-                            )}
-
-                            <button
-                              type="button"
-                              onClick={addActivityExclusion}
-                              disabled={(!activityExclusionSubcategory && !activityExclusionCustomTitle)}
-                              className="w-full px-2 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors disabled:bg-gray-300 text-xs"
-                            >
-                              Add Exclusion
-                            </button>
-                          </div>
-
-                          <div className="flex flex-wrap gap-1">
-                            {(newActivity.exclusions || []).map((exclusion: string, idx: number) => (
-                              <span key={idx} className="inline-flex items-center bg-red-100 text-red-800 px-2 py-1 rounded text-xs">
-                                {exclusion.length > 25 ? `${exclusion.substring(0, 25)}...` : exclusion}
-                                <button
-                                  type="button"
-                                  onClick={() => setNewActivity({
-                                    ...newActivity,
-                                    exclusions: (newActivity.exclusions || []).filter((_: string, i: number) => i !== idx)
-                                  })}
-                                  className="ml-1 text-red-600 hover:text-red-800"
-                                  title={exclusion}
-                                >
-                                  <X className="h-3 w-3" />
-                                </button>
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                    )}
 
                     <div className="flex justify-end mt-3">
                       {editingActivityIndex === null ? (
                         <button
                           type="button"
-                          onClick={addActivity}
+                          onClick={handleAddActivity}
                           disabled={!newActivity.location}
                           className="px-4 py-2 bg-[#ff914d] text-white rounded-md hover:bg-[#e8823d] transition-colors disabled:bg-gray-300 text-sm"
                         >
@@ -453,19 +500,55 @@ export const EditItineraryModel = ({
                             type="button"
                             onClick={() => {
                               if (editingDay && editingActivityIndex !== null) {
+                                const finalInclusions = [
+                                  ...(newActivity.inclusions ?? []),
+                                  ...(activityInclusionSubcategory
+                                    ? newActivity.inclusions?.includes(activityInclusionSubcategory)
+                                      ? []
+                                      : [activityInclusionSubcategory]
+                                    : []),
+                                  ...(activityInclusionCustomTitle ? [activityInclusionCustomTitle] : []),
+                                ];
+                                const finalExclusions = [
+                                  ...(newActivity.exclusions ?? []),
+                                  ...(activityExclusionSubcategory
+                                    ? newActivity.exclusions?.includes(activityExclusionSubcategory)
+                                      ? []
+                                      : [activityExclusionSubcategory]
+                                    : []),
+                                  ...(activityExclusionCustomTitle ? [activityExclusionCustomTitle] : []),
+                                ];
+                          
+                                const activityToSave = {
+                                  ...newActivity,
+                                  inclusions: finalInclusions,
+                                  exclusions: finalExclusions,
+                                  order: editingActivityIndex,
+                                };
+                          
                                 const updatedActivities = [...editingDay.activities];
-                                updatedActivities[editingActivityIndex] = { ...newActivity, order: editingActivityIndex };
+                                updatedActivities[editingActivityIndex] = activityToSave;
                                 setEditingDay({ ...editingDay, activities: updatedActivities });
                                 setNewActivity({
                                   location: '',
                                   isStop: false,
-                                  stopDuration: undefined, // New duration field
-                                  durationUnit: 'minutes', // New duration unit field
-                                  isAdmissionIncluded: false, // New admission field
+                                  stopDuration: undefined,
+                                  durationUnit: 'minutes',
+                                  isAdmissionIncluded: false,
                                   inclusions: [],
                                   exclusions: [],
                                   order: 0,
                                 });
+                                setActivityInclusionCategory('');
+                                setActivityInclusionSubcategory('');
+                                setShowActivityInclusionCustomForm(false);
+                                setActivityInclusionCustomTitle('');
+                                setActivityInclusionCustomDescription('');
+                                setActivityExclusionCategory('');
+                                setActivityExclusionSubcategory('');
+                                setShowActivityExclusionCustomForm(false);
+                                setActivityExclusionCustomTitle('');
+                                setActivityExclusionCustomDescription('');
                                 setEditingActivityIndex(null);
                               }
                             }}
