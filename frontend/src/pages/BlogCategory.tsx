@@ -13,6 +13,13 @@ export const BlogCategory = () => {
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const getSafeImageUrl = (url: string) => {
+    if (/^https?:\/\/i\d\.wp\.com/.test(url)) return url;
+    return url.replace(
+      /^https?:\/\/luxetimetravel\.wordpress\.com/,
+      'https://i0.wp.com/luxetimetravel.wordpress.com'
+    );
+  };
 
   useEffect(() => {
     const loadCategoryAndPosts = async () => {
@@ -48,19 +55,40 @@ export const BlogCategory = () => {
     loadCategoryAndPosts();
   }, [slug, currentPage]);
 
+  const [blobUrls, setBlobUrls] = useState<Record<number,string>>({});
+
+  useEffect(() => {
+    const newUrls: Record<number,string> = {};
+    posts.forEach(post => {
+      if (post.featuredMediaBlob) {
+        const url = URL.createObjectURL(post.featuredMediaBlob);
+        newUrls[post.id] = url;
+      }
+    });
+    setBlobUrls(newUrls);
+    return () => {
+      Object.values(newUrls).forEach(URL.revokeObjectURL);
+    };
+  }, [posts]);
+
+
   const renderFeaturedImage = (post: Post) => {
-    const featuredMedia = post._embedded?.['wp:featuredmedia']?.[0];
-    if (featuredMedia && featuredMedia.source_url) {
+    if (post.featuredMediaBlob) {
       return (
-        <img 
-          src={featuredMedia.source_url} 
-          alt={featuredMedia.alt_text || post.title.rendered} 
+        <img
+          src={getSafeImageUrl(blobUrls[post.id])}
+          alt={post._embedded?.['wp:featuredmedia']?.[0]?.alt_text || post.title.rendered}
           className="w-full h-48 object-cover"
         />
       );
     }
-    
-    // Fallback image
+    const embedded = post._embedded?.['wp:featuredmedia']?.[0]?.source_url;
+    const fallback = (post as any).jetpack_featured_media_url;
+    const url = embedded ?? fallback;
+    if (url) {
+      const alt = post._embedded?.['wp:featuredmedia']?.[0]?.alt_text || post.title.rendered;
+      return <img src={getSafeImageUrl(url)} alt={alt} className="w-full h-48 object-cover" />;
+    }
     return (
       <div className="w-full h-48 bg-gray-200 flex items-center justify-center">
         <span className="text-gray-400">No Image</span>

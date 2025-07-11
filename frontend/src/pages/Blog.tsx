@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom';
 import { Calendar, User, ChevronLeft, ChevronRight } from 'lucide-react';
 import { fetchPosts, fetchCategories, type Post, type Category } from '../services/wordpressService';
 import { SEOHead } from '../components/seo/SEOHead';
+import { NewsletterSubscription } from '../components/common/NewsletterSubscription';
+
 
 export const Blog = () => {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -13,7 +15,13 @@ export const Blog = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [selectedCategory, setSelectedCategory] = useState<number | undefined>(undefined);
-
+  const getSafeImageUrl = (url: string) => {
+    if (/^https?:\/\/i\d\.wp\.com/.test(url)) return url;
+    return url.replace(
+      /^https?:\/\/luxetimetravel\.wordpress\.com/,
+      'https://i0.wp.com/luxetimetravel.wordpress.com'
+    );
+  };
   useEffect(() => {
     const loadPostsAndCategories = async () => {
       try {
@@ -44,19 +52,40 @@ export const Blog = () => {
     setCurrentPage(1); // Reset to first page when changing category
   };
 
+  const [blobUrls, setBlobUrls] = useState<Record<number,string>>({});
+  useEffect(() => {
+    const map: Record<number,string> = {};
+    posts.forEach(p => {
+      if (p.featuredMediaBlob) {
+        map[p.id] = URL.createObjectURL(p.featuredMediaBlob);
+      }
+    });
+    setBlobUrls(map);
+    return () => Object.values(map).forEach(URL.revokeObjectURL);
+  }, [posts]);
+
   const renderFeaturedImage = (post: Post) => {
-    const featuredMedia = post._embedded?.['wp:featuredmedia']?.[0];
-    if (featuredMedia && featuredMedia.source_url) {
+    if (blobUrls[post.id]) {
       return (
-        <img 
-          src={featuredMedia.source_url} 
-          alt={featuredMedia.alt_text || post.title.rendered} 
+        <img
+          src={getSafeImageUrl(blobUrls[post.id])}
+          alt={post._embedded?.['wp:featuredmedia']?.[0]?.alt_text || post.title.rendered}
           className="w-full h-48 object-cover"
         />
-      );
+      )
     }
-    
-    // Fallback image
+    const embedded = post._embedded?.['wp:featuredmedia']?.[0]?.source_url;
+    const fallback = (post as any).jetpack_featured_media_url;
+    const url = embedded ?? fallback;
+    if (url) {
+      return (
+        <img
+          src={getSafeImageUrl(url)}
+          alt={post._embedded?.['wp:featuredmedia']?.[0]?.alt_text || post.title.rendered}
+          className="w-full h-48 object-cover"
+        />
+      )
+    }
     return (
       <div className="w-full h-48 bg-gray-200 flex items-center justify-center">
         <span className="text-gray-400">No Image</span>
@@ -124,66 +153,6 @@ export const Blog = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Sidebar */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-sm p-6 sticky top-8">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Categories</h2>
-              
-              <ul className="space-y-2">
-                <li>
-                  <button
-                    className={`text-left w-full px-3 py-2 rounded-md ${
-                      !selectedCategory 
-                        ? 'bg-[#ff914d] text-white' 
-                        : 'text-gray-700 hover:bg-gray-100'
-                    }`}
-                    onClick={() => handleCategoryChange(undefined)}
-                  >
-                    All Categories
-                  </button>
-                </li>
-                {categories.map(category => (
-                  <li key={category.id}>
-                    <button
-                      className={`text-left w-full px-3 py-2 rounded-md flex items-center justify-between ${
-                        selectedCategory === category.id 
-                          ? 'bg-[#ff914d] text-white' 
-                          : 'text-gray-700 hover:bg-gray-100'
-                      }`}
-                      onClick={() => handleCategoryChange(category.id)}
-                    >
-                      <span>{category.name}</span>
-                      <span className={`text-xs ${
-                        selectedCategory === category.id 
-                          ? 'bg-white text-[#ff914d]' 
-                          : 'bg-gray-100 text-gray-800'
-                      } rounded-full px-2 py-1`}>
-                        {category.count}
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-
-              <h2 className="text-xl font-bold text-gray-900 mb-4 mt-8">Subscribe</h2>
-              <p className="text-gray-600 mb-4 text-sm">
-                Get the latest travel insights and tips delivered to your inbox.
-              </p>
-              <form className="space-y-3">
-                <input
-                  type="email"
-                  placeholder="Your email address"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-                />
-                <button 
-                  type="submit"
-                  className="w-full bg-[#ff914d] text-white px-4 py-2 rounded-md hover:bg-[#e8823d] transition-colors"
-                >
-                  Subscribe
-                </button>
-              </form>
-            </div>
-          </div>
 
           {/* Main Content */}
           <div className="lg:col-span-3">
@@ -324,6 +293,52 @@ export const Blog = () => {
                 )}
               </>
             )}
+          </div>
+
+          {/* Sidebar */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-lg shadow-sm p-6 sticky top-8">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Categories</h2>
+              
+              <ul className="space-y-2">
+                <li>
+                  <button
+                    className={`text-left w-full px-3 py-2 rounded-md ${
+                      !selectedCategory 
+                        ? 'bg-[#ff914d] text-white' 
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                    onClick={() => handleCategoryChange(undefined)}
+                  >
+                    All Categories
+                  </button>
+                </li>
+                {categories.map(category => (
+                  <li key={category.id}>
+                    <button
+                      className={`text-left w-full px-3 py-2 rounded-md flex items-center justify-between ${
+                        selectedCategory === category.id 
+                          ? 'bg-[#ff914d] text-white' 
+                          : 'text-gray-700 hover:bg-gray-100'
+                      }`}
+                      onClick={() => handleCategoryChange(category.id)}
+                    >
+                      <span>{category.name}</span>
+                      <span className={`text-xs ${
+                        selectedCategory === category.id 
+                          ? 'bg-white text-[#ff914d]' 
+                          : 'bg-gray-100 text-gray-800'
+                      } rounded-full px-2 py-1`}>
+                        {category.count}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+
+              <h2 className="text-xl font-bold text-gray-900 mb-4 mt-8">Subscribe</h2>
+              <NewsletterSubscription />
+            </div>
           </div>
         </div>
       </div>

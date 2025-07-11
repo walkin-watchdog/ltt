@@ -10,7 +10,13 @@ export const BlogPost = () => {
   const [post, setPost] = useState<Post | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
+  const getSafeImageUrl = (url: string) => {
+    if (/^https?:\/\/i\d\.wp\.com/.test(url)) return url;
+    return url.replace(
+      /^https?:\/\/luxetimetravel\.wordpress\.com/,
+      'https://i0.wp.com/luxetimetravel.wordpress.com'
+    );
+  };
   useEffect(() => {
     const loadPost = async () => {
       if (!slug) return;
@@ -77,9 +83,24 @@ export const BlogPost = () => {
     }));
   };
 
+  const [blobUrl, setBlobUrl] = useState<string>();
+
+  useEffect(() => {
+    setBlobUrl(undefined);
+    if (post?.featuredMediaBlob) {
+      const url = URL.createObjectURL(post.featuredMediaBlob);
+      setBlobUrl(url);
+      return () => { URL.revokeObjectURL(url) };
+    }
+  }, [post?.featuredMediaBlob]);
+
   const getFeaturedImage = (post: Post) => {
-    const featuredMedia = post._embedded?.['wp:featuredmedia']?.[0];
-    return featuredMedia?.source_url || '';
+    if (blobUrl) {
+      return blobUrl;
+    }
+    const embedded = post._embedded?.['wp:featuredmedia']?.[0]?.source_url;
+    const fallback = (post as any).jetpack_featured_media_url;
+    return embedded ?? fallback ?? '';
   };
 
   const sharePost = (platform: 'facebook' | 'twitter' | 'linkedin') => {
@@ -158,7 +179,7 @@ export const BlogPost = () => {
           {featuredImage && (
             <div className="h-96 w-full">
               <img 
-                src={featuredImage} 
+                src={getSafeImageUrl(featuredImage)}
                 alt={postTitle} 
                 className="w-full h-full object-cover" 
               />

@@ -13,6 +13,7 @@ export interface Post {
   modified: string;
   slug: string;
   featured_media: number;
+  featuredMediaBlob?: Blob;
   categories: number[];
   tags: number[];
   _embedded?: {
@@ -53,10 +54,16 @@ export interface Tag {
 
 const WP_API_URL: string =
   import.meta.env.VITE_WP_API_URL ??
-  'https://public-api.wordpress.com/wp/v2/sites/yourwordpresssite.com';
+  'https://public-api.wordpress.com/wp/v2/sites/luxetimetravel.wordpress.com';
 
 const WP_USER          = import.meta.env.VITE_WP_USER;
 const WP_APP_PASSWORD  = import.meta.env.VITE_WP_APP_PASSWORD;
+
+const getSafeImageUrl = (url: string) =>
+  url.replace(
+    /^https?:\/\/luxetimetravel\.wordpress\.com/,
+    'https://i0.wp.com/luxetimetravel.wordpress.com'
+  );
 
 const AUTH_HEADER: Record<string, string> =
   WP_USER && WP_APP_PASSWORD
@@ -69,7 +76,7 @@ const wpFetch = (url: string, init: RequestInit = {}) =>
 
 export const fetchPosts = async (page = 1, perPage = 10, categoryId?: number, tagId?: number) => {
   try {
-    let url = `${WP_API_URL}/posts?status=publish,private&_embed=author,wp:featuredmedia,wp:term&page=${page}&per_page=${perPage}`;
+    let url = `${WP_API_URL}/posts?status=publish&_embed=author,wp:featuredmedia,wp:term&page=${page}&per_page=${perPage}`;
     
     if (categoryId) {
       url += `&categories=${categoryId}`;
@@ -88,8 +95,26 @@ export const fetchPosts = async (page = 1, perPage = 10, categoryId?: number, ta
     const posts: Post[] = await response.json();
     const totalPosts  = Number(response.headers.get('X-WP-Total')      ?? 0);
     const totalPages  = Number(response.headers.get('X-WP-TotalPages') ?? 1);
-    
-    return { posts, totalPosts, totalPages };
+    const postsWithBlobs = await Promise.all(
+      posts.map(async post => {
+        const embedded = post._embedded?.['wp:featuredmedia']?.[0]?.source_url;
+        const fallback = (post as any).jetpack_featured_media_url;
+        const imageUrl = embedded ?? fallback;
+
+        if (imageUrl) {
+          try {
+            const safeUrl = getSafeImageUrl(imageUrl);
+            const imgRes = await fetch(safeUrl);
+            if (imgRes.ok) {
+              post.featuredMediaBlob = await imgRes.blob();
+            }
+          } catch {}
+        }
+        return post;
+      })
+    );
+
+    return { posts: postsWithBlobs, totalPosts, totalPages };
   } catch (error) {
     console.error('Error fetching posts:', error);
     throw error;
@@ -98,7 +123,7 @@ export const fetchPosts = async (page = 1, perPage = 10, categoryId?: number, ta
 
 export const fetchPost = async (slug: string) => {
   try {
-    const response = await wpFetch(`${WP_API_URL}/posts?slug=${slug}&status=publish,private&_embed=author,wp:featuredmedia,wp:term`);
+    const response = await wpFetch(`${WP_API_URL}/posts?slug=${slug}&status=publish&_embed=author,wp:featuredmedia,wp:term`);
     
     if (!response.ok) {
       throw new Error(`Failed to fetch post: ${response.status} ${response.statusText}`);
@@ -110,7 +135,21 @@ export const fetchPost = async (slug: string) => {
       throw new Error('Post not found');
     }
     
-    return posts[0];
+    const post = posts[0];
+    const embedded = post._embedded?.['wp:featuredmedia']?.[0]?.source_url;
+    const fallback = (post as any).jetpack_featured_media_url;
+    const imageUrl = embedded ?? fallback;
+
+    if (imageUrl) {
+      try {
+        const safeUrl = getSafeImageUrl(imageUrl);
+        const imgRes = await fetch(safeUrl);
+        if (imgRes.ok) {
+          post.featuredMediaBlob = await imgRes.blob();
+        }
+      } catch {}
+    }
+    return post;
   } catch (error) {
     console.error('Error fetching post:', error);
     throw error;
