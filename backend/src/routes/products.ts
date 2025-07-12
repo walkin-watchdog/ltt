@@ -848,14 +848,12 @@ router.put('/:id', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res
 
       if (packages && Array.isArray(packages)) {
         const keptIds = packages.filter(p => p.id).map(p => p.id!);
-        if (keptIds.length) {
-          await tx.package.deleteMany({
-            where: {
-              productId: req.params.id,
-              id: { notIn: keptIds }
-            }
-          });
-        }
+        await tx.package.deleteMany({
+          where: {
+            productId: req.params.id,
+            ...(keptIds.length ? { id: { notIn: keptIds } } : {})
+          }
+        });
         for (const pkg of packages) {
           const pkgData = {
             name: pkg.name,
