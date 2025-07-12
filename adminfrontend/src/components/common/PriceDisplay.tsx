@@ -1,4 +1,4 @@
-import { useCurrencyConverter } from "@/utils/useCurremcyConverter";
+import { useCurrencyConverter } from "../../utils/useCurrencyConverter";
 
 
 interface PriceDisplayProps {

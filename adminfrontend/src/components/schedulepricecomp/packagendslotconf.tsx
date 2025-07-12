@@ -1,8 +1,6 @@
 import type { Package, PackageAndSlotConfigProps } from "../../types/index.ts"
 import { Clock, Plus, Trash2 } from "lucide-react"
 
-
-
 export const PackageAndSlotConfig = ({
   formData,
   handleEditPackage,

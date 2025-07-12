@@ -125,7 +125,7 @@ export interface ProductFormData {
   location: string;
   duration: string;
   capacity: number;
-  durationType: string;
+  
   // Content
   images: string[];
   highlights: string[];

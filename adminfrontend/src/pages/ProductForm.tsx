@@ -93,8 +93,7 @@ export const ProductForm = () => {
     type: 'TOUR',
     category: '',
     location: '',
-    duration: '2 days', // or '2 Days', etc.
-    durationType: 'days',
+    duration: '2 days',
     images: [],
     highlights: [],
     inclusions: [],

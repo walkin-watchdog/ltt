@@ -124,24 +124,27 @@ export const BasicInfo = ({
               value={
                 formData.duration === 'Full Day' || formData.duration === 'Half Day'
                   ? 1
-                  : formData.duration && formData.duration.endsWith('Hours')
+                  : formData.duration.endsWith('Hours')
                     ? parseInt(formData.duration)
-                    : formData.duration && formData.duration.endsWith('Days')
+                    : formData.duration.endsWith('Days')
                       ? parseInt(formData.duration)
                       : ''
               }
               onChange={e => {
                 const value = Number(e.target.value);
-                if (formData.durationType === 'hours') {
+                const isHours = formData.duration.endsWith('Hours');
+                if (isHours) {
                   updateFormData({ duration: `${value} Hours` });
-                } else if (value === 1 && formData.durationType === 'days') {
-                  updateFormData({ duration: 'Full Day' });
-                } else if (value > 1 && formData.durationType === 'days') {
-                  updateFormData({ duration: `${value} Days` });
+                } else {
+                  if (value === 1) {
+                    updateFormData({ duration: 'Full Day' });
+                  } else {
+                    updateFormData({ duration: `${value} Days` });
+                  }
                 }
               }}
               className="w-full sm:w-32 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
-              // placeholder="e.g., 7"
+              placeholder="e.g., 7"
               required
               disabled={formData.duration === 'Full Day' || formData.duration === 'Half Day'}
             />
@@ -151,36 +154,33 @@ export const BasicInfo = ({
                   ? 'full'
                   : formData.duration === 'Half Day'
                     ? 'half'
-                    : formData.duration && formData.duration.endsWith('Hours')
+                    : formData.duration.endsWith('Hours')
                       ? 'hours'
                       : 'days'
               }
               onChange={e => {
                 const currentValue =
-                  formData.duration && formData.duration.endsWith('Days')
+                  formData.duration.endsWith('Days')
                     ? parseInt(formData.duration) || 1
-                    : formData.duration && formData.duration.endsWith('Hours')
+                    : formData.duration.endsWith('Hours')
                       ? parseInt(formData.duration) || 1
                       : 1;
 
                 if (e.target.value === 'full') {
-                  updateFormData({ duration: 'Full Day', durationType: 'days' });
+                  updateFormData({ duration: 'Full Day' });
                 } else if (e.target.value === 'half') {
-                  updateFormData({ duration: 'Half Day', durationType: 'days' });
+                  updateFormData({ duration: 'Half Day' });
                 } else if (e.target.value === 'hours') {
-                  updateFormData({ duration: `${currentValue > 1 ? currentValue : 1} Hours`, durationType: 'hours' });
+                  updateFormData({ duration: `${currentValue > 1 ? currentValue : 1} Hours` });
                 } else {
-                  updateFormData({ duration: `${currentValue > 1 ? currentValue : 2} Days`, durationType: 'days' });
+                  updateFormData({ duration: `${currentValue > 1 ? currentValue : 2} Days` });
                 }
               }}
               className="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
               required
             >
               <option value="full">Full Day</option>
-              <option value="half" disabled={
-                formData.duration !== 'Full Day' && formData.duration !== 'Half Day' &&
-                parseInt(formData.duration?.split(' ')[0]) > 1
-              }>Half Day</option>
+              <option value="half">Half Day</option>
               <option value="days">Days</option>
               <option value="hours">Hours</option>
             </select>
