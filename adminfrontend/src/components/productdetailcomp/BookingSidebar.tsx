@@ -834,7 +834,7 @@ export const BookingSidebar = ({
           <div className="mt-6 text-center">
             <p className="text-gray-600 mb-2">Need help? Contact us:</p>
             <a
-              href="tel:+1234567890"
+              href="tel:+917821001995"
               className="text-[#ff914d] font-medium block mb-1"
             >
               +91 78210 01995

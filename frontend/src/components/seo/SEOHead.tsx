@@ -98,7 +98,7 @@ export const SEOHead = ({
           },
           "address": {
             "@type": "PostalAddress",
-            "streetAddress": "123 Travel Street",
+            "streetAddress": "375, Masjid Moth Rd, South Extension II, Block A",
             "addressLocality": "New Delhi",
             "addressCountry": "IN"
           }

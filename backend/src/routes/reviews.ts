@@ -39,56 +39,56 @@ const fetchGoogleReviews = async (placeId: string) => {
 };
 
 // TripAdvisor API integration (Note: TripAdvisor has limited public API access)
-const fetchTripAdvisorReviews = async (businessId: string) => {
-  try {
-    // TripAdvisor API is very limited for public access
-    // This is a placeholder for when/if you get API access
-    const apiKey = process.env.TRIPADVISOR_API_KEY;
+// const fetchTripAdvisorReviews = async (businessId: string) => {
+//   try {
+//     // TripAdvisor API is very limited for public access
+//     // This is a placeholder for when/if you get API access
+//     const apiKey = process.env.TRIPADVISOR_API_KEY;
     
-    if (!apiKey) {
-      // Return mock data if no API key
-      return {
-        reviews: [
-          {
-            id: 'ta_1',
-            user: { username: 'TravelExpert2024' },
-            title: 'Excellent Heritage Tour',
-            text: 'Amazing experience with Luxé TimeTravel. Professional guides and well-organized itinerary.',
-            rating: 5,
-            published_date: new Date().toISOString(),
-            url: 'https://tripadvisor.com/review/example'
-          }
-        ],
-        rating: 4.8,
-        total_reviews: 156
-      };
-    }
+//     if (!apiKey) {
+//       // Return mock data if no API key
+//       return {
+//         reviews: [
+//           {
+//             id: 'ta_1',
+//             user: { username: 'TravelExpert2024' },
+//             title: 'Excellent Heritage Tour',
+//             text: 'Amazing experience with Luxé TimeTravel. Professional guides and well-organized itinerary.',
+//             rating: 5,
+//             published_date: new Date().toISOString(),
+//             url: 'https://tripadvisor.com/review/example'
+//           }
+//         ],
+//         rating: 4.8,
+//         total_reviews: 156
+//       };
+//     }
 
-    // Implement actual TripAdvisor API call when available
-    const response = await fetch(
-      `https://api.content.tripadvisor.com/api/v1/location/${businessId}/reviews?key=${apiKey}`,
-      {
-        headers: {
-          'Accept': 'application/json'
-        }
-      }
-    );
+//     // Implement actual TripAdvisor API call when available
+//     const response = await fetch(
+//       `https://api.content.tripadvisor.com/api/v1/location/${businessId}/reviews?key=${apiKey}`,
+//       {
+//         headers: {
+//           'Accept': 'application/json'
+//         }
+//       }
+//     );
 
-    if (!response.ok) {
-      throw new Error('Failed to fetch TripAdvisor reviews');
-    }
+//     if (!response.ok) {
+//       throw new Error('Failed to fetch TripAdvisor reviews');
+//     }
 
-    return await response.json();
-  } catch (error) {
-    logger.error('Error fetching TripAdvisor reviews:', error);
-    // Return mock data on error
-    return {
-      reviews: [],
-      rating: 0,
-      total_reviews: 0
-    };
-  }
-};
+//     return await response.json();
+//   } catch (error) {
+//     logger.error('Error fetching TripAdvisor reviews:', error);
+//     // Return mock data on error
+//     return {
+//       reviews: [],
+//       rating: 0,
+//       total_reviews: 0
+//     };
+//   }
+// };
 
 // Get Google Reviews
 router.get('/google', async (req, res, next) => {
@@ -105,18 +105,18 @@ router.get('/google', async (req, res, next) => {
 });
 
 // Get TripAdvisor Reviews
-router.get('/tripadvisor', async (req, res, next) => {
-  try {
-    const { businessId } = z.object({
-      businessId: z.string().min(1)
-    }).parse(req.query);
+// router.get('/tripadvisor', async (req, res, next) => {
+//   try {
+//     const { businessId } = z.object({
+//       businessId: z.string().min(1)
+//     }).parse(req.query);
 
-    const reviews = await fetchTripAdvisorReviews(businessId);
-    res.json(reviews);
-  } catch (error) {
-    next(error);
-  }
-});
+//     const reviews = await fetchTripAdvisorReviews(businessId);
+//     res.json(reviews);
+//   } catch (error) {
+//     next(error);
+//   }
+// });
 
 // Get combined reviews from all platforms
 router.get('/combined', async (req, res, next) => {
@@ -147,20 +147,20 @@ router.get('/combined', async (req, res, next) => {
     }
 
     // Fetch TripAdvisor reviews
-    if (businessId) {
-      try {
-        const tripadvisorData = await fetchTripAdvisorReviews(businessId);
-        reviews.push(...tripadvisorData.reviews.map((review: any) => ({
-          ...review,
-          platform: 'tripadvisor',
-          id: `tripadvisor_${review.id || Date.now()}`
-        })));
-        totalRating += tripadvisorData.rating * tripadvisorData.total_reviews;
-        totalCount += tripadvisorData.total_reviews;
-      } catch (error) {
-        logger.warn('Failed to fetch TripAdvisor reviews:', error);
-      }
-    }
+    // if (businessId) {
+    //   try {
+    //     const tripadvisorData = await fetchTripAdvisorReviews(businessId);
+    //     reviews.push(...tripadvisorData.reviews.map((review: any) => ({
+    //       ...review,
+    //       platform: 'tripadvisor',
+    //       id: `tripadvisor_${review.id || Date.now()}`
+    //     })));
+    //     totalRating += tripadvisorData.rating * tripadvisorData.total_reviews;
+    //     totalCount += tripadvisorData.total_reviews;
+    //   } catch (error) {
+    //     logger.warn('Failed to fetch TripAdvisor reviews:', error);
+    //   }
+    // }
 
     // Calculate overall rating
     const overallRating = totalCount > 0 ? totalRating / totalCount : 0;

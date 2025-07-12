@@ -84,8 +84,9 @@ export const Contact = () => {
                 <div>
                   <h3 className="font-semibold text-gray-900 mb-1">Address</h3>
                   <p className="text-gray-600">
-                    123 Travel Street<br />
-                    New Delhi, India 110001
+                    375, Masjid Moth Rd,<br />
+                    South Extension II, Block A,<br />
+                    New Delhi, India 110049
                   </p>
                 </div>
               </div>
@@ -101,11 +102,6 @@ export const Contact = () => {
                       +91 78210 01995
                     </a>
                   </p>
-                  <p className="text-gray-600">
-                    <a href="tel:+917821001995" className="hover:text-[#ff914d] transition-colors">
-                      +91 78210 01995
-                    </a>
-                  </p>
                 </div>
               </div>
 
@@ -115,11 +111,6 @@ export const Contact = () => {
                 </div>
                 <div>
                   <h3 className="font-semibold text-gray-900 mb-1">Email</h3>
-                  <p className="text-gray-600">
-                    <a href="mailto:admin@luxetimetravel.com" className="hover:text-[#ff914d] transition-colors">
-                      admin@luxetimetravel.com
-                    </a>
-                  </p>
                   <p className="text-gray-600">
                     <a href="mailto:admin@luxetimetravel.com" className="hover:text-[#ff914d] transition-colors">
                       admin@luxetimetravel.com

@@ -28,23 +28,31 @@ import { GetStarted } from './pages/GetStarted';
 import { BookingDetails } from './pages/BookingDetails'
 
 function AdminCheckRoute({ children }: { children: React.ReactElement }) {
-  const [allowed, setAllowed] = useState(false);
+  const [allowed, setAllowed] = useState<boolean | null>(null); // null = still checking
   const navigate = useNavigate();
+
   useEffect(() => {
+    let cancelled = false;
     (async () => {
       try {
         const res = await fetch(
           `${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/auth/check-admin`
         );
         const { exists } = await res.json();
-        if (exists) navigate('/404', { replace: true });
-        else setAllowed(true);
+        if (exists && !cancelled) {
+          navigate('/404', { replace: true });
+        } else if (!cancelled) {
+          setAllowed(true);
+        }
       } catch {
-        setAllowed(true);
+        if (!cancelled) setAllowed(true);
       }
     })();
+    return () => { cancelled = true; };
   }, [navigate]);
-  return allowed ? children : null;
+
+  if (allowed === null) return null;
+  return children;
 }
 
 function App() {
