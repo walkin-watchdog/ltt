@@ -87,6 +87,7 @@ export const BookingSidebar = ({
   const [showAllTimeSlots, setShowAllTimeSlots] = useState(false);
   const [showDatepicker, setShowDatepicker] = useState(false);
   const [showTravellers, setShowTravellers] = useState(false);
+  const [showAllPackages, setShowAllPackages] = useState(false);
   const datepickerRef = useRef<HTMLDivElement>(null);
   const travellersRef = useRef<HTMLDivElement>(null);
   const [tempAdults, setTempAdults] = useState(adultsCount);
@@ -197,54 +198,39 @@ export const BookingSidebar = ({
   }, [selectedDateStr]);
 
    useEffect(() => {
-    if (
-      selectedPackage &&
-      slotsForPackage.length > 0 &&
-      !selectedSlotId &&
-      !slotsLoading
-    ) {
-      const found = slotsForPackage
-        .flatMap((slot) =>
-          Array.isArray(slot.Time)
-            ? slot.Time.map((time: string) => ({
-                slotId: slot.id,
-                time,
-                slot,
-              }))
-            : []
-        )
-        .find(({ slot, time }) => {
-          const seats = slot.available - (slot.booked || 0);
-          const cutoff = slot.cutoffTime ?? 24;
-          const { isBookable } = isSlotBookable(
-            formatDate(
-              parse(selectedDateStr, "MM/dd/yyyy", new Date()),
-              "yyyy-MM-dd"
-            ),
-            time,
-            cutoff
-          );
-          return seats >= adultsCount + childrenCount && isBookable;
-        });
+    if (slotsLoading || selectedSlotId || slotsForPackage.length === 0) return;
+    const isoDate = formatDate(
+      parse(selectedDateStr, "MM/dd/yyyy", new Date()),
+      "yyyy-MM-dd"
+    );
+    const found = slotsForPackage
+      .flatMap(slot =>
+        Array.isArray(slot.Time)
+          ? slot.Time.map((time: string) => ({ slot, time }))
+          : []
+      )
+      .find(({ slot, time }) => {
+        const seatsLeft = (slot.available ?? currentProduct.capacity) - (slot.booked || 0);
+        const cutoff = slot.cutoffTime ?? currentProduct.cutoffTime ?? 24;
+        return (
+          seatsLeft >= adultsCount + childrenCount &&
+          isSlotBookable(isoDate, time, cutoff).isBookable
+        );
+      });
 
-      if (found) {
-        setSelectedSlotId(found.slotId);
-        setSelectedTimeSlot(found.time);
-        setSelectedSlot(found.slot);
-      }
+    if (found) {
+      setSelectedSlot(found.slot);
+      setSelectedSlotId(found.slot.id);
+      setSelectedTimeSlot(found.time);
     }
   }, [
-    selectedPackage,
     slotsForPackage,
-    selectedSlotId,
     slotsLoading,
+    selectedSlotId,
+    selectedDateStr,
     adultsCount,
     childrenCount,
-    selectedDateStr,
     isSlotBookable,
-    setSelectedSlotId,
-    setSelectedTimeSlot,
-    setSelectedSlot,
   ]);
 
   useEffect(() => {
@@ -639,8 +625,13 @@ export const BookingSidebar = ({
                 Choose Your Package
               </h3>
               <div className="space-y-4">
-                {packagesToShow.slice(0, 2).map((pkg) => {
-                  const allTimes = slotsForPackage.flatMap((slot) =>
+                {packagesToShow.slice(0, 2)
+                  .map((pkg) => {
+                    const pkgSlots =
+                    pkg.id === selectedPackage?.id
+                      ? slotsForPackage
+                      : pkg.slots || [];
+                    const allTimes = pkgSlots.flatMap((slot) =>
                     Array.isArray(slot.Time)
                       ? slot.Time.map((t: string) => ({
                           slotId: slot.id,
@@ -649,7 +640,30 @@ export const BookingSidebar = ({
                         }))
                       : []
                   );
-                  const preview = allTimes.slice(0, 4);
+
+                  const isEnabled = ({ slot, time }: any) => {
+                    const seats =
+                      (slot.available ?? currentProduct.capacity) - (slot.booked || 0);
+                    const cutoff = slot.cutoffTime ?? currentProduct.cutoffTime ?? 24;
+                    const { isBookable } = isSlotBookable(
+                      formatDate(parse(selectedDateStr, "MM/dd/yyyy", new Date()), "yyyy-MM-dd"),
+                      time,
+                      cutoff
+                    );
+                    return seats >= adultsCount + childrenCount && isBookable;
+                  };
+
+                  let preview = allTimes.slice(0, 4);
+                  if (
+                    preview.length === 4 &&
+                    preview.every((p) => !isEnabled(p)) &&
+                    allTimes.length > 4
+                  ) {
+                    const enabled = allTimes.filter(isEnabled);
+                    if (enabled.length) {
+                      preview = enabled.slice(0, 4);
+                    }
+                  }
                   const extra = allTimes.length - preview.length;
                   return (
                     <div
@@ -703,7 +717,7 @@ export const BookingSidebar = ({
                           )}
                         </div>
                       </div>
-                      {selectedPackage?.id === pkg.id && preview.length > 0 && (
+                      {preview.length > 0 && (
                         <div className="mt-4 pt-3 border-t border-gray-200">
                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                             {preview.map(({ slotId, time, slot }) => {
@@ -728,6 +742,9 @@ export const BookingSidebar = ({
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     if (!disabled) {
+                                      if (pkg.id !== selectedPackage?.id) {
+                                        handlePackageSelect(pkg.id);
+                                      }
                                       setSelectedSlotId(slotId);
                                       setSelectedTimeSlot(time);
                                       setSelectedSlot(slot);
@@ -776,6 +793,16 @@ export const BookingSidebar = ({
                     </div>
                   );
                 })}
+                {packagesToShow.length > 2 && (
+                  <div className="text-center">
+                    <button
+                      onClick={() => setShowAvailabilityPopup(true)}
+                      className="mt-2 text-[#104c57] hover:text-[#0e3a41] text-sm font-medium"
+                    >
+                      See more packages
+                    </button>
+                  </div>
+                )}
               </div>
               {selectedPackage && selectedSlotId && selectedTimeSlot && (
                 <div className="mt-4">
@@ -1184,14 +1211,41 @@ export const BookingSidebar = ({
                     {/* Time Slots grid inside pop-up */}
                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                       {(() => {
-                        const allTimes = slotsForPackage.flatMap((slot) =>
+                        const pkgSlots =
+                          pkg.id === selectedPackage?.id
+                            ? slotsForPackage
+                            : pkg.slots || [];
+
+                        const allTimes = pkgSlots.flatMap((slot) =>
                           Array.isArray(slot.Time)
                             ? slot.Time.map((time: any) => ({ slot, time }))
                             : []
                         );
-                        const displayTimes = showAllTimeSlots
-                          ? allTimes
-                          : allTimes.slice(0, 8);
+                        const isEnabled = ({ slot, time }: any) => {
+                          const seats =
+                            (slot.available ?? pkg.maxPeople ?? currentProduct.capacity) -
+                            (slot.booked || 0);
+                          const cutoff = slot.cutoffTime ?? currentProduct.cutoffTime ?? 24;
+                          const { isBookable } = isSlotBookable(
+                            formatDate(parse(selectedDateStr, "MM/dd/yyyy", new Date()), "yyyy-MM-dd"),
+                            time,
+                            cutoff
+                          );
+                          return seats >= adultsCount + childrenCount && isBookable;
+                        };
+
+                        let displayTimes = showAllTimeSlots ? allTimes : allTimes.slice(0, 8);
+                        if (
+                          !showAllTimeSlots &&
+                          displayTimes.length === 8 &&
+                          displayTimes.every((t) => !isEnabled(t)) &&
+                          allTimes.length > 8
+                        ) {
+                          const enabled = allTimes.filter(isEnabled);
+                          if (enabled.length) {
+                            displayTimes = enabled.slice(0, 8);
+                          }
+                        }
 
                         return displayTimes.map(({ slot, time }) => {
                           const seats = slot.available - (slot.booked || 0);

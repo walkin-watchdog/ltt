@@ -115,7 +115,7 @@ export const Pricing = ({
         <div className="flex items-center justify-between mb-3">
         <span className="text-sm text-gray-700">Children:</span>
         <span className="text-sm font-medium text-red-500">
-          Children are not allowed in this tour
+          Children not allowed
         </span>
       </div>
     )}
