@@ -51,12 +51,6 @@ export const ProductForm = () => {
     }
   }, [token]);
 
-  useEffect(() => {
-    if (isEdit && id) fetchProduct();
-    fetchDestinations();
-    fetchExperienceCategories();
-  }, [id, isEdit, token]);
-
   const makeContent = useCallback((inner: string) =>
     (props: any) => (
       <ProductContentTab
@@ -99,7 +93,8 @@ export const ProductForm = () => {
     type: 'TOUR',
     category: '',
     location: '',
-    duration: '',
+    duration: '2 days', // or '2 Days', etc.
+    durationType: 'days',
     images: [],
     highlights: [],
     inclusions: [],
@@ -288,7 +283,7 @@ export const ProductForm = () => {
   };
 
   // Transform slots data to slotConfigs format for the form
-  const transformProductDataForForm = (product: any) => {
+  const transformProductDataForForm = useCallback((product: any) => {
     const normaliseCoords = (day: any) => ({
       ...day,
       activities: day.activities.map((a: any) => ({
@@ -334,9 +329,9 @@ export const ProductForm = () => {
       };
     }
     return product;
-  };
+  }, []);
 
-  const fetchProduct = async () => {
+  const fetchProduct = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await fetch(
@@ -388,7 +383,19 @@ export const ProductForm = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [id, token, transformProductDataForForm]);
+
+  // Effects for loading data
+  useEffect(() => {
+    fetchDestinations();
+    fetchExperienceCategories();
+  }, [fetchDestinations, fetchExperienceCategories]);
+
+  useEffect(() => {
+    if (isEdit && id) {
+      fetchProduct();
+    }
+  }, [isEdit, id, fetchProduct]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

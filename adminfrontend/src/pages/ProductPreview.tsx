@@ -6,34 +6,24 @@ import { useAuth } from '../contexts/AuthContext';
 import { AdminAvailabilityModal } from '../components/common/AdminAvailabilityModal';
 import type { Product, PackageOption } from '../types/index.ts';
 import { formatDate, parse } from 'date-fns';
+import { isSlotBookable } from '../lib/utils';
+import { ProductImageGallery } from '../components/productdetailcomp/ProductImageGallery';
+import { Navbar } from '../components/productdetailcomp/Navbar';
+import { ProductOverview } from '../components/productdetailcomp/ProductOverview';
+import { DetailsDropdown } from '../components/productdetailcomp/DetailsDropdown';
+import { InclusionsExclusions } from '../components/productdetailcomp/InclusionsExclusions';
+import { PickupMeetingInfo } from '../components/productdetailcomp/PickupMeetingInfo';
+import { AccessibilityInfo } from '../components/productdetailcomp/AccessibilityInfo';
+import { GuidesAndLanguages } from '../components/productdetailcomp/GuidesAndLanguages';
+import { HighlightsAndTags } from '../components/productdetailcomp/highlightsandtags';
+import { AdditionalRequirements } from '../components/productdetailcomp/Additionalrequirements';
+import { ProductPolicies } from '../components/productdetailcomp/ProductPolicies';
+import { Itinerary } from '../components/productdetailcomp/Itinerary';
+import { BookingSidebar } from '../components/productdetailcomp/BookingSidebar';
+import { calculateEffectivePrice } from '@/components/productdetailcomp/globalfunc.tsx';
+import { ReviewsWidget } from '@/components/productdetailcomp/ReviewWidget.tsx';
 
-// Import the new refactored components
-import { BookingInfoCard } from '../components/productpreviewcomp/Bookinginfocard.tsx';
-import { ProductImageGallery } from '../components/productpreviewcomp/ProductImageGallery';
-import { AvailabilityStatusBanner } from '../components/productpreviewcomp/AvailabilityStatusBanner';
-import { ProductNavigationTabs } from '../components/productpreviewcomp/ProductNavigationTabs';
-import { ProductOverview } from '../components/productpreviewcomp/ProductOverview';
-import { GuidesLanguages } from '../components/productpreviewcomp/GuidesLanguages';
-import { AccessibilityFeatures } from '../components/productpreviewcomp/AccessibilityFeatures';
-import { PickupMeetingInfo } from '../components/productpreviewcomp/PickupMeetingInfo';
-import { ProductItinerary } from '../components/productpreviewcomp/ProductItinerary';
-import { InclusionsExclusions } from '../components/productpreviewcomp/InclusionsExclusions';
-import { ProductPolicies } from '../components/productpreviewcomp/ProductPolicies';
-
-// Helper function to calculate the effective price after discount
-const calculateEffectivePrice = (basePrice: number, discountType?: string, discountValue?: number) => {
-  if (!discountType || discountType === 'none' || !discountValue) {
-    return basePrice;
-  }
-
-  if (discountType === 'percentage') {
-    return basePrice * (1 - (discountValue / 100));
-  } else if (discountType === 'fixed') {
-    return Math.max(0, basePrice - discountValue);
-  }
-
-  return basePrice;
-};
+// Helper function to calculate the effective price after disco
 
 export const ProductPreview = () => {
   const { id } = useParams<{ id: string }>();
@@ -42,24 +32,29 @@ export const ProductPreview = () => {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [activeTab, setActiveTab] = useState<'overview' | 'itinerary' | 'inclusions' | 'policies'>('overview');
   const todayStr = new Date().toLocaleDateString('en-US');
   const [selectedDateStr, setSelectedDateStr] = useState(todayStr);
   const [adultsCount, setAdultsCount] = useState(2);
   const [childrenCount, setChildrenCount] = useState(0);
   const [checkingAvail, setCheckingAvail] = useState(false);
   const [isDateOk, setIsDateOk] = useState<boolean | null>(null);
-  const [availablePkgs, setAvailablePkgs] = useState<PackageOption[]>([]);
+  const [availablePackages, setAvailablePackages] = useState<PackageOption[]>([]);
   const [selectedPackage, setSelectedPackage] = useState<PackageOption | null>(null);
   const [cheapestPackage, setCheapestPackage] = useState<PackageOption | null>(null);
+  const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<any>(null);
+  const [slotsForPackage, setSlotsForPackage] = useState<any[]>([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null);
+  const [departureDropdownOpen, setDepartureDropdownOpen] = useState(false);
   const [showAvail, setShowAvail] = useState(false);
   const isMobile = useMediaQuery('(max-width:1023px)');
 
   // Refs for scroll navigation
   const overviewRef = useRef<HTMLDivElement>(null);
   const itineraryRef = useRef<HTMLDivElement>(null);
-  const inclusionsRef = useRef<HTMLDivElement>(null);
-  const policiesRef = useRef<HTMLDivElement>(null);
+  const detailsRef = useRef<HTMLDivElement>(null);
+  const reviewsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -109,20 +104,62 @@ export const ProductPreview = () => {
     setCheapestPackage(cheapest);
   }, [product]);
 
-  // Add cleanup effect for Google Maps
+  // Fetch available slots when a package is selected
   useEffect(() => {
-    return () => {
-      // Cleanup any Google Maps instances when component unmounts
-      if (window.google && window.google.maps) {
-        const autocompleteInstances = document.querySelectorAll('input[data-autocomplete]');
-        autocompleteInstances.forEach(input => {
-          if ((input as any).__autocomplete) {
-            google.maps.event.clearInstanceListeners((input as any).__autocomplete);
+    if (!selectedPackage || !selectedDateStr) return;
+
+    const fetchSlots = async () => {
+      setSlotsLoading(true);
+      try {
+        const iso = formatDate(parse(selectedDateStr, 'MM/dd/yyyy', new Date()), 'yyyy-MM-dd');
+        const dayOfWeek = parse(selectedDateStr, 'MM/dd/yyyy', new Date()).toLocaleDateString('en-US', { weekday: 'long' });
+        const base = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+        const res = await fetch(`${base}/availability/package/${selectedPackage.id}/slots?date=${iso}`);
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.slots && Array.isArray(data.slots)) {
+            // Filter slots based on day of week
+            const filteredSlots = data.slots.filter((slot: { days: string | string[]; }) =>
+              Array.isArray(slot.days) && slot.days.includes(dayOfWeek)
+            );
+
+            // Filter slots based on cutoff time
+            const availableSlots = filteredSlots.filter((slot: any) => {
+              if (!slot.Time || !Array.isArray(slot.Time) || slot.Time.length === 0) {
+                return false;
+              }
+
+              // Check if any time in the slot is still bookable
+              return slot.Time.some((time: string) => {
+                const cutoffTime = slot.cutoffTime || 24;
+                const { isBookable } = isSlotBookable(iso, time, cutoffTime);
+                return isBookable;
+              });
+            });
+
+            setSlotsForPackage(availableSlots);
+            // Reset selected time slot when slots change
+            setSelectedSlot(null);
+            setSelectedSlotId(null);
+            setSelectedTimeSlot(null);
+          } else {
+            setSlotsForPackage([]);
           }
-        });
+        } else {
+          console.error('Failed to fetch slots:', await res.text());
+          setSlotsForPackage([]);
+        }
+      } catch (error) {
+        console.error('Error fetching slots:', error);
+        setSlotsForPackage([]);
+      } finally {
+        setSlotsLoading(false);
       }
     };
-  }, []);
+
+    fetchSlots();
+  }, [selectedPackage, selectedDateStr]);
 
   const handleBarChange = ({ date, adults, children }: {
     date: string; adults: number; children: number;
@@ -130,116 +167,21 @@ export const ProductPreview = () => {
     setSelectedDateStr(date);
     setAdultsCount(adults);
     setChildrenCount(children);
-    setIsDateOk(null);
-    setAvailablePkgs([]);
     setSelectedPackage(null);
+    setSelectedSlotId(null);
+    setSelectedSlot(null);
+    setIsDateOk(null);
+    setAvailablePackages([]);
   };
 
-  const handlePackageSelect = (pkgId: string | PackageOption) => {
-    console.log('product.packages:', product?.packages);
-    console.log('pkgId:', pkgId);
-    const pkg =
-      typeof pkgId === 'string'
-        ? product?.packages?.find(p => p.id === pkgId)
-        : (pkgId as PackageOption);
-
+  const handlePackageSelect = (pkgId: string) => {
+    const pkg = product?.packages?.find((p: any) => p.id === pkgId);
     if (!pkg) return;
+
     setSelectedPackage(pkg);
-
-    if (isMobile) {
-      setIsDateOk(true);
-      setShowAvail(false);
-    }
-  };
-
-  const checkAvailabilityDesktop = () => {
-    if (isMobile || !product) return;
-
-    // Format the date string properly
-    try {
-      const date = parse(selectedDateStr, 'MM/dd/yyyy', new Date());
-      const isoDate = formatDate(date, 'yyyy-MM-dd');
-
-      setCheckingAvail(true);
-
-      (async () => {
-        try {
-          const base = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
-          const url = `${base}/availability/product/${product.id}?startDate=${isoDate}&endDate=${isoDate}`;
-          console.log('Fetching availability from:', url);
-
-          const res = await fetch(url);
-
-          if (!res.ok) {
-            console.error('Error fetching availability:', res.status, await res.text());
-            setIsDateOk(false);
-            setAvailablePkgs([]);
-            setCheckingAvail(false);
-            return;
-          }
-
-          const json = await res.json();
-          console.log('Availability response:', json);
-
-          const slot = json.availability?.find(
-            (a: any) =>
-              new Date(a.startDate) <= new Date(isoDate) &&
-              (!a.endDate || new Date(a.endDate) >= new Date(isoDate))
-          );
-
-          if (!slot) {
-            console.log('No slot found for the selected date');
-            setIsDateOk(false);
-            setAvailablePkgs([]);
-            setCheckingAvail(false);
-            return;
-          }
-
-          if (slot.status !== 'AVAILABLE') {
-            console.log('Slot status is not AVAILABLE:', slot.status);
-            setIsDateOk(false);
-            setAvailablePkgs([]);
-          } else {
-            // If product is available, show all packages that have time slots for this day of week
-            setIsDateOk(true);
-            const pkgsWithTimeSlots = product.packages ?? [];
-            setAvailablePkgs(pkgsWithTimeSlots);
-            console.log('Available packages:', pkgsWithTimeSlots.length);
-          }
-        } catch (error) {
-          console.error('Error in availability check:', error);
-          setIsDateOk(false);
-          setAvailablePkgs([]);
-          console.log('Error, no packages available');
-        }
-        setCheckingAvail(false);
-      })();
-    } catch (error) {
-      console.error('Error parsing date:', error);
-      setIsDateOk(false);
-      setAvailablePkgs([]);
-      setCheckingAvail(false);
-    }
-  };
-
-  // Handle tab click with smooth scrolling
-  const handleTabClick = (tab: 'overview' | 'itinerary' | 'inclusions' | 'policies') => {
-    setActiveTab(tab);
-
-    const refs = {
-      overview: overviewRef,
-      itinerary: itineraryRef,
-      inclusions: inclusionsRef,
-      policies: policiesRef,
-    };
-
-    const targetRef = refs[tab];
-    if (targetRef.current) {
-      targetRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start',
-      });
-    }
+    setSelectedSlotId(null);
+    setSelectedSlot(null);
+    setSelectedTimeSlot(null);
   };
 
   if (loading) {
@@ -263,6 +205,10 @@ export const ProductPreview = () => {
       </div>
     );
   }
+
+  const averageRating = product.reviews && product.reviews.length > 0
+    ? product.reviews.reduce((sum: number, review: any) => sum + review.rating, 0) / product.reviews.length
+    : 4.8;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -288,71 +234,215 @@ export const ProductPreview = () => {
         </button>
       </header>
 
-      {/* Image Gallery */}
-      <ProductImageGallery
-        product={product}
-        currentImageIndex={currentImageIndex}
-        setCurrentImageIndex={setCurrentImageIndex}
-      />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Image Gallery */}
+        <ProductImageGallery
+          setCurrentImageIndex={setCurrentImageIndex}
+          currentImageIndex={currentImageIndex}
+          product={product}
+        />
 
-      {/* Status banner */}
-      <AvailabilityStatusBanner product={product} />
+        {/* Thumbnail Grid */}
+        {product.images.length > 1 && (
+          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 mt-4">
+            {product.images.slice(0, 10).map((image, index) => (
+              <button
+                key={index}
+                onClick={() => setCurrentImageIndex(index)}
+                className={`h-20 rounded-lg overflow-hidden border-2 ${index === currentImageIndex ? 'border-[#ff914d]' : 'border-transparent'
+                  }`}
+              >
+                <img src={image} alt="" className="w-full h-full object-cover" />
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <section className="lg:col-span-2 space-y-8">
-          {/* Navigation tabs */}
-          <ProductNavigationTabs
-            activeTab={activeTab}
-            handleTabClick={handleTabClick}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 ml-5 mr-5 lg:ml-10 lg:mr-10">
+        <div className="lg:col-span-2">
+          {/* Tabbed Navigation Bar */}
+          <Navbar
+            overviewRef={overviewRef}
+            itineraryRef={itineraryRef}
+            detailsRef={detailsRef}
+            reviewsRef={reviewsRef}
           />
 
-          {/* Overview Section */}
-          <div ref={overviewRef}>
-            <ProductOverview product={product} />
+          {/* Main Content */}
+          <div className="relative mb-8">
+            {/* Overview Section */}
+            <ProductOverview overviewRef={overviewRef} averageRating={averageRating} product={product} />
+
+            {/* Details Section */}
+            <div ref={detailsRef} className="bg-white rounded-lg shadow-sm p-6 mb-8 scroll-mt-20">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Details</h2>
+
+              {/* Details Dropdowns */}
+              <div className="space-y-4">
+                {/* What's included */}
+                <DetailsDropdown title="What's included" defaultOpen={true}>
+                  <InclusionsExclusions product={product} />
+                </DetailsDropdown>
+
+                {/* Departure and return */}
+                <div data-dropdown="departure-return">
+                  <DetailsDropdown
+                    title="Departure and return"
+                    isOpen={departureDropdownOpen}
+                    onToggle={setDepartureDropdownOpen}
+                  >
+                    <PickupMeetingInfo product={product} />
+                  </DetailsDropdown>
+                </div>
+
+                {/* Accessibility */}
+                <DetailsDropdown title="Accessibility">
+                  <AccessibilityInfo product={product} />
+                </DetailsDropdown>
+
+                {/* Guides and Languages */}
+                {product.guides && Array.isArray(product.guides) && product.guides.length > 0 && (
+                  <DetailsDropdown title="Guides and Languages">
+                    <GuidesAndLanguages product={product} />
+                  </DetailsDropdown>
+                )}
+
+                {/* Highlights and Tags */}
+                {(product.highlights?.length || product.tags?.length) > 0 && (
+                  <DetailsDropdown title="Highlights and Tags">
+                    <div className="p-4">
+                      <HighlightsAndTags product={product} />
+                    </div>
+                  </DetailsDropdown>
+                )}
+
+                {/* Additional Information */}
+                {(product.requirePhone || product.requireId || product.requireAge ||
+                  product.requireMedical || product.requireDietary ||
+                  product.requireEmergencyContact || product.requirePassportDetails ||
+                  (Array.isArray(product.customRequirementFields) && product.customRequirementFields.length > 0) ||
+                  product.additionalRequirements) && (
+                    <DetailsDropdown title="Additional information">
+                      <div>
+                        <AdditionalRequirements product={product} />
+                      </div>
+                    </DetailsDropdown>
+                  )}
+
+                {/* Cancellation policy */}
+                {product.cancellationPolicy && (
+                  <DetailsDropdown title="Cancellation policy">
+                    <ProductPolicies product={product} />
+                  </DetailsDropdown>
+                )}
+
+                {/* Help */}
+                <DetailsDropdown title="Help">
+                  <div className="p-6">
+                    <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6 border border-green-200">
+                      <div className="flex items-center space-x-3 mb-6">
+                        <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
+                          <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192L5.636 18.364M12 2.25a9.75 9.75 0 100 19.5 9.75 9.75 0 000-19.5z" />
+                          </svg>
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-900">Customer Support</h3>
+                      </div>
+                      <div className="space-y-4">
+                        <p className="text-gray-700 leading-relaxed mb-4">Need assistance? Our customer support team is here to help you 24/7.</p>
+
+                        <div className="grid gap-4">
+                          <div className="flex items-center space-x-4 p-4 bg-white rounded-xl shadow-sm border border-green-100">
+                            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                              <svg className="h-4 w-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                              </svg>
+                            </div>
+                            <div>
+                              <span className="font-semibold text-gray-800 block">Phone Support</span>
+                              <span className="text-blue-600 font-medium">+91 78210 01995</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center space-x-4 p-4 bg-white rounded-xl shadow-sm border border-green-100">
+                            <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                              <svg className="h-4 w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                              </svg>
+                            </div>
+                            <div>
+                              <span className="font-semibold text-gray-800 block">Email Support</span>
+                              <span className="text-purple-600 font-medium">admin@luxetimetravel.com</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center space-x-4 p-4 bg-white rounded-xl shadow-sm border border-green-100">
+                            <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                              <svg className="h-4 w-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            </div>
+                            <div>
+                              <span className="font-semibold text-gray-800 block">Availability</span>
+                              <span className="text-green-600 font-medium">24/7 for your convenience</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </DetailsDropdown>
+              </div>
+            </div>
+
+            {/* Itinerary Section */}
+            <Itinerary
+              itineraryRef={itineraryRef}
+              detailsRef={detailsRef}
+              onNavigateToDeparture={() => setDepartureDropdownOpen(true)}
+              product={product}
+            />
+
+            {/* Reviews Section */}
+            <div ref={reviewsRef} className="bg-white rounded-lg shadow-sm p-6 mb-8 scroll-mt-20">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Reviews</h2>
+              <ReviewsWidget
+                googlePlaceId={import.meta.env.VITE_GOOGLE_REVIEWS_PLACE_ID}
+                tripadvisorBusinessId={import.meta.env.VITE_TRIPADS_API_KEY}
+                className=""
+              />
+            </div>
           </div>
+        </div>
 
-          {/* Guides & Languages */}
-          <GuidesLanguages product={product} />
-
-          {/* Accessibility Features */}
-          <AccessibilityFeatures product={product} />
-
-          {/* Pickup & Meeting Information */}
-          <PickupMeetingInfo product={product} />
-
-          {/* Itinerary Section */}
-          <div ref={itineraryRef}>
-            <ProductItinerary product={product} />
-          </div>
-
-          {/* Inclusions / Exclusions Section */}
-          <div ref={inclusionsRef}>
-            <InclusionsExclusions product={product} />
-          </div>
-
-          {/* Policies Section */}
-          <div ref={policiesRef}>
-            <ProductPolicies product={product} />
-          </div>
-        </section>
-
-        {/* Booking Info Card */}
-        <BookingInfoCard
-          product={product}
+        {/* Booking Sidebar */}
+        <BookingSidebar
           cheapestPackage={cheapestPackage}
+          currentProduct={product}
           selectedDateStr={selectedDateStr}
           adultsCount={adultsCount}
           childrenCount={childrenCount}
           isMobile={isMobile}
+          setCheckingAvail={setCheckingAvail}
+          setIsDateOk={setIsDateOk}
+          setAvailablePackages={setAvailablePackages}
+          setSelectedSlotId={setSelectedSlotId}
+          setSelectedTimeSlot={setSelectedTimeSlot}
+          calculateEffectivePrice={calculateEffectivePrice}
+          handleBarChange={handleBarChange}
+          selectedPackage={selectedPackage}
           checkingAvail={checkingAvail}
           isDateOk={isDateOk}
-          availablePkgs={availablePkgs}
-          selectedPackage={selectedPackage}
-          handleBarChange={handleBarChange}
+          availablePackages={availablePackages}
+          slotsLoading={slotsLoading}
+          slotsForPackage={slotsForPackage}
+          selectedSlot={selectedSlot}
+          selectedSlotId={selectedSlotId}
+          selectedTimeSlot={selectedTimeSlot}
           handlePackageSelect={handlePackageSelect}
-          checkAvailabilityDesktop={checkAvailabilityDesktop}
-          setShowAvail={setShowAvail}
-          calculateEffectivePrice={calculateEffectivePrice}
+          setSelectedSlot={setSelectedSlot}
+          isSlotBookable={isSlotBookable}
         />
       </div>
 

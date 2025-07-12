@@ -30,5 +30,5 @@
       ]
     }
   },
-  "include": ["src"]
+  "include": ["src", "../adminfrontend/src/utils/useCurremcyConverter.ts"]
 }

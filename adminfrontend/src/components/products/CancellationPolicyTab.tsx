@@ -11,12 +11,18 @@ export const CancellationPolicyTab = ({ formData, updateFormData }: Cancellation
     if (formData.cancellationPolicyType === 'standard' && !formData.cancellationPolicy) {
       const defaultPolicyKey = 'standard';
       const defaultPolicy = predefinedPolicies[defaultPolicyKey];
+      const policyText = `${defaultPolicy.label}: ${defaultPolicy.description}\n\n` +
+        defaultPolicy.terms.map(term =>
+          `• ${term.timeframe}: ${term.refundPercent}% refund - ${term.description}`
+        ).join('\n');
+
       updateFormData({
         cancellationPolicyType: defaultPolicyKey,
         freeCancellationHours: defaultPolicy.freeCancellationHours,
         partialRefundPercent: defaultPolicy.partialRefundPercent,
         noRefundAfterHours: defaultPolicy.noRefundAfterHours,
         cancellationTerms: defaultPolicy.terms,
+        cancellationPolicy: policyText
       });
     }
   }, [
@@ -24,6 +30,7 @@ export const CancellationPolicyTab = ({ formData, updateFormData }: Cancellation
     formData.cancellationPolicy,
     updateFormData
   ]);
+
 
   const handlePolicyTypeChange = (policyType: string) => {
     if (policyType === 'custom') {
@@ -40,6 +47,9 @@ export const CancellationPolicyTab = ({ formData, updateFormData }: Cancellation
         partialRefundPercent: policy.partialRefundPercent,
         noRefundAfterHours: policy.noRefundAfterHours,
         cancellationTerms: policy.terms,
+        cancellationPolicy: `${policy.label}: ${policy.description}\n\n${policy.terms.map(term => 
+          `• ${term.timeframe}: ${term.refundPercent}% refund - ${term.description}`
+        ).join('\n')}`
       });
       setActivePolicyTab('standard');
     }
@@ -60,11 +70,23 @@ export const CancellationPolicyTab = ({ formData, updateFormData }: Cancellation
     const updatedTerms = [...(formData.cancellationTerms || [])];
     updatedTerms[index] = { ...updatedTerms[index], ...updates };
     updateFormData({ cancellationTerms: updatedTerms });
+    
+    // Auto-generate policy text from terms
+    const policyText = updatedTerms.map(term => 
+      `• ${term.timeframe}: ${term.refundPercent}% refund - ${term.description}`
+    ).join('\n');
+    updateFormData({ cancellationPolicy: policyText });
   };
 
   const removeCustomTerm = (index: number) => {
     const updatedTerms = (formData.cancellationTerms || []).filter((_: any, i: number) => i !== index);
     updateFormData({ cancellationTerms: updatedTerms });
+    
+    // Auto-generate policy text from updated terms
+    const policyText = updatedTerms.map((term: CancellationTerm) => 
+      `• ${term.timeframe}: ${term.refundPercent}% refund - ${term.description}`
+    ).join('\n');
+    updateFormData({ cancellationPolicy: policyText });
   };
 
   return (
@@ -129,20 +151,6 @@ export const CancellationPolicyTab = ({ formData, updateFormData }: Cancellation
               </div>
             </div>
           </div>
-
-          {/* Standard Policy Terms */}
-          {formData.cancellationPolicyType !== 'custom' && (
-            <div className="bg-gray-50 p-6 rounded-lg space-y-2">
-              <h4 className="font-medium mb-2">Policy Terms</h4>
-              <ul className="list-disc pl-5 text-sm text-gray-700 space-y-1">
-                {formData.cancellationTerms?.map((term: CancellationTerm, idx: number) => (
-                  <li key={idx}>
-                    <span className="font-semibold">{term.timeframe}:</span> {term.refundPercent}% refund - {term.description}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
 
           {/* Custom Policy Builder */}
           {formData.cancellationPolicyType === 'custom' && (
@@ -227,6 +235,24 @@ export const CancellationPolicyTab = ({ formData, updateFormData }: Cancellation
               )}
             </div>
           )}
+
+          {/* Final Policy Text */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Final Policy Text *
+            </label>
+            <textarea
+              rows={6}
+              value={formData.cancellationPolicy || ''}
+              onChange={(e) => updateFormData({ cancellationPolicy: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] focus:border-transparent"
+              placeholder="This will be auto-generated for standard policies, or enter custom policy text..."
+              required
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              This text will appear on booking confirmations and vouchers
+            </p>
+          </div>
         </div>
       </div>
     </div>

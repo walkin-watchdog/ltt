@@ -50,7 +50,6 @@ export const EditItineraryModel = ({
   setShowActivityExclusionCustomForm,
   addActivityInclusion,
   addActivityExclusion,
-  addActivity,
   removeActivity,
   saveItineraryDay
 }: EditItineraryModelProps) => {
@@ -101,6 +100,23 @@ export const EditItineraryModel = ({
         {...listeners}
         className="flex items-start justify-between bg-white border border-gray-200 px-4 py-3 rounded-md"
       >
+         <button
+      {...listeners}
+      className="mr-3 cursor-grab active:cursor-grabbing p-1"
+      title="Drag to reorder"
+      style={{ touchAction: 'none' }}
+      type="button"
+    >
+      <svg width="20" height="20" fill="none" viewBox="0 0 20 20">
+        <circle cx="5" cy="6" r="1.5" fill="#888" />
+        <circle cx="5" cy="10" r="1.5" fill="#888" />
+        <circle cx="5" cy="14" r="1.5" fill="#888" />
+        <circle cx="15" cy="6" r="1.5" fill="#888" />
+        <circle cx="15" cy="10" r="1.5" fill="#888" />
+        <circle cx="15" cy="14" r="1.5" fill="#888" />
+      </svg>
+    </button>
+    
         <div className="flex-1">
           {activity.description && (
             <div className="text-xs text-gray-600 mt-1">{activity.description}</div>

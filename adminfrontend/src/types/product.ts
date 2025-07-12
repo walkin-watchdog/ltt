@@ -49,7 +49,7 @@ export interface Product {
   pickupStartTime: string;
   meetingPoint: boolean;
   doesTourEndAtMeetingPoint: boolean;
-  
+  pickupLocations: string[];
   // Accessibility
   wheelchairAccessible: string;
   strollerAccessible: string;
@@ -86,7 +86,7 @@ export interface Product {
   guides: boolean;
   
   // Methods (these should probably be moved to utils)
-  pickupLocations(pickupLocations: string[]): [];
+ 
 }
 
 export interface Productprop {
@@ -125,7 +125,7 @@ export interface ProductFormData {
   location: string;
   duration: string;
   capacity: number;
-  
+  durationType: string;
   // Content
   images: string[];
   highlights: string[];

@@ -1,7 +1,5 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
-import { Provider } from 'react-redux';
-import { store } from './store/store';
 import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { Layout } from './components/layout/Layout';
@@ -51,10 +49,9 @@ function AdminCheckRoute({ children }: { children: React.ReactElement }) {
 
 function App() {
   return (
-    <Provider store={store}>
-      <AuthProvider>
-        <ToasterProvider>
-          <Router>
+    <AuthProvider>
+      <ToasterProvider>
+        <Router>
             <div className="min-h-screen bg-gray-50">
               <Routes>
                 <Route
@@ -197,10 +194,9 @@ function App() {
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </div>
-          </Router>
-        </ToasterProvider>
-      </AuthProvider>
-    </Provider>
+        </Router>
+      </ToasterProvider>
+    </AuthProvider>
   );
 }
 

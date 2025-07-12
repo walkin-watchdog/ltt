@@ -5,53 +5,68 @@ import { CSS } from '@dnd-kit/utilities';
 import { Calendar, Route } from "lucide-react";
 
  const SortableDay = ({
+  day,
+  editDay,
+  removeDay,
+}: {
+  day: ItineraryDay;
+  editDay: (d: ItineraryDay) => void;
+  removeDay: (n: number) => void;
+}) => {
+  const idStr = day.id;
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: idStr });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
 
-   day,
-   editDay,
-   removeDay,
- }: {
-   day: ItineraryDay;
-   editDay: (d: ItineraryDay) => void;
-   removeDay: (n: number) => void;
- }) => {
-   const idStr = day.id;
-   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: idStr });
-   const style = {
-     transform: CSS.Transform.toString(transform),
-     transition,
-   };
-
-   return (
-     <div
-       ref={setNodeRef}
-       style={style}
-       {...attributes}
-       {...listeners}
-       className="border border-gray-200 rounded-lg p-4 bg-gray-50 flex items-center justify-between"
-     >
-       <div>
-         <h4 className="font-medium text-gray-900">
-           Day {day.day}: {day.title}
-         </h4>
-         <p className="text-sm text-gray-600">{day.description}</p>
-       </div>
-       <div className="flex space-x-2">
-         <button
-           onClick={() => editDay(day)}
-           className="text-blue-600 hover:text-blue-800 text-sm"
-         >
-           Edit
-         </button>
-         <button
-           onClick={() => removeDay(day.day)}
-           className="text-red-600 hover:text-red-800 text-sm"
-         >
-           Remove
-         </button>
-       </div>
-     </div>
-   );
- };
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      className="border border-gray-200 rounded-lg p-4 bg-gray-50 flex items-center justify-between"
+    >
+      {/* Drag Handle */}
+      <button
+        {...listeners}
+        className="mr-4 cursor-grab active:cursor-grabbing p-1"
+        title="Drag to reorder day"
+        style={{ touchAction: 'none' }}
+        type="button"
+      >
+        <svg width="20" height="20" fill="none" viewBox="0 0 20 20">
+          <circle cx="5" cy="6" r="1.5" fill="#888" />
+          <circle cx="5" cy="10" r="1.5" fill="#888" />
+          <circle cx="5" cy="14" r="1.5" fill="#888" />
+          <circle cx="15" cy="6" r="1.5" fill="#888" />
+          <circle cx="15" cy="10" r="1.5" fill="#888" />
+          <circle cx="15" cy="14" r="1.5" fill="#888" />
+        </svg>
+      </button>
+      <div className="flex-1">
+        <h4 className="font-medium text-gray-900">
+          Day {day.day}: {day.title}
+        </h4>
+        <p className="text-sm text-gray-600">{day.description}</p>
+      </div>
+      <div className="flex space-x-2">
+        <button
+          onClick={() => editDay(day)}
+          className="text-blue-600 hover:text-blue-800 text-sm"
+        >
+          Edit
+        </button>
+        <button
+          onClick={() => removeDay(day.day)}
+          className="text-red-600 hover:text-red-800 text-sm"
+        >
+          Remove
+        </button>
+      </div>
+    </div>
+  );
+};
 
 export const ItineraryTab = ({
     formData,

@@ -4,70 +4,70 @@ import { useAuth } from '../contexts/AuthContext';
 import { Eye, EyeOff, Lock, Mail, User } from 'lucide-react';
 
 export const GetStarted = () => {
- const navigate = useNavigate();
+  const navigate = useNavigate();
   const { login } = useAuth();
-  
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     confirmPassword: ''
   });
-  
+
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   // Change this line
-  const [errors, setErrors] = useState<{[key: string]: string}>({});
-  
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
-    
+
     // Clear error for this field if any
     setErrors(prev => ({
       ...prev,
       [name]: ''
     }));
   };
-  
+
   const validateForm = (): boolean => {
-    const newErrors: {[key: string]: string} = {};
-    
+    const newErrors: { [key: string]: string } = {};
+
     if (!formData.name.trim()) {
       newErrors.name = 'Name is required';
     }
-    
+
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'Email is invalid';
     }
-    
+
     if (!formData.password) {
       newErrors.password = 'Password is required';
     } else if (formData.password.length < 6) {
       newErrors.password = 'Password must be at least 6 characters';
     }
-    
+
     if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = 'Passwords do not match';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-  
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setErrors({});
-    
+
     if (!validateForm()) return;
-    
+
     setIsSubmitting(true);
-    
+
     try {
       // Register admin user
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/auth/register-first`, {
@@ -82,18 +82,18 @@ export const GetStarted = () => {
           role: 'ADMIN'
         }),
       });
-      
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || 'Failed to create admin user');
       }
-      
+
       // Auto login
       await login(formData.email, formData.password);
-      
+
       // Redirect to dashboard
       navigate('/');
-      
+
     } catch (error) {
       console.error('Error creating admin user:', error);
       setErrors({ general: 'Initial registration is closed' });
@@ -101,7 +101,7 @@ export const GetStarted = () => {
       setIsSubmitting(false);
     }
   };
-  
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#104c57] to-[#ff914d] flex items-center justify-center px-4">
       <div className="max-w-md w-full bg-white rounded-lg shadow-xl p-8">
@@ -113,15 +113,11 @@ export const GetStarted = () => {
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome!</h2>
           <p className="text-gray-600">Create your admin account to get started</p>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="space-y-6">
-          {Object.keys(errors).length > 0 && (
+          {errors.general && (
             <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg">
-              {Object.entries(errors).map(([key, message]) =>
-                key !== 'general' ? null : (
-                  <div key={key}>{message}</div>
-                )
-              )}
+              {errors.general}
             </div>
           )}
           {/* Name */}
@@ -139,16 +135,15 @@ export const GetStarted = () => {
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                className={`block w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#ff914d] ${
-                  errors.name ? 'border-red-300 focus:border-red-300 focus:ring-red-300' : 'border-gray-300'
-                }`}
+                className={`block w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#ff914d] ${errors.name ? 'border-red-300 focus:border-red-300 focus:ring-red-300' : 'border-gray-300'
+                  }`}
                 placeholder="Enter your full name"
                 required
               />
             </div>
             {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
           </div>
-          
+
           {/* Email */}
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
@@ -164,16 +159,15 @@ export const GetStarted = () => {
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
-                className={`block w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#ff914d] ${
-                  errors.email ? 'border-red-300 focus:border-red-300 focus:ring-red-300' : 'border-gray-300'
-                }`}
+                className={`block w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#ff914d] ${errors.email ? 'border-red-300 focus:border-red-300 focus:ring-red-300' : 'border-gray-300'
+                  }`}
                 placeholder="Enter your email address"
                 required
               />
             </div>
             {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
           </div>
-          
+
           {/* Password */}
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
@@ -189,9 +183,8 @@ export const GetStarted = () => {
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
-                className={`block w-full pl-10 pr-12 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#ff914d] ${
-                  errors.password ? 'border-red-300 focus:border-red-300 focus:ring-red-300' : 'border-gray-300'
-                }`}
+                className={`block w-full pl-10 pr-12 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#ff914d] ${errors.password ? 'border-red-300 focus:border-red-300 focus:ring-red-300' : 'border-gray-300'
+                  }`}
                 placeholder="Create a secure password"
                 required
               />
@@ -209,7 +202,7 @@ export const GetStarted = () => {
             </div>
             {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
           </div>
-          
+
           {/* Confirm Password */}
           <div>
             <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
@@ -225,16 +218,15 @@ export const GetStarted = () => {
                 name="confirmPassword"
                 value={formData.confirmPassword}
                 onChange={handleChange}
-                className={`block w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#ff914d] ${
-                  errors.confirmPassword ? 'border-red-300 focus:border-red-300 focus:ring-red-300' : 'border-gray-300'
-                }`}
+                className={`block w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#ff914d] ${errors.confirmPassword ? 'border-red-300 focus:border-red-300 focus:ring-red-300' : 'border-gray-300'
+                  }`}
                 placeholder="Confirm your password"
                 required
               />
             </div>
             {errors.confirmPassword && <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>}
           </div>
-          
+
           {/* Submit Button */}
           <button
             type="submit"
