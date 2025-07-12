@@ -882,9 +882,15 @@ router.post('/:id/payment-reminder', authenticate, authorize(['ADMIN', 'EDITOR']
       }
     });
 
-    const product = await prisma.product.findUnique({
-      where: { id: booking?.productId ?? undefined },
-    });
+    let product: any = null;
+    if (booking?.productId) {
+      product = await prisma.product.findUnique({
+        where: { id: booking.productId },
+      });
+    } else if ((booking as any).customDetails) {
+      const cd = (booking as any).customDetails as { packageName?: string };
+      product = { title: cd.packageName ?? 'Custom Package' };
+     }
     
     if (!booking) {
       return res.status(404).json({ error: 'Booking not found' });

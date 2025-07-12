@@ -11,7 +11,7 @@ export const WhatsAppWidget = () => {
   return (
     <button
       onClick={handleWhatsAppClick}
-      className="fixed bottom-6 right-6 bg-[#25D366] text-white p-4 rounded-full shadow-lg hover:bg-[#20BA5A] transition-colors z-50 animate-bounce"
+      className="fixed bottom-6 right-6 bg-[#104c57] text-white p-4 rounded-full shadow-lg hover:bg-[#20BA5A] transition-colors z-50 animate-bounce"
       aria-label="Contact us on WhatsApp"
     >
       <MessageCircle className="h-6 w-6" />

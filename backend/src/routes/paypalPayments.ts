@@ -42,7 +42,7 @@ router.post('/create-order', rateLimitPayment, async (req, res, next) => {
 
     const order = await PayPalService.createOrder({
       amount,
-      currency: currency || 'USD',
+      currency,
       description: `Luxé TimeTravel - ${booking.product?.title}`,
       reference: booking.bookingCode,
     });
@@ -53,7 +53,7 @@ router.post('/create-order', rateLimitPayment, async (req, res, next) => {
         bookingId: booking.id,
         paypalOrderId: order.id,
         amount,
-        currency: currency || 'USD',
+        currency,
         status: 'PENDING',
         paymentMethod: 'PayPal',
       },
@@ -62,6 +62,7 @@ router.post('/create-order', rateLimitPayment, async (req, res, next) => {
     res.json({
       orderId: order.id,
       approvalUrl: order.links.find((link: any) => link.rel === 'approve')?.href,
+      currency,
     });
   } catch (error) {
     next(error);
