@@ -263,7 +263,8 @@ model Booking {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   couponCode       String?
-  discountAmount   Float?       
+  discountAmount   Float?
+  currency      String        @default("INR")
 
   createdBy User?  @relation("BookingCreatedBy", fields: [createdById], references: [id])
   product Product?  @relation(fields: [productId], references: [id], onDelete: Cascade)
@@ -327,6 +328,7 @@ model Coupon {
   createdAt   DateTime   @default(now())
   products    String[]   @default([])
   usageHistory CouponUsage[]
+  currency    String   @default("INR")
 
   @@map("coupons")
 }
@@ -384,6 +386,7 @@ model AbandonedCart {
   productId     String
   packageId     String?
   slotId        String?
+  currency      String   @default("INR")
   customerData  Json
   remindersSent Int      @default(0)
   createdAt     DateTime @default(now())

@@ -31,6 +31,7 @@ export const Coupons = () => {
     value: 0,
     minAmount: null,
     maxDiscount: null,
+    currency: 'INR',
     usageLimit: null,
     usedCount: 0,
     isActive: true,
@@ -50,6 +51,16 @@ export const Coupons = () => {
   const [usageDetails, setUsageDetails] = useState<any[]>([]);
   const [isLoadingUsage, setIsLoadingUsage] = useState(false);
   const [showUsageModal, setShowUsageModal] = useState(false);
+
+  const getSymbol = (currency: string) => {
+    switch (currency.toUpperCase()) {
+      case 'USD': return '$';
+      case 'EUR': return '€';
+      case 'GBP': return '£';
+      case 'INR': return '₹';
+      default: return currency.toUpperCase();
+    }
+  };
 
   useEffect(() => {
     fetchCoupons();
@@ -207,6 +218,7 @@ export const Coupons = () => {
         description: formData.description,
         type: formData.type,
         value: Number(formData.value),
+        currency: formData.currency,
         minAmount: formData.minAmount !== null ? Number(formData.minAmount) : null,
         maxDiscount: formData.maxDiscount !== null ? Number(formData.maxDiscount) : null,
         usageLimit: formData.usageLimit !== null ? Number(formData.usageLimit) : null,
@@ -262,6 +274,7 @@ export const Coupons = () => {
       ...coupon,
       validFrom: new Date(coupon.validFrom).toISOString().split('T')[0],
       validUntil: new Date(coupon.validUntil).toISOString().split('T')[0],
+      currency: coupon.currency || 'INR',
     });
     setErrors({});
     setIsModalOpen(true);
@@ -277,6 +290,7 @@ export const Coupons = () => {
       minAmount: null,
       maxDiscount: null,
       usageLimit: null,
+      currency: 'INR',
       usedCount: 0,
       isActive: true,
       validFrom: new Date().toISOString().split('T')[0],
@@ -502,19 +516,19 @@ export const Coupons = () => {
                   <div className="flex items-center text-3xl font-bold mb-1">
                     {coupon.type === 'PERCENTAGE' 
                       ? <span className={isActive ? 'text-blue-600' : 'text-gray-400'}>{coupon.value}%</span>
-                      : <span className={isActive ? 'text-green-600' : 'text-gray-400'}>₹{coupon.value}</span>
+                      : <span className={isActive ? 'text-green-600' : 'text-gray-400'}>{getSymbol(coupon.currency)}{coupon.value}</span>
                     }
                   </div>
                   
                   <div className="flex flex-wrap gap-2">
                     {coupon.minAmount && (
                       <span className="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded">
-                        Min: ₹{coupon.minAmount}
+                        Min: {getSymbol(coupon.currency)}{coupon.minAmount}
                       </span>
                     )}
                     {coupon.maxDiscount && coupon.type === 'PERCENTAGE' && (
                       <span className="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded">
-                        Max: ₹{coupon.maxDiscount}
+                        Max: {getSymbol(coupon.currency)}{coupon.maxDiscount}
                       </span>
                     )}
                     {coupon.usageLimit && (
@@ -684,6 +698,22 @@ export const Coupons = () => {
                           <span>Fixed Amount</span>
                         </button>
                       </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Currency *
+                      </label>
+                      <select
+                        value={formData.currency}
+                        onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+                        className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff914d] border-gray-300"
+                      >
+                        <option value="INR">INR - ₹</option>
+                        <option value="USD">USD - $</option>
+                        <option value="EUR">EUR - €</option>
+                        <option value="GBP">GBP - £</option>
+                      </select>
                     </div>
                     
                     <div>
@@ -1002,7 +1032,7 @@ export const Coupons = () => {
                               {usage.customerName}
                             </td>
                             <td className="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
-                              ₹{usage.discountAmount.toLocaleString()}
+                              {getSymbol(usage.currency)}{usage.discountAmount.toLocaleString()}
                             </td>
                           </tr>
                         ))}

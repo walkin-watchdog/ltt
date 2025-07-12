@@ -14,6 +14,7 @@ const abandonedCartSchema = z.object({
   productId: z.string(),
   packageId: z.string().optional(),
   slotId: z.string().optional(),
+  currency: z.string(),
   customerData: z.object({
     customerName: z.string(),
     customerEmail: z.string().email(),
@@ -42,7 +43,8 @@ router.post('/', async (req, res, next) => {
         email: data.email,
         productId: data.productId,
         packageId: data.packageId || null,
-        slotId: data.slotId || null
+        slotId: data.slotId || null,
+        currency: data.currency
       }
     });
 
@@ -202,6 +204,7 @@ router.post('/:id/convert', async (req, res, next) => {
         bookingCode,
         productId: cart.productId,
         packageId: cart.packageId,
+        currency: cart.currency,
         customerName: customerData.customerName,
         customerEmail: customerData.customerEmail,
         customerPhone: customerData.customerPhone,
@@ -248,6 +251,7 @@ router.get('/recover/:token', recoverLimiter, async (req, res, next) => {
       productId       : cart.productId,
       packageId       : cart.packageId,
       slotId          : cart.slotId,
+      currency        : cart.currency,
       ...(cart.customerData as Record<string, unknown>),
       updatedAt       : cart.updatedAt
     };

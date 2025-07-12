@@ -9,6 +9,7 @@ const router = express.Router();
 
 const bookingSchema = z.object({
   slotId: z.string(),
+  currency: z.string(),
   productId: z.string().optional(),
   packageId: z.string().optional(),
   customerName: z.string().min(1),
@@ -254,9 +255,11 @@ router.post('/', async (req, res, next) => {
       totalAmount = Math.max(0, totalAmount - data.discountAmount);
     }
 
+    let selectedPackage: typeof product.packages[number] | null = null;
     if (data.packageId) {
       const pkg = product.packages.find(p => p.id === data.packageId);
-      
+      selectedPackage = pkg ?? null;
+
       if (!pkg) {
         return res.status(400).json({ error: 'Selected package not found' });
       }
@@ -311,6 +314,7 @@ router.post('/', async (req, res, next) => {
     const booking = await prisma.booking.create({
       data: {
         bookingCode,
+        currency: data.currency,
         totalAmount,
         slot:    { connect: { id: data.slotId } },
         package: data.packageId ? { connect: { id: data.packageId } } : undefined,
@@ -405,6 +409,7 @@ router.post('/admin', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, 
       paymentStatus: z.enum(['PENDING', 'PARTIAL', 'PAID', 'FAILED', 'REFUNDED']).default('PAID'),
       partialPaymentAmount: z.number().min(0).optional(),
       additionalDiscount: z.number().min(0).optional(),
+      currency: z.string(),
     });
 
     const data = adminBookingSchema.parse(req.body);
@@ -420,6 +425,7 @@ router.post('/admin', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, 
       const booking = await prisma.booking.create({
         data: {
           bookingCode:       bookingCode,
+          currency:          data.currency ?? "INR",
           isManual:          true,
           createdById:       req.user.id,
           productId:         null,
@@ -527,6 +533,7 @@ router.post('/admin', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, 
     const booking = await prisma.booking.create({
       data: {
         bookingCode,
+        currency: data.currency,
         isManual: true,
         createdById: req.user.id,
         productId: data.productId,
@@ -662,7 +669,7 @@ router.patch('/:id/status', authenticate, authorize(['ADMIN', 'EDITOR']), async 
 router.patch('/:id/payment-status', authenticate, authorize(['ADMIN', 'EDITOR']), async (req, res, next) => {
   try {
     const { paymentStatus } = z.object({
-      paymentStatus: z.enum(['PENDING', 'PARTIAL', 'PAID', 'FAILED', 'REFUNDED'])
+      paymentStatus: z.enum(['PENDING', 'PARTIAL', 'PAID', 'FAILED', 'REFUNDED', 'CANCELLED', 'PARTIALLY_REFUNDED'])
     }).parse(req.body);
 
     const booking = await prisma.booking.update({
@@ -745,9 +752,10 @@ router.post('/pay-later', async (req, res, next) => {
     let totalAmount = 0;
     if (data.discountAmount) totalAmount = Math.max(0, totalAmount - data.discountAmount);
 
-
+    let selectedPackage: typeof product.packages[number] | null = null;
     if (data.packageId) {
       const pkg = product.packages.find(p => p.id === data.packageId);
+      selectedPackage = pkg ?? null;
       
       if (!pkg) {
         return res.status(400).json({ error: 'Selected package not found' });
@@ -804,6 +812,7 @@ router.post('/pay-later', async (req, res, next) => {
     const booking = await prisma.booking.create({
       data: {
         bookingCode,
+        currency: data.currency,
         totalAmount,
         slot:    { connect: { id: data.slotId } },
         package: data.packageId ? { connect: { id: data.packageId } } : undefined,

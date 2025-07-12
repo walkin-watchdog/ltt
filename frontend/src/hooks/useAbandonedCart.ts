@@ -17,6 +17,7 @@ interface AbandonedCartData {
   totalAmount: number;
   updatedAt?: string | number;
   status?: 'open' | 'closed';
+  currency: string;
 }
 
 export const useAbandonedCart = (productId?: string) => {
@@ -40,6 +41,7 @@ export const useAbandonedCart = (productId?: string) => {
         productId   : data.productId,
         packageId   : data.packageId,
         slotId      : data.slotId,
+        currency    : data.currency,
         customerData: {
           customerName : data.customerName,
           customerEmail: data.customerEmail,
@@ -144,6 +146,8 @@ export const useAbandonedCart = (productId?: string) => {
         email       : latestPayload.current.customerEmail,
         productId   : latestPayload.current.productId,
         packageId   : latestPayload.current.packageId,
+        slotId      : latestPayload.current.slotId,
+        currency    : latestPayload.current.currency,
         customerData: {
           customerName : latestPayload.current.customerName,
           customerEmail: latestPayload.current.customerEmail,

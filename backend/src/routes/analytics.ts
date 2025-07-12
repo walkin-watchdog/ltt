@@ -1,6 +1,7 @@
 import express from 'express';
 import { prisma } from '../utils/prisma'
 import { authenticate, authorize } from '../middleware/auth';
+import { fetchExchangeRates } from '../routes/currency';
 
 const router = express.Router();
 
@@ -8,6 +9,27 @@ const router = express.Router();
 // Get dashboard analytics (Admin/Editor/Viewer)
 router.get('/dashboard', authenticate, authorize(['ADMIN', 'EDITOR', 'VIEWER']), async (req, res, next) => {
   try {
+    const reportCurrency = (
+      (req.query.reportCurrency as string) ||
+      'INR'
+    ).toUpperCase();
+
+    const sumInReportCurrency = async (
+      rows: { currency: string; _sum: { totalAmount: number | null } }[]
+    ) => {
+      if (!rows.length) return 0;
+
+      const rates = await fetchExchangeRates(reportCurrency);
+
+      return rows.reduce((acc, row) => {
+        const amt = row._sum.totalAmount || 0;
+        if (!amt) return acc;
+        return row.currency === reportCurrency
+          ? acc + amt
+          : acc + amt / (rates[row.currency] || 1);
+      }, 0);
+    };
+
     // Get current date info
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -19,19 +41,21 @@ router.get('/dashboard', authenticate, authorize(['ADMIN', 'EDITOR', 'VIEWER']),
     const [
       totalProducts,
       totalBookings,
-      totalRevenue,
+      totalRevenueByCurrency,
       monthlyBookings,
-      monthlyRevenue,
-      yearlyRevenue,
+      monthlyRevenueByCurrency,
+      weeklyBookings,
+      weeklyRevenueByCurrency,
+      yearlyRevenueByCurrency,
       pendingRequests,
       activeSubscribers,
-      weeklyBookings,
-      weeklyRevenue,
       totalAbandonedCarts,
+      conversionRate,
     ] = await Promise.all([
       prisma.product.count(),
       prisma.booking.count(),
-      prisma.booking.aggregate({
+      prisma.booking.groupBy({
+        by: ['currency'] as const,
         _sum: { totalAmount: true },
         where: { status: 'CONFIRMED' }
       }),
@@ -41,14 +65,30 @@ router.get('/dashboard', authenticate, authorize(['ADMIN', 'EDITOR', 'VIEWER']),
           status: 'CONFIRMED'
         }
       }),
-      prisma.booking.aggregate({
+      prisma.booking.groupBy({
+        by: ['currency'] as const,
         _sum: { totalAmount: true },
         where: {
           createdAt: { gte: startOfMonth },
           status: 'CONFIRMED'
         }
       }),
-      prisma.booking.aggregate({
+      prisma.booking.count({
+        where: {
+          createdAt: { gte: last7Days },
+          status: 'CONFIRMED'
+        }
+      }),
+      prisma.booking.groupBy({
+        by: ['currency'] as const,
+        _sum: { totalAmount: true },
+        where: {
+          createdAt: { gte: last7Days },
+          status: 'CONFIRMED'
+        }
+      }),
+      prisma.booking.groupBy({
+        by: ['currency'] as const,
         _sum: { totalAmount: true },
         where: {
           createdAt: { gte: startOfYear },
@@ -61,25 +101,24 @@ router.get('/dashboard', authenticate, authorize(['ADMIN', 'EDITOR', 'VIEWER']),
       prisma.newsletter.count({
         where: { isActive: true }
       }),
-      prisma.booking.count({
-        where: {
-          createdAt: { gte: last7Days },
-          status: 'CONFIRMED'
-        }
-      }),
-      prisma.booking.aggregate({
-        _sum: { totalAmount: true },
-        where: {
-          createdAt: { gte: last7Days },
-          status: 'CONFIRMED'
-        }
-      }),
       prisma.abandonedCart.count(),
       // Simple conversion rate calculation
       prisma.booking.count({ where: { status: 'CONFIRMED' } }).then(async (confirmed) => {
         const total = await prisma.booking.count();
         return total > 0 ? (confirmed / total) * 100 : 0;
       })
+    ]);
+
+    const [
+      totalRevenue,
+      monthlyRevenue,
+      weeklyRevenue,
+      yearlyRevenue
+    ] = await Promise.all([
+      sumInReportCurrency(totalRevenueByCurrency),
+      sumInReportCurrency(monthlyRevenueByCurrency),
+      sumInReportCurrency(weeklyRevenueByCurrency),
+      sumInReportCurrency(yearlyRevenueByCurrency)
     ]);
 
     // Booking trends (last 30 days)
@@ -103,7 +142,7 @@ router.get('/dashboard', authenticate, authorize(['ADMIN', 'EDITOR', 'VIEWER']),
 
     // Revenue by type
     const revenueByTypeRaw = await prisma.booking.groupBy({
-      by: ['productId'],
+      by: ['productId'] as const,
       _count: { id: true },
       _sum: { totalAmount: true },
       where: {
@@ -180,7 +219,7 @@ router.get('/dashboard', authenticate, authorize(['ADMIN', 'EDITOR', 'VIEWER']),
 
     // Top performing products
     const topProductsData = await prisma.booking.groupBy({
-      by: ['productId'],
+      by: ['productId'] as const,
       _count: { id: true },
       _sum: { totalAmount: true },
       where: {
@@ -216,28 +255,40 @@ router.get('/dashboard', authenticate, authorize(['ADMIN', 'EDITOR', 'VIEWER']),
     const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
     
-    const lastMonthStats = await prisma.booking.aggregate({
+    const lastMonthStatsByCurrency = await prisma.booking.groupBy({
+      by:     ['currency'] as const,
       _count: { id: true },
-      _sum: { totalAmount: true },
+      _sum:   { totalAmount: true },
       where: {
         createdAt: { gte: lastMonth, lte: lastMonthEnd },
         status: 'CONFIRMED'
       }
     });
 
+    const lastMonthStats = {
+      _count: { id: lastMonthStatsByCurrency.reduce((n, r) => n + r._count.id, 0) },
+      _sum:   { totalAmount: await sumInReportCurrency(lastMonthStatsByCurrency) }
+    };
+
     res.json({
       overview: {
         totalProducts,
         totalBookings,
-        totalRevenue: totalRevenue._sum.totalAmount || 0,
+        reportCurrency,
+        totalRevenue,
+        totalRevenueByCurrency,
         monthlyBookings,
-        monthlyRevenue: monthlyRevenue._sum.totalAmount || 0,
+        monthlyRevenueByCurrency,
+        monthlyRevenue,
         weeklyBookings,
-        weeklyRevenue: weeklyRevenue._sum.totalAmount || 0,
-        yearlyRevenue: yearlyRevenue._sum.totalAmount || 0,
+        weeklyRevenueByCurrency,
+        weeklyRevenue,
+        yearlyRevenueByCurrency,
+        yearlyRevenue,
         pendingRequests,
         activeSubscribers,
         totalAbandonedCarts,
+        conversionRate,
       },
       trends: {
         monthlyGrowth: {
@@ -245,7 +296,8 @@ router.get('/dashboard', authenticate, authorize(['ADMIN', 'EDITOR', 'VIEWER']),
             ? Math.round(((monthlyBookings - lastMonthStats._count.id) / lastMonthStats._count.id) * 100)
             : 0,
           revenue: (lastMonthStats._sum.totalAmount || 0) > 0
-            ? Math.round((((monthlyRevenue._sum.totalAmount || 0) - (lastMonthStats._sum.totalAmount || 0)) / (lastMonthStats._sum.totalAmount || 0)) * 100)
+            ? Math.round(((monthlyRevenue - (lastMonthStats._sum.totalAmount || 0)) /
+                          (lastMonthStats._sum.totalAmount || 0)) * 100)
             : 0
         }
       },
@@ -276,7 +328,7 @@ router.get('/detailed', authenticate, authorize(['ADMIN', 'EDITOR']), async (req
 
     const [bookingStats, revenueStats, customerStats] = await Promise.all([
       prisma.booking.groupBy({
-        by: ['status'],
+        by: ['status'] as const,
         _count: { id: true },
         _sum: { totalAmount: true }
       }),
@@ -287,7 +339,7 @@ router.get('/detailed', authenticate, authorize(['ADMIN', 'EDITOR']), async (req
         where: whereClause
       }),
       prisma.booking.groupBy({
-        by: ['customerEmail'],
+        by: ['customerEmail'] as const,
         _count: { id: true },
         where: whereClause,
         orderBy: { _count: { id: 'desc' } },

@@ -53,7 +53,7 @@ router.post('/create-order', rateLimitPayment, async (req, res, next) => {
         bookingId: booking.id,
         paypalOrderId: order.id,
         amount,
-        currency,
+        currency: booking.currency,
         status: 'PENDING',
         paymentMethod: 'PayPal',
       },

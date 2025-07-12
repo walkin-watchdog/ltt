@@ -36,7 +36,7 @@ const conversionSchema = z.object({
 });
 
 // --- FETCH & CACHE LOGIC ---
-async function fetchExchangeRates(base: string): Promise<Record<string, number>> {
+export async function fetchExchangeRates(base: string): Promise<Record<string, number>> {
   const now = Date.now();
   const cached = rateCache.get(base);
   const API_KEY = process.env.EXCHANGE_RATE_API_KEY || '15c8a7c3a580035713e3cc62';

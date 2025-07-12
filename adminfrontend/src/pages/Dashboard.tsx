@@ -9,7 +9,6 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   ShoppingCart,
-  Percent
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import type { DashboardStats } from '../types/index.ts';
@@ -19,11 +18,14 @@ export const Dashboard = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { token } = useAuth();
+  const [reportCurrency, setReportCurrency] = useState<'INR' | 'USD' | 'EUR' | 'GBP' | 'AUD' | 'CAD' | 'JPY' | 'SGD' | 'AED' | 'CNY'>('INR');
+  const symbol = (c: string) =>
+  ({ USD:'$', EUR:'€', GBP:'£', INR:'₹', AUD:'A$', CAD:'C$', JPY:'¥', SGD:'S$', AED:'د.إ', CNY:'¥' } as const)[c] ?? c
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/analytics/dashboard`, {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/analytics/dashboard?reportCurrency=${encodeURIComponent(reportCurrency)}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
@@ -42,7 +44,7 @@ export const Dashboard = () => {
     };
 
     fetchDashboardData();
-  }, [token]);
+  }, [token, reportCurrency]);
 
   if (isLoading) {
     return (
@@ -51,6 +53,14 @@ export const Dashboard = () => {
       </div>
     );
   }
+
+  const revenueCards = (stats?.overview.totalRevenueByCurrency || []).map(r => ({
+    title: `Revenue (${r.currency})`,
+    value: `${symbol(r.currency)}${(r._sum.totalAmount || 0).toLocaleString()}`,
+    icon: DollarSign,
+    color: 'text-purple-600',
+    bgColor: 'bg-purple-100',
+  }));
 
   const statCards = [
     {
@@ -68,14 +78,7 @@ export const Dashboard = () => {
       bgColor: 'bg-green-100',
       growth: stats?.trends.monthlyGrowth.bookings,
     },
-    {
-      title: 'Total Revenue',
-      value: `₹${(stats?.overview.totalRevenue || 0).toLocaleString()}`,
-      icon: DollarSign,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-100',
-      growth: stats?.trends.monthlyGrowth.revenue,
-    },
+    ...revenueCards,
     {
       title: 'Monthly Bookings',
       value: stats?.overview.monthlyBookings || 0,
@@ -83,19 +86,13 @@ export const Dashboard = () => {
       color: 'text-orange-600',
       bgColor: 'bg-orange-100',
     },
-    {
-      title: 'Monthly Revenue',
-      value: `₹${(stats?.overview.monthlyRevenue || 0).toLocaleString()}`,
-      icon: DollarSign,
-      color: 'text-indigo-600',
-      bgColor: 'bg-indigo-100',
+    { title:`Monthly Rev. (${symbol(stats?.overview.reportCurrency||'INR')})`,
+      value:`${symbol(stats?.overview.reportCurrency||'INR')}${(stats?.overview.monthlyRevenue||0).toLocaleString()}`,
+      icon:DollarSign, color:'text-indigo-600', bgColor:'bg-indigo-100' 
     },
-    {
-      title: 'Weekly Revenue',
-      value: `₹${(stats?.overview.weeklyRevenue || 0).toLocaleString()}`,
-      icon: TrendingUp,
-      color: 'text-teal-600',
-      bgColor: 'bg-teal-100',
+    { title:`Weekly Rev. (${symbol(stats?.overview.reportCurrency||'INR')})`,
+      value:`${symbol(stats?.overview.reportCurrency||'INR')}${(stats?.overview.weeklyRevenue||0).toLocaleString()}`,
+      icon:TrendingUp, color:'text-teal-600', bgColor:'bg-teal-100' 
     },
     {
       title: 'Abandoned Carts',
@@ -161,7 +158,7 @@ export const Dashboard = () => {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Performing Products</h3>
           <div className="space-y-4">
-            {stats?.topProducts.slice(0, 5).map((product: any, index: number) => (
+            {stats?.topProducts?.slice(0, 5).map((product: any, index: number) => (
               <div key={product.id} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg">
                 <div className="flex items-center">
                   <div className="bg-[#104c57] text-white rounded-full h-8 w-8 flex items-center justify-center text-sm font-semibold mr-3">
@@ -172,7 +169,7 @@ export const Dashboard = () => {
                     <p className="text-sm text-gray-500">{product.total_bookings || 0} bookings</p>
                   </div>
                 </div>
-                <span className="font-semibold text-[#104c57]">₹{product.total_revenue?.toLocaleString() || 0}</span>
+                <span className="font-semibold text-[#104c57]">{symbol(stats?.overview.reportCurrency || 'INR')}{product.total_revenue?.toLocaleString() || 0}</span>
               </div>
             ))}
           </div>
@@ -181,7 +178,7 @@ export const Dashboard = () => {
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Revenue by Product Type</h3>
           <div className="space-y-4">
             {Array.isArray(stats?.revenueByType) && stats.revenueByType.map((type, index) => (
-             <div key={type.type || index} className="…">
+             <div key={type.type || index} className="flex items-center justify-between py-2">
                <div className="flex items-center">
                  <div className="bg-[#ff914d] text-white rounded-full h-8 w-8 flex items-center justify-center text-sm font-semibold mr-3">{index + 1}</div>
                  <div>
@@ -190,7 +187,7 @@ export const Dashboard = () => {
                  </div>
                </div>
                <span className="font-semibold text-[#ff914d]">
-                 ₹{type.revenue?.toLocaleString() || 0}
+                 {symbol(stats?.overview.reportCurrency || 'INR')}{type.revenue?.toLocaleString() || 0}
                </span>
              </div>
             ))}

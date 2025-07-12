@@ -23,6 +23,7 @@ export interface CouponData {
   value: number;
   minAmount?: number | null;
   maxDiscount?: number | null;
+  currency: string;
   usageLimit?: number | null;
   usedCount: number;
   isActive: boolean;

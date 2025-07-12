@@ -8,9 +8,10 @@ interface CouponFormProps {
   onRemove: () => void;
   onError: string;
   discount: number;
+  currency: string;
 }
 
-export const CouponForm = ({ totalAmount, productId, onApply, onRemove, onError, discount }: CouponFormProps) => {
+export const CouponForm = ({ totalAmount, productId, onApply, onRemove, onError, discount, currency }: CouponFormProps) => {
   const [couponCode, setCouponCode] = useState('');
   const [isValidating, setIsValidating] = useState(false);
   const [validCoupon, setValidCoupon] = useState<any | null>(null);
@@ -41,7 +42,8 @@ export const CouponForm = ({ totalAmount, productId, onApply, onRemove, onError,
         body: JSON.stringify({
           code: couponCode,
           amount: totalAmount,
-          productId
+          productId,
+          currency
         })
       });
       

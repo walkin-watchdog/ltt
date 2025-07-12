@@ -115,13 +115,9 @@ export const GetStarted = () => {
         </div>
         
         <form onSubmit={handleSubmit} className="space-y-6">
-          {Object.keys(errors).length > 0 && (
+          {errors.general && (
             <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg">
-              {Object.entries(errors).map(([key, message]) =>
-                key !== 'general' ? null : (
-                  <div key={key}>{message}</div>
-                )
-              )}
+              {errors.general}
             </div>
           )}
           {/* Name */}

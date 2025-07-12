@@ -23,6 +23,7 @@ export interface BookingProp {
   adults: number;
   children: number;
   totalAmount: number;
+  currency: string;
   discountAmount?: number;
   couponCode?: string;
   status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED';
@@ -47,6 +48,7 @@ export interface AbandonedCartProp {
   email: string;
   productId: string;
   packageId?: string;
+  currency: string;
   customerData: {
     customerName: string;
     customerEmail: string;

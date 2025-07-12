@@ -59,7 +59,7 @@ router.post('/create-order', rateLimitPayment, async (req, res, next) => {
         bookingId: booking.id,
         razorpayOrderId: order.id,
         amount,
-        currency: currency || 'INR',
+        currency: booking?.currency || 'INR',
         status: 'PENDING',
       },
     });

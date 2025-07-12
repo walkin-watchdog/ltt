@@ -27,6 +27,8 @@ export const AbandonedCarts = () => {
   const [isConverting, setIsConverting] = useState<{ [key: string]: boolean }>({});
   const { token } = useAuth();
   const toast = useToast();
+  const symbol = (c: string) =>
+  ({ USD: '$', EUR: '€', GBP: '£', INR: '₹', AUD: 'A$', CAD: 'C$', JPY: '¥', SGD: 'S$', AED: 'د.إ', CNY: '¥' } as any)[c] || c
   useEffect(() => {
     fetchCarts();
   }, [token]);
@@ -259,7 +261,7 @@ export const AbandonedCarts = () => {
                 {/* Price & Booking Time */}
                 <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-100">
                   <div className="text-lg font-bold text-[#ff914d]">
-                    ₹{cart.customerData.totalAmount.toLocaleString()}
+                    {symbol(cart.currency)}{cart.customerData.totalAmount.toLocaleString()}
                   </div>
                   <div className="flex items-center text-xs text-gray-500">
                     <Clock className="h-3 w-3 mr-1" />

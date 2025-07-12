@@ -74,6 +74,7 @@ function App() {
       productId: open.cartData.productId,
       packageId: open.cartData.packageId,
       slotId: open.cartData.slotId || '',
+      currency: open.cartData.currency || '',
       productTitle: open.cartData.productTitle || '',
       date: open.cartData.selectedDate || new Date().toISOString(),
       selectedTimeSlot: open.cartData.selectedTimeSlot || '',

@@ -2,6 +2,7 @@ import express from 'express';
 import { z } from 'zod';
 import { prisma } from '../utils/prisma'
 import { authenticate, authorize } from '../middleware/auth';
+import { fetchExchangeRates } from './currency';
 
 const router = express.Router();
 
@@ -11,6 +12,7 @@ const couponSchema = z.object({
   description: z.string().min(1),
   type: z.enum(['PERCENTAGE', 'FIXED']),
   value: z.number().min(0),
+  currency: z.string(),
   minAmount: z.number().min(0).nullable().optional(),
   maxDiscount: z.number().min(0).nullable().optional(),
   usageLimit: z.number().min(1).optional(),
@@ -46,9 +48,10 @@ router.get('/:id/usage', authenticate, authorize(['ADMIN', 'EDITOR']), async (re
 // Validate coupon (public)
 router.post('/validate', async (req, res, next) => {
   try {
-    const { code, amount, productId } = z.object({
+    const { code, amount, productId, currency } = z.object({
       code: z.string(),
       amount: z.number().min(0),
+      currency: z.string().regex(/^[A-Za-z]{3}$/).transform(s => s.toUpperCase()).default('INR'),
       productId: z.string().optional()
     }).parse(req.body);
 
@@ -79,32 +82,84 @@ router.post('/validate', async (req, res, next) => {
       }
     }
 
-    if (coupon.minAmount && amount < coupon.minAmount) {
-      return res.status(400).json({ 
-        error: `Minimum amount of ₹${coupon.minAmount} required` 
+    const orderCur  = currency;
+    const couponCur = (coupon.currency || 'INR').toUpperCase();
+  
+    let orderAmtInCouponCur = amount;
+    if (orderCur !== couponCur) {
+      const rates = await fetchExchangeRates(orderCur);
+      const rate  = rates[couponCur];
+      if (!rate) return res.status(400).json({ error:`Unsupported currency ${couponCur}` });
+      orderAmtInCouponCur = amount * rate;
+    }
+  
+    if (coupon.minAmount && orderAmtInCouponCur < coupon.minAmount) {
+      return res.status(400).json({
+        error: `Minimum amount of ${couponCur} ${coupon.minAmount} required`
       });
     }
 
     let discount = 0;
     if (coupon.type === 'PERCENTAGE') {
       discount = (amount * coupon.value) / 100;
-      if (coupon.maxDiscount && discount > coupon.maxDiscount) {
-        discount = coupon.maxDiscount;
+
+      if (coupon.maxDiscount) {
+        let maxDiscOrderCur = coupon.maxDiscount;
+        if (couponCur !== orderCur) {
+          const rates = await fetchExchangeRates(couponCur);
+          const rate  = rates[orderCur];
+          if (!rate) {
+            return res.status(400).json({ error:`Unsupported currency ${orderCur}` });
+          }
+          maxDiscOrderCur = coupon.maxDiscount * rate;
+        }
+        if (discount > maxDiscOrderCur) {
+            discount = maxDiscOrderCur;
+        }
       }
     } else {
-      discount = coupon.value;
+      let valueInOrderCur: number;
+      if (couponCur === orderCur) {
+        valueInOrderCur = coupon.value;
+      } else {
+        const rates = await fetchExchangeRates(couponCur);
+        const rate  = rates[orderCur];
+        if (!rate) {
+          return res.status(400).json({ error: `Unsupported currency ${orderCur}` });
+        }
+        valueInOrderCur = coupon.value * rate;
+      }
+
+      discount = valueInOrderCur;
+
+      if (coupon.maxDiscount) {
+          let maxDiscOrderCur: number;
+        if (couponCur === orderCur) {
+          maxDiscOrderCur = coupon.maxDiscount;
+        } else {
+          const rates = await fetchExchangeRates(couponCur);
+          const rate  = rates[orderCur];
+          maxDiscOrderCur = coupon.maxDiscount * rate;
+        }
+        if (discount > maxDiscOrderCur) {
+          discount = maxDiscOrderCur;
+        }
+      }
     }
+    const round  = (n:number) => Math.round(n*100)/100;
+    discount     = round(discount);
 
     res.json({
       valid: true,
       discount,
-      finalAmount: Math.max(0, amount - discount),
+      finalAmount: round(Math.max(0, amount - discount)),
       coupon: {
         id: coupon.id,
         code: coupon.code,
         description: coupon.description,
         type: coupon.type,
-        value: coupon.value
+        value: coupon.value,
+        currency: coupon.currency
       }
     });
   } catch (error) {
@@ -271,6 +326,7 @@ router.post('/', authenticate, authorize(['ADMIN']), async (req, res, next) => {
         value: data.value,
         minAmount: data.minAmount,
         maxDiscount: data.maxDiscount,
+        currency: data.currency.toUpperCase(),
         usageLimit: data.usageLimit,
         products: data.products || [],
         validFrom: data.validFrom,

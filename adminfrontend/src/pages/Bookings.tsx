@@ -315,6 +315,9 @@ export const Bookings = () => {
     }
   };
 
+  const symbol = (c: string) =>
+  ({ USD: '$', EUR: '€', GBP: '£', INR: '₹', AUD: 'A$', CAD: 'C$', JPY: '¥', SGD: 'S$', AED: 'د.إ', CNY: '¥' } as any)[c] || c
+
   const getPaymentStatusColor = (status: string) => {
     switch (status) {
       case 'PAID':
@@ -585,10 +588,10 @@ export const Bookings = () => {
                         <option value="PARTIAL">Partial</option>
                         <option value="PAID">Paid</option>
                         <option value="FAILED">Failed</option>
-                        <option value="REDUNDED">Refunded</option>
+                        <option value="REFUNDED">Refunded</option>
                       </select>
                     ) : (
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(booking.paymentStatus)}`}>
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPaymentStatusColor}`}>
                         {booking.paymentStatus}
                       </span>
                     )}
@@ -602,10 +605,10 @@ export const Bookings = () => {
                       return (
                         <div>
                           <div className="text-sm text-gray-500 line-through">
-                            ₹{original.toLocaleString()}
+                            {symbol(booking.currency)}{original.toLocaleString()}
                           </div>
                           <div className="text-sm font-medium text-gray-900">
-                            ₹{booking.totalAmount.toLocaleString()}
+                            {symbol(booking.currency)}{booking.totalAmount.toLocaleString()}
                           </div>
                         </div>
                       );
@@ -613,16 +616,16 @@ export const Bookings = () => {
                     ) : booking.discountAmount ? (
                       <div>
                         <div className="text-sm text-gray-500 line-through">
-                          ₹{(booking.totalAmount + booking.discountAmount).toLocaleString()}
+                          {symbol(booking.currency)}{(booking.totalAmount + booking.discountAmount).toLocaleString()}
                         </div>
                         <div className="text-sm font-medium text-gray-900">
-                          ₹{booking.totalAmount.toLocaleString()}
+                          {symbol(booking.currency)}{booking.totalAmount.toLocaleString()}
                           <span className="ml-2 text-xs text-green-600">({booking.couponCode})</span>
                         </div>
                       </div>
                     ) : (
                       <div className="text-sm font-medium text-gray-900">
-                        ₹{booking.totalAmount.toLocaleString()}
+                        {symbol(booking.currency)}{booking.totalAmount.toLocaleString()}
                       </div>
                     )}
                   </td>
@@ -737,7 +740,7 @@ export const Bookings = () => {
                 {booking.adults} Adults{booking.children > 0 && `, ${booking.children} Children`}
               </div>
               <div>
-                ₹{booking.totalAmount.toLocaleString()}
+                {symbol(booking.currency)}{booking.totalAmount.toLocaleString()}
               </div>
               <div>
                 {(user?.role === 'ADMIN' || user?.role === 'EDITOR') ? (
@@ -750,10 +753,10 @@ export const Bookings = () => {
                     <option value="PARTIAL">Partial</option>
                     <option value="PAID">Paid</option>
                     <option value="FAILED">Failed</option>
-                    <option value="REDUNDED">Refunded</option>
+                    <option value="REFUNDED">Refunded</option>
                   </select>
                 ) : (
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(booking.paymentStatus)}`}>
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPaymentStatusColor}`}>
                     {booking.paymentStatus}
                   </span>
                 )}

@@ -43,6 +43,7 @@ interface FormValues {
   additionalDiscount: number;
   sendVoucher: boolean;
   partialPaymentAmount?: number;
+  currency: string;
 }
 
 const defaultFormValues: FormValues = {
@@ -73,8 +74,13 @@ const defaultFormValues: FormValues = {
    paymentStatus: 'PAID',
    additionalDiscount: 0,
    sendVoucher: true,
-   partialPaymentAmount: 0
+   partialPaymentAmount: 0,
+   currency: 'INR',
  };
+
+const currencySymbol = (c: string) =>
+  ({ USD: '$', EUR: '€', GBP: '£', INR: '₹', AUD: 'A$', CAD: 'C$', JPY: '¥', SGD: 'S$', AED: 'د.إ', CNY: '¥' } as const)[c] ||
+  c;
 
 export const ManualBooking = () => {
   const navigate = useNavigate();
@@ -95,6 +101,12 @@ export const ManualBooking = () => {
 
   const selectedPackage = filteredPackages.find(p => p.id === formValues.packageId);
   const childrenEnabled = selectedPackage?.ageGroups?.child?.enabled ?? true;
+
+  useEffect(() => {
+    if (!formValues.isCustom && selectedPackage?.currency && selectedPackage.currency !== formValues.currency) {
+      setFormValues(prev => ({ ...prev, currency: selectedPackage.currency }));
+    }
+  }, [formValues.isCustom, selectedPackage]);
  
   useEffect(() => {
     if (!childrenEnabled && formValues.children !== 0) {
@@ -142,7 +154,6 @@ export const ManualBooking = () => {
     formValues.customDetails.pricePerPerson,
     formValues.customDetails.discountType,
     formValues.customDetails.discountValue
-
   ]);
 
   const fetchProducts = async () => {
@@ -322,6 +333,7 @@ export const ManualBooking = () => {
         paymentStatus: formValues.paymentStatus,
         partialPaymentAmount: formValues.partialPaymentAmount,
         additionalDiscount: formValues.additionalDiscount,
+        currency: formValues.currency,
       };
       if (formValues.isCustom) {
         bookingData.customDetails = formValues.customDetails;
@@ -380,7 +392,8 @@ export const ManualBooking = () => {
         status: 'CONFIRMED',
         paymentStatus: 'PAID',
         additionalDiscount: 0,
-        sendVoucher: true
+        sendVoucher: true,
+        currency: 'INR'
       });
       
       // Redirect to bookings page after a brief delay
@@ -406,6 +419,19 @@ export const ManualBooking = () => {
         ...prev,
         customDetails: { ...prev.customDetails, [key]: value }
       }));
+      return;
+    }
+    if (name === 'currency') {
+      setFormValues(prev => ({
+        ...prev,
+        currency: value,
+        customDetails: {
+          ...prev.customDetails,
+          pricePerPerson: 0,
+          discountValue: 0
+        }
+      }));
+      return;
     } else {
       setFormValues(prev => ({
         ...prev,
@@ -615,24 +641,33 @@ export const ManualBooking = () => {
                     className="w-full px-3 py-2 border rounded"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm mb-1">Price / person *</label>
-                  <input
-                    type="number"
-                    min="0"
-                    name="customDetails.pricePerPerson"
-                    value={formValues.customDetails.pricePerPerson||0}
-                    onChange={e=>{
-                      const v=parseFloat(e.target.value);
-                      setFormValues(prev=>({
-                        ...prev,
-                        customDetails:{...prev.customDetails, pricePerPerson: v}
-                      }));
-                    }}
-                    required
-                    className="w-full px-3 py-2 border rounded"
-                  />
+                <div className="md:col-span-1">
+                  <label className="block text-sm mb-1">
+                    Price&nbsp;/&nbsp;person&nbsp;*
+                  </label>
+                  <div className="flex rounded border overflow-hidden">
+                    <span className="px-3 py-2 bg-gray-50 border-r select-none">
+                      {currencySymbol(formValues.currency)}
+                    </span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      name="customDetails.pricePerPerson"
+                      value={formValues.customDetails.pricePerPerson ?? 0}
+                      onChange={e => {
+                        const v = parseFloat(e.target.value);
+                        setFormValues(prev => ({
+                          ...prev,
+                          customDetails: { ...prev.customDetails, pricePerPerson: v }
+                        }));
+                      }}
+                      required
+                      className="flex-1 px-3 py-2 focus:outline-none"
+                    />
+                  </div>
                 </div>
+                
                 <div className="col-span-2">
                   <label className="block text-sm mb-1">Discount Type</label>
                   <select
@@ -653,26 +688,47 @@ export const ManualBooking = () => {
                 </div>
         
                 {/* Discount Value */}
-                <div>
+                <div className="md:col-span-1">
                   <label className="block text-sm mb-1">
                     {formValues.customDetails.discountType === 'percentage'
                       ? 'Discount %'
                       : 'Discount Amount'}
                   </label>
-                  <input
-                    type="number"
-                    min="0"
-                    name="customDetails.discountValue"
-                    value={formValues.customDetails.discountValue||0}
-                    onChange={e => {
-                      const v = parseFloat(e.target.value);
-                      setFormValues(prev => ({
-                        ...prev,
-                        customDetails: { ...prev.customDetails, discountValue: v }
-                      }));
-                    }}
+                  <div className="flex rounded border overflow-hidden">
+                    {formValues.customDetails.discountType === 'fixed' && (
+                      <span className="px-3 py-2 bg-gray-50 border-r select-none">
+                        {currencySymbol(formValues.currency)}
+                      </span>
+                    )}
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      name="customDetails.discountValue"
+                      value={formValues.customDetails.discountValue ?? 0}
+                      onChange={e => {
+                        const v = parseFloat(e.target.value);
+                        setFormValues(prev => ({
+                          ...prev,
+                          customDetails: { ...prev.customDetails, discountValue: v }
+                        }));
+                      }}
+                      className="flex-1 px-3 py-2 focus:outline-none"
+                    />
+                  </div>
+                </div>
+                <div className="md:col-span-1">
+                  <label className="block text-sm mb-1">Currency *</label>
+                  <select
+                    name="currency"
+                    value={formValues.currency}
+                    onChange={handleInputChange}
                     className="w-full px-3 py-2 border rounded"
-                  />
+                  >
+                    {['INR','USD','EUR','GBP','AUD','CAD','JPY','SGD','AED','CNY'].map(code => (
+                      <option key={code} value={code}>{code}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </div>
@@ -804,27 +860,34 @@ export const ManualBooking = () => {
                 <div className="mt-4 p-4 col-span-2 bg-gray-50 rounded-lg border border-gray-200">
                   <h3 className="font-medium text-gray-900 mb-2">Pricing</h3>
                   <div className="text-sm text-gray-700">
-                    {selectedSlot.adultTiers?.length > 0 && (
-                      <>
-                        <div className="mb-1"><strong>Adult:</strong></div>
-                        {selectedSlot.adultTiers.map((tier: PricingTier, idx: number) => (
-                          <div key={`adult-tier-${idx}`} className="ml-2">
-                            {tier.min}–{tier.max} {tier.max === 1 ? 'person' : 'people'}: ₹{tier.price.toLocaleString()}
-                          </div>
-                        ))}
-                      </>
-                    )}
+                    {(() => {
+                      const tierCur = selectedPackage?.currency || formValues.currency;
+                      return (
+                        <>
+                          {selectedSlot.adultTiers?.length > 0 && (
+                            <>
+                              <div className="mb-1"><strong>Adult:</strong></div>
+                              {selectedSlot.adultTiers.map((tier: PricingTier, idx: number) => (
+                                <div key={`adult-tier-${idx}`} className="ml-2">
+                                  {tier.min}–{tier.max} {tier.max === 1 ? 'person' : 'people'}: {currencySymbol(tierCur)}{tier.price.toLocaleString()}
+                                </div>
+                              ))}
+                            </>
+                          )}
 
-                    {selectedSlot.childTiers?.length > 0 && (
-                      <>
-                        <div className="mt-3 mb-1"><strong>Child:</strong></div>
-                        {selectedSlot.childTiers.map((tier: PricingTier, idx: number) => (
-                          <div key={`child-tier-${idx}`} className="ml-2">
-                            {tier.min}-{tier.max} {tier.max === 1 ? 'child' : 'children'}: ₹{tier.price.toLocaleString()}
-                          </div>
-                        ))}
-                      </>
-                    )}
+                          {selectedSlot.childTiers?.length > 0 && (
+                            <>
+                              <div className="mt-3 mb-1"><strong>Child:</strong></div>
+                              {selectedSlot.childTiers.map((tier: PricingTier, idx: number) => (
+                                <div key={`child-tier-${idx}`} className="ml-2">
+                                  {tier.min}-{tier.max} {tier.max === 1 ? 'child' : 'children'}: {currencySymbol(tierCur)}{tier.price.toLocaleString()}
+                                </div>
+                              ))}
+                            </>
+                          )}
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
               )}
@@ -1060,7 +1123,7 @@ export const ManualBooking = () => {
             <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
               <h3 className="font-medium text-gray-900 mb-2">Booking Total</h3>
               <div className="text-2xl font-bold text-[#ff914d]">
-                ₹{totalAmount.toLocaleString()}
+                {currencySymbol(formValues.currency)}{totalAmount.toLocaleString()}
               </div>
               <p className="text-sm text-gray-600">
                 {formValues.adults} Adults {formValues.children > 0 ? `, ${formValues.children} Children` : ''}

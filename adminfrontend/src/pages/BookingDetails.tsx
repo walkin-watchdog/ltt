@@ -28,6 +28,8 @@ export const BookingDetails = () => {
   const [actionLoading, setActionLoading] = useState(false)
   const [refundLoading, setRefundLoading] = useState(false)
   const [reminderLoading, setReminderLoading] = useState(false)
+  const symbol = (c: string) =>
+  ({ USD: '$', EUR: '€', GBP: '£', INR: '₹', AUD: 'A$', CAD: 'C$', JPY: '¥', SGD: 'S$', AED: 'د.إ', CNY: '¥' } as any)[c] || c
 
   useEffect(() => {
     fetch(`${import.meta.env.VITE_API_URL}/bookings/${id}`, {
@@ -155,13 +157,13 @@ export const BookingDetails = () => {
                   <div className="flex items-center">
                     <Tag className="h-5 w-5 text-gray-500 mr-2" />
                     <span className="text-sm text-gray-500 line-through">
-                      ₹{original.toLocaleString()}
+                      {symbol(booking.currency)}{original.toLocaleString()}
                     </span>
                   </div>
                   <div className="flex items-center">
                     <DollarSign className="h-5 w-5 text-gray-500 mr-2" />
                     <span className="text-sm font-medium text-gray-900">
-                      ₹{booking.totalAmount.toLocaleString()}
+                      {symbol(booking.currency)}{booking.totalAmount.toLocaleString()}
                     </span>
                   </div>
                 </>
@@ -171,7 +173,7 @@ export const BookingDetails = () => {
               <>
                 <div className="flex items-center">
                   <Percent className="h-5 w-5 text-gray-500 mr-2" />
-                  ₹{booking.discountAmount?.toLocaleString() || 0}
+                  {symbol(booking.currency)}{booking.discountAmount?.toLocaleString() || 0}
                 </div>
                 <div className="flex items-center">
                   <Tag className="h-5 w-5 text-gray-500 mr-2" />
@@ -230,7 +232,7 @@ export const BookingDetails = () => {
             </div>
             <div className="flex items-center">
               <DollarSign className="h-5 w-5 text-gray-500 mr-2" />
-              ₹{booking.totalAmount.toLocaleString()}
+              {symbol(booking.currency)}{booking.totalAmount.toLocaleString()}
             </div>
           </div>
         </section>
@@ -263,7 +265,7 @@ export const BookingDetails = () => {
         {booking.isManual && booking.paymentStatus === 'PARTIAL' || booking.paymentStatus === 'PAID' ? (
           <div className="text-gray-700">
             <div className="font-semibold">Manual Payment</div>
-            <div>Amount: ₹{(booking.paymentStatus === 'PARTIAL'
+            <div>Amount: {symbol(booking.currency)}{(booking.paymentStatus === 'PARTIAL'
                 ? booking.partialPaymentAmount
                 : booking.totalAmount
               ).toLocaleString()}</div>
@@ -276,7 +278,7 @@ export const BookingDetails = () => {
             </div>
             <div className="flex items-center text-gray-700">
               <DollarSign className="h-5 w-5 text-gray-500 mr-2" />
-              ₹{(
+              {symbol(booking.currency)}{(
                 booking.paymentStatus === 'PARTIAL'
                   ? booking.partialPaymentAmount
                   : booking.totalAmount

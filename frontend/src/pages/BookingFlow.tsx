@@ -28,6 +28,7 @@ interface BookingFormData {
   customerEmail: string;
   customerPhone: string;
   notes: string;
+  currency: string;
 }
 
 export const BookingFlow = () => {
@@ -60,7 +61,8 @@ export const BookingFlow = () => {
     customerName: '',
     customerEmail: '',
     customerPhone: '',
-    notes: ''
+    notes: '',
+    currency: 'INR'
   });
   const productCap      = currentProduct?.capacity ?? Infinity;
   const selectedPkgCap  = formData.selectedPackage?.maxPeople ?? Infinity;
@@ -84,7 +86,8 @@ export const BookingFlow = () => {
         selectedTimeSlot: formData.selectedTimeSlot,
         notes: formData.notes,
         couponCode,
-        discountAmount: appliedDiscount
+        discountAmount: appliedDiscount,
+        currency: formData.selectedPackage.currency
       };
       try {
         await dispatch(rnpaylater(bookingData)).unwrap();
@@ -389,6 +392,7 @@ export const BookingFlow = () => {
         selectedDate: formData.selectedDate,
         selectedTimeSlot: formData.selectedTimeSlot,
         totalAmount: calculateTotal(),
+        currency: formData.selectedPackage?.currency
       });
 
       if (!beganRef.current) {
@@ -480,7 +484,8 @@ export const BookingFlow = () => {
         selectedTimeSlot: formData.selectedTimeSlot,
         notes: formData.notes,
         couponCode,
-        discountAmount: appliedDiscount
+        discountAmount: appliedDiscount,
+        currency: formData.selectedPackage.currency
       };
       try {
         const booking = await dispatch(createBooking(bookingData)).unwrap();
@@ -579,7 +584,8 @@ export const BookingFlow = () => {
           productId: formData.selectedPackage?.productId || productId,
           adults: formData.adults,
           children: formData.children,
-          amount: calculateTotal()
+          amount: calculateTotal(),
+          currency: formData.selectedPackage.currency
         })
       });
       const data = await resp.json();
@@ -1212,6 +1218,7 @@ export const BookingFlow = () => {
                   onRemove={handleRemoveCoupon}
                   onError={couponError}
                   discount={appliedDiscount}
+                  currency={formData.selectedPackage.currency}
                 />
               )}
 
