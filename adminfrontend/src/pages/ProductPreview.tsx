@@ -21,7 +21,7 @@ import { ProductPolicies } from '../components/productdetailcomp/ProductPolicies
 import { Itinerary } from '../components/productdetailcomp/Itinerary';
 import { BookingSidebar } from '../components/productdetailcomp/BookingSidebar';
 import { calculateEffectivePrice } from '@/components/productdetailcomp/globalfunc.tsx';
-import { ReviewsWidget } from '@/components/productdetailcomp/ReviewWidget.tsx';
+import { CurrencySelector } from '../components/common/CurrencySelector';
 
 // Helper function to calculate the effective price after disco
 
@@ -226,12 +226,16 @@ export const ProductPreview = () => {
             <p className="text-gray-600">Viewing as customers would see it</p>
           </div>
         </div>
-        <button
+        <div className="flex items-center px-4 py-2">
+          <p className="text-gray-600 font-bold">Choose Currency</p>
+          <CurrencySelector className="px-2" />
+          <button
           onClick={() => navigate(`/products/${id}/edit`)}
           className="px-4 py-2 bg-[#ff914d] text-white rounded-lg hover:bg-[#e8823d]"
         >
           Edit Product
         </button>
+        </div>
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -403,16 +407,6 @@ export const ProductPreview = () => {
               onNavigateToDeparture={() => setDepartureDropdownOpen(true)}
               product={product}
             />
-
-            {/* Reviews Section */}
-            <div ref={reviewsRef} className="bg-white rounded-lg shadow-sm p-6 mb-8 scroll-mt-20">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Reviews</h2>
-              <ReviewsWidget
-                googlePlaceId={import.meta.env.VITE_GOOGLE_REVIEWS_PLACE_ID}
-                tripadvisorBusinessId={import.meta.env.VITE_TRIPADS_API_KEY}
-                className=""
-              />
-            </div>
           </div>
         </div>
 
